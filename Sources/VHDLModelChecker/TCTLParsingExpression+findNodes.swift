@@ -63,22 +63,30 @@ extension TCTLParser.Expression {
         for requirement: GloballyQuantifiedExpression,
         seen: inout Set<Requirement>,
         nodes: [UUID: KripkeNode],
+        edges: [UUID: [NodeEdge]],
+        exactly: Bool = false,
         _ f: @escaping (UUID, VHDLParsing.Expression) -> Requirement
     ) -> [Requirement] {
         switch self {
         case .implies(let lhs, let rhs):
-            switch lhs {
-            case .implies(let lhs2, let rhs2):
-                return lhs2.findNodes(for: requirement, seen: &seen, nodes: nodes, f) +
-                    rhs2.findNodes(for: requirement, seen: &seen, nodes: nodes, f) +
-                    rhs.findNodes(for: requirement, seen: &seen, nodes: nodes, f)
-            case .vhdl(let expression):
-                let sourceNodes = expression.findNodes(for: requirement, seen: &seen, nodes: nodes, f)
-                let targetNodes = rhs.findNodes(for: requirement, seen: &seen, nodes: nodes, f)
-                return sourceNodes + targetNodes
+            let validNodes = lhs.findNodes(
+                for: requirement, seen: &seen, nodes: nodes, edges: edges, exactly: true, f
+            )
+            let allEdges = validNodes.flatMap {
+                guard let newEdges: [NodeEdge] = edges[$0.requirement.node] else {
+                    fatalError("Missing destination from edge.")
+                }
+                return newEdges.map { $0.destination }
             }
+            let newNodes = Dictionary(uniqueKeysWithValues: Set(allEdges).map {
+                guard let node = nodes[$0] else {
+                    fatalError("Failed to get nodes!")
+                }
+                return ($0, node)
+            })
+            return rhs.findNodes(for: requirement, seen: &seen, nodes: newNodes, edges: edges, f)
         case .vhdl(let expression):
-            return expression.findNodes(for: requirement, seen: &seen, nodes: nodes, f)
+            return expression.findNodes(for: requirement, seen: &seen, nodes: nodes, exactly: exactly, f)
         }
     }
 
@@ -86,12 +94,31 @@ extension TCTLParser.Expression {
 
 extension VHDLExpression {
 
-    func findNodes(
+    func findNodesExactly(
         for requirement: GloballyQuantifiedExpression,
         seen: inout Set<Requirement>,
         nodes: [UUID: KripkeNode],
         _ f: @escaping (UUID, VHDLParsing.Expression) -> Requirement
     ) -> [Requirement] {
+        nodes.compactMap { key, val -> Requirement? in
+            guard self.expression.evaluate(node: val) else {
+                return nil
+            }
+            return f(key, self.expression)
+        }
+        .filter { !seen.contains($0) }
+    }
+
+    func findNodes(
+        for requirement: GloballyQuantifiedExpression,
+        seen: inout Set<Requirement>,
+        nodes: [UUID: KripkeNode],
+        exactly: Bool = false,
+        _ f: @escaping (UUID, VHDLParsing.Expression) -> Requirement
+    ) -> [Requirement] {
+        if exactly {
+            return self.findNodesExactly(for: requirement, seen: &seen, nodes: nodes, f)
+        }
         let variables = Set(self.allVariables)
         return nodes.compactMap {
             guard $0.value.properties.keys.contains(where: { variables.contains($0) }) else {
@@ -110,13 +137,14 @@ extension SubExpression {
         for requirement: GloballyQuantifiedExpression,
         seen: inout Set<Requirement>,
         nodes: [UUID: KripkeNode],
+        edges: [UUID: [NodeEdge]],
         _ f: @escaping (UUID, VHDLParsing.Expression) -> Requirement
     ) -> [Requirement] {
         switch self {
         case .quantified(let expression):
-            return requirement.findNodes(for: expression, seen: &seen, nodes: nodes)
+            return requirement.findNodes(for: expression, seen: &seen, nodes: nodes, edges: edges)
         case .expression(let expression):
-            return expression.findNodes(for: requirement, seen: &seen, nodes: nodes, f)
+            return expression.findNodes(for: requirement, seen: &seen, nodes: nodes, edges: edges, f)
         }
     }
 
@@ -127,14 +155,15 @@ extension GloballyQuantifiedExpression {
     func findNodes(
         for requirement: GloballyQuantifiedExpression? = nil,
         seen: inout Set<Requirement>,
-        nodes: [UUID: KripkeNode]
+        nodes: [UUID: KripkeNode],
+        edges: [UUID: [NodeEdge]]
     ) -> [Requirement] {
         let req1s: [Requirement]
         switch self {
         case .always(let expression):
             switch expression {
             case .globally(let expression):
-                req1s = expression.findNodes(for: self, seen: &seen, nodes: nodes) {
+                req1s = expression.findNodes(for: self, seen: &seen, nodes: nodes, edges: edges) {
                     Requirement.now(requirement: NodeRequirement(node: $0, requirements: [$1]))
                 }
                 .filter { !seen.contains($0) }
@@ -143,7 +172,7 @@ extension GloballyQuantifiedExpression {
         guard let req2 = requirement else {
             return req1s
         }
-        return req1s + req2.findNodes(for: nil, seen: &seen, nodes: nodes)
+        return req1s + req2.findNodes(for: nil, seen: &seen, nodes: nodes, edges: edges)
     }
 
 }

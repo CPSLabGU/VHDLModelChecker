@@ -59,4 +59,13 @@ enum Requirement: Equatable, Hashable, Codable {
 
     case later(requirement: NodeRequirement)
 
+    var requirement: NodeRequirement {
+        switch self {
+        case .now(requirement: let requirement):
+            return requirement
+        case .later(requirement: let requirement):
+            return requirement
+        }
+    }
+
 }

@@ -74,6 +74,7 @@ public struct VHDLModelChecker {
         var nodes: [Requirement] = []
         var seen: Set<Requirement> = []
         repeat {
+            nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
             if let nextNode = nodes.popLast() {
                 nodes.append(contentsOf: try self.satisfy(node: nextNode, seen: &seen))
                 guard nodes.isEmpty else {
@@ -90,7 +91,7 @@ public struct VHDLModelChecker {
     func findNodes(
         for requirement: GloballyQuantifiedExpression, seen: inout Set<Requirement>
     ) throws -> [Requirement] {
-        requirement.findNodes(for: nil, seen: &seen, nodes: self.iterator.nodes)
+        requirement.findNodes(for: nil, seen: &seen, nodes: self.iterator.nodes, edges: self.iterator.edges)
     }
 
     func satisfy(node: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
