@@ -72,9 +72,10 @@ public struct VHDLModelChecker {
     public func verify(against specification: Specification) throws -> Bool {
         var requirements = specification.requirements
         var nodes: [Requirement] = []
+        var seen: Set<Requirement> = []
         repeat {
             if let nextNode = nodes.popLast() {
-                nodes.append(contentsOf: try self.satisfy(node: nextNode))
+                nodes.append(contentsOf: try self.satisfy(node: nextNode, seen: &seen))
                 guard nodes.isEmpty else {
                     continue
                 }
@@ -108,7 +109,10 @@ public struct VHDLModelChecker {
         }
     }
 
-    func satisfy(node: Requirement) throws -> [Requirement] {
+    func satisfy(node: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
+        guard !seen.contains(node) else {
+            return []
+        }
         switch node {
         case .now(let requirement):
             guard let req = self.iterator.nodes[requirement.node] else {
@@ -120,6 +124,7 @@ public struct VHDLModelChecker {
                 }
                 return true
             }
+            seen.insert(node)
             guard let edges = self.iterator.edges[requirement.node] else {
                 return []
             }
@@ -128,15 +133,25 @@ public struct VHDLModelChecker {
                     requirement: NodeRequirement(node: $0.destination, requirements: requirement.requirements)
                 )
             }
+            .filter { !seen.contains($0) }
         case .later(let requirement):
             guard let req = self.iterator.nodes[requirement.node] else {
                 throw VerificationError.unsatisfied(requirement: node)
             }
+            defer { seen.insert(node) }
             if requirement.requirements.allSatisfy({ $0.evaluate(node: req) }) {
                 return []
             }
+            guard let edges = self.iterator.edges[requirement.node] else {
+                return []
+            }
+            return edges.map {
+                Requirement.later(
+                    requirement: NodeRequirement(node: $0.destination, requirements: requirement.requirements)
+                )
+            }
+            .filter { !seen.contains($0) }
         }
-        throw VerificationError.unsatisfied(requirement: node)
     }
 
 }
