@@ -90,15 +90,7 @@ public struct VHDLModelChecker {
     func findNodes(
         for requirement: GloballyQuantifiedExpression, seen: inout Set<Requirement>
     ) throws -> [Requirement] {
-        switch requirement {
-        case .always(let expression):
-            switch expression {
-            case .globally(let expression):
-                return expression.findNodes(for: requirement, seen: &seen, nodes: self.iterator.nodes) {
-                    Requirement.now(requirement: NodeRequirement(node: $0, requirements: [$1]))
-                }
-            }
-        }
+        requirement.findNodes(for: nil, seen: &seen, nodes: self.iterator.nodes)
     }
 
     func satisfy(node: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
