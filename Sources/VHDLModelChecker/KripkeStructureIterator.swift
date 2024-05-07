@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// KripkeStructureIterator.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,62 +53,72 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import Foundation
 import VHDLKripkeStructures
-import VHDLParsing
 
-public struct VHDLModelChecker {
+struct KripkeStructureIterator {
 
-    let iterator: KripkeStructureIterator
+    let nodes: [UUID: KripkeNode]
 
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
-    }
+    let edges: [UUID: [NodeEdge]]
 
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
-    }
-
-    public func verify(against specification: Specification) throws -> Bool {
-        var requirements = specification.requirements
-        var nodes: [Requirement] = []
-        repeat {
-            if let nextNode = nodes.popLast() {
-                nodes.append(contentsOf: try self.satisfy(node: nextNode))
-                guard nodes.isEmpty else {
-                    continue
+    init(structure: KripkeStructure) {
+        let ringlets = structure.ringlets.lazy
+        var nodes: [UUID: KripkeNode] = [:]
+        var edges: [UUID: [NodeEdge]] = [:]
+        var ids: [KripkeNode: UUID] = [:]
+        ringlets.forEach {
+            let read = KripkeNode.read(node: $0.read)
+            let write = KripkeNode.write(node: $0.write)
+            let writeID: UUID
+            if let id = ids[write] {
+                writeID = id
+            } else {
+                writeID = UUID()
+                ids[write] = writeID
+            }
+            nodes[writeID] = write
+            let nextReads = ringlets.filter { ringlet in
+                let currentWrite = ringlet.write
+                return ringlet.state == currentWrite.nextState &&
+                    ringlet.read.executeOnEntry == currentWrite.executeOnEntry &&
+                    ringlet.read.properties.allSatisfy { key, val -> Bool in
+                        guard let writeVal = currentWrite.properties[key] else {
+                            return true
+                        }
+                        return writeVal == val
+                    }
+            }
+            guard !nextReads.isEmpty else {
+                fatalError("Found accepting state \(write)")
+            }
+            let writeEdges = nextReads.map {
+                let readID: UUID
+                if let id = ids[.read(node: $0.read)] {
+                    readID = id
+                } else {
+                    readID = UUID()
+                    ids[.read(node: $0.read)] = readID
                 }
+                return NodeEdge(edge: Edge(time: 0, energy: 0), destination: readID)
             }
-            if let nextRequirement = requirements.popLast() {
-                nodes.append(contentsOf: self.findNodes(for: nextRequirement))
+            edges[writeID] = Array(writeEdges)
+            let readID: UUID
+            if let id = ids[read] {
+                readID = id
+            } else {
+                readID = UUID()
+                ids[read] = readID
             }
-        } while !nodes.isEmpty
-        return true
-    }
-
-    func findNodes(for requirement: GloballyQuantifiedExpression) -> [Requirement] {
-        switch requirement {
-        case .always(let expression):
-            switch expression {
-            case .globally(let expression):
-                switch expression {
-                case .implies(let lhs, let rhs):
-
-                case .vhdl(let expression):
-
-                }
-            }
+            nodes[readID] = read
+            edges[readID] = [NodeEdge(edge: $0.edge, destination: writeID)]
         }
+        self.init(nodes: nodes, edges: edges)
     }
 
-    func satisfy(node: Requirement) throws -> [Requirement] {
-        throw VerificationError.unsatisfied(requirement: node)
+    init(nodes: [UUID: KripkeNode], edges: [UUID: [NodeEdge]]) {
+        self.nodes = nodes
+        self.edges = edges
     }
-
-}
-
-enum VerificationError: Error {
-
-    case unsatisfied(requirement: Requirement)
 
 }

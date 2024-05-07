@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// NodeReference.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,62 +53,22 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
 import VHDLKripkeStructures
-import VHDLParsing
 
-public struct VHDLModelChecker {
+class NodeReference: Identifiable, Equatable, Hashable {
 
-    let iterator: KripkeStructureIterator
+    let node: KripkeNode
 
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
+    init(node: KripkeNode) {
+        self.node = node
     }
 
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
+    static func == (lhs: NodeReference, rhs: NodeReference) -> Bool {
+        lhs.node == rhs.node
     }
 
-    public func verify(against specification: Specification) throws -> Bool {
-        var requirements = specification.requirements
-        var nodes: [Requirement] = []
-        repeat {
-            if let nextNode = nodes.popLast() {
-                nodes.append(contentsOf: try self.satisfy(node: nextNode))
-                guard nodes.isEmpty else {
-                    continue
-                }
-            }
-            if let nextRequirement = requirements.popLast() {
-                nodes.append(contentsOf: self.findNodes(for: nextRequirement))
-            }
-        } while !nodes.isEmpty
-        return true
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(node)
     }
-
-    func findNodes(for requirement: GloballyQuantifiedExpression) -> [Requirement] {
-        switch requirement {
-        case .always(let expression):
-            switch expression {
-            case .globally(let expression):
-                switch expression {
-                case .implies(let lhs, let rhs):
-
-                case .vhdl(let expression):
-
-                }
-            }
-        }
-    }
-
-    func satisfy(node: Requirement) throws -> [Requirement] {
-        throw VerificationError.unsatisfied(requirement: node)
-    }
-
-}
-
-enum VerificationError: Error {
-
-    case unsatisfied(requirement: Requirement)
 
 }

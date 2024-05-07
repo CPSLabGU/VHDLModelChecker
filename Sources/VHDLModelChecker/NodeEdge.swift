@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// NodeEdge.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,62 +53,18 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import Foundation
 import VHDLKripkeStructures
-import VHDLParsing
 
-public struct VHDLModelChecker {
+class NodeEdge {
 
-    let iterator: KripkeStructureIterator
+    let edge: Edge
 
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
+    let destination: UUID
+
+    init(edge: Edge, destination: UUID) {
+        self.edge = edge
+        self.destination = destination
     }
-
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
-    }
-
-    public func verify(against specification: Specification) throws -> Bool {
-        var requirements = specification.requirements
-        var nodes: [Requirement] = []
-        repeat {
-            if let nextNode = nodes.popLast() {
-                nodes.append(contentsOf: try self.satisfy(node: nextNode))
-                guard nodes.isEmpty else {
-                    continue
-                }
-            }
-            if let nextRequirement = requirements.popLast() {
-                nodes.append(contentsOf: self.findNodes(for: nextRequirement))
-            }
-        } while !nodes.isEmpty
-        return true
-    }
-
-    func findNodes(for requirement: GloballyQuantifiedExpression) -> [Requirement] {
-        switch requirement {
-        case .always(let expression):
-            switch expression {
-            case .globally(let expression):
-                switch expression {
-                case .implies(let lhs, let rhs):
-
-                case .vhdl(let expression):
-
-                }
-            }
-        }
-    }
-
-    func satisfy(node: Requirement) throws -> [Requirement] {
-        throw VerificationError.unsatisfied(requirement: node)
-    }
-
-}
-
-enum VerificationError: Error {
-
-    case unsatisfied(requirement: Requirement)
 
 }
