@@ -100,11 +100,11 @@ public struct VHDLModelChecker {
         switch node {
         case .now(let requirement):
             guard let req = self.iterator.nodes[requirement.node] else {
-                throw VerificationError.unsatisfied(requirement: node)
+                throw VerificationError.missingNode(requirement: node)
             }
             _ = try requirement.requirements.allSatisfy {
                 guard $0.evaluate(node: req) else {
-                    throw VerificationError.unsatisfied(requirement: node)
+                    throw VerificationError.unsatisfied(requirement: node, node: req)
                 }
                 return true
             }
@@ -120,14 +120,14 @@ public struct VHDLModelChecker {
             .filter { !seen.contains($0) }
         case .later(let requirement):
             guard let req = self.iterator.nodes[requirement.node] else {
-                throw VerificationError.unsatisfied(requirement: node)
+                throw VerificationError.missingNode(requirement: node)
             }
             defer { seen.insert(node) }
             if requirement.requirements.allSatisfy({ $0.evaluate(node: req) }) {
                 return []
             }
             guard let edges = self.iterator.edges[requirement.node] else {
-                throw VerificationError.unsatisfied(requirement: node)
+                throw VerificationError.unsatisfied(requirement: node, node: req)
             }
             let newNodes = edges.map {
                 Requirement.later(
@@ -136,7 +136,7 @@ public struct VHDLModelChecker {
             }
             .filter { !seen.contains($0) }
             guard !newNodes.isEmpty else {
-                throw VerificationError.unsatisfied(requirement: node)
+                throw VerificationError.unsatisfied(requirement: node, node: req)
             }
             return newNodes
         }
@@ -146,7 +146,9 @@ public struct VHDLModelChecker {
 
 enum VerificationError: Error {
 
-    case unsatisfied(requirement: Requirement)
+    case missingNode(requirement: Requirement)
+
+    case unsatisfied(requirement: Requirement, node: KripkeNode)
 
     case invalidRequirement(requirement: GloballyQuantifiedExpression)
 
