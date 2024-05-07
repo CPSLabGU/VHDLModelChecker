@@ -68,8 +68,8 @@ struct KripkeStructureIterator {
         var edges: [UUID: [NodeEdge]] = [:]
         var ids: [KripkeNode: UUID] = [:]
         ringlets.forEach {
-            let read = KripkeNode.read(node: $0.read)
-            let write = KripkeNode.write(node: $0.write)
+            let read = KripkeNode.read(node: $0.read, currentState: $0.state)
+            let write = KripkeNode.write(node: $0.write, currentState: $0.state)
             let writeID: UUID
             if let id = ids[write] {
                 writeID = id
@@ -94,11 +94,11 @@ struct KripkeStructureIterator {
             }
             let writeEdges = nextReads.map {
                 let readID: UUID
-                if let id = ids[.read(node: $0.read)] {
+                if let id = ids[.read(node: $0.read, currentState: $0.state)] {
                     readID = id
                 } else {
                     readID = UUID()
-                    ids[.read(node: $0.read)] = readID
+                    ids[.read(node: $0.read, currentState: $0.state)] = readID
                 }
                 return NodeEdge(edge: Edge(time: 0, energy: 0), destination: readID)
             }

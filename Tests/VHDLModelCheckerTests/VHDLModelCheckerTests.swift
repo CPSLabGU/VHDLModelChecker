@@ -1,5 +1,5 @@
-import XCTest
 @testable import VHDLModelChecker
+import XCTest
 
 final class VHDLModelCheckerTests: XCTestCase {
     func testExample() throws {

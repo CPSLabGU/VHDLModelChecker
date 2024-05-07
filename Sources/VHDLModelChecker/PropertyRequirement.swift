@@ -152,48 +152,48 @@ struct PropertyRequirement {
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 return nil
             }
-            self.init { $0[variable] == rhs }
+            self.init { $0[variable].flatMap { $0 == rhs } ?? true }
         case .notEquals(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 return nil
             }
-            self.init { $0[variable] != rhs }
+            self.init { $0[variable].flatMap { $0 != rhs } ?? true }
         case .greaterThan(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs > $0 } ?? false }
+                self.init { $0[rhs].flatMap { lhs > $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 > rhs } ?? false }
+            self.init { $0[variable].flatMap { $0 > rhs } ?? true }
         case .greaterThanOrEqual(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs >= $0 } ?? false }
+                self.init { $0[rhs].flatMap { lhs >= $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 >= rhs } ?? false }
+            self.init { $0[variable].flatMap { $0 >= rhs } ?? true }
         case .lessThan(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs < $0 } ?? false }
+                self.init { $0[rhs].flatMap { lhs < $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 < rhs } ?? false }
+            self.init { $0[variable].flatMap { $0 < rhs } ?? true }
         case .lessThanOrEqual(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs <= $0 } ?? false }
+                self.init { $0[rhs].flatMap { lhs <= $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 <= rhs } ?? false }
+            self.init { $0[variable].flatMap { $0 <= rhs } ?? true }
         }
     }
 
@@ -293,6 +293,10 @@ extension VHDLParsing.Expression {
             return nil
         }
         return boolean
+    }
+
+    func contains(name: VariableName) -> Bool {
+        self.allVariables.contains(name)
     }
 
 }

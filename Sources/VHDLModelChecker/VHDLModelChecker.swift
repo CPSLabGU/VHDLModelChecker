@@ -80,28 +80,65 @@ public struct VHDLModelChecker {
                 }
             }
             if let nextRequirement = requirements.popLast() {
-                nodes.append(contentsOf: self.findNodes(for: nextRequirement))
+                nodes.append(contentsOf: try self.findNodes(for: nextRequirement))
             }
         } while !nodes.isEmpty
         return true
     }
 
-    func findNodes(for requirement: GloballyQuantifiedExpression) -> [Requirement] {
+    func findNodes(for requirement: GloballyQuantifiedExpression) throws -> [Requirement] {
         switch requirement {
         case .always(let expression):
             switch expression {
             case .globally(let expression):
                 switch expression {
                 case .implies(let lhs, let rhs):
-
+                    return []
                 case .vhdl(let expression):
-
+                    let variables = Set(expression.allVariables)
+                    return try self.iterator.nodes.compactMap {
+                        guard $0.value.properties.keys.contains(where: { variables.contains($0) }) else {
+                            return nil
+                        }
+                        guard let propertyReq = PropertyRequirement(constraint: expression) else {
+                            throw VerificationError.invalidRequirement(requirement: requirement)
+                        }
+                        let nodeReq = NodeRequirement(node: $0.key, requirements: [propertyReq])
+                        return Requirement.now(requirement: nodeReq)
+                    }
                 }
             }
         }
     }
 
     func satisfy(node: Requirement) throws -> [Requirement] {
+        switch node {
+        case .now(let requirement):
+            guard let req = self.iterator.nodes[requirement.node] else {
+                throw VerificationError.unsatisfied(requirement: node)
+            }
+            _ = try requirement.requirements.allSatisfy {
+                guard $0.requirement(req.properties) else {
+                    throw VerificationError.unsatisfied(requirement: node)
+                }
+                return true
+            }
+            guard let edges = self.iterator.edges[requirement.node] else {
+                return []
+            }
+            return edges.map {
+                Requirement.now(
+                    requirement: NodeRequirement(node: $0.destination, requirements: requirement.requirements)
+                )
+            }
+        case .later(let requirement):
+            guard let req = self.iterator.nodes[requirement.node] else {
+                throw VerificationError.unsatisfied(requirement: node)
+            }
+            if requirement.requirements.allSatisfy({ $0.requirement(req.properties) }) {
+                return []
+            }
+        }
         throw VerificationError.unsatisfied(requirement: node)
     }
 
@@ -110,5 +147,7 @@ public struct VHDLModelChecker {
 enum VerificationError: Error {
 
     case unsatisfied(requirement: Requirement)
+
+    case invalidRequirement(requirement: GloballyQuantifiedExpression)
 
 }

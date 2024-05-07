@@ -1,4 +1,4 @@
-// KripkeNode.swift
+// VHDLExpression+allVariables.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,47 +53,17 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import VHDLKripkeStructures
+import TCTLParser
 import VHDLParsing
 
-enum KripkeNode: Equatable, Hashable, Codable, Sendable {
+extension VHDLExpression {
 
-    case read(node: ReadNode, currentState: VariableName)
-
-    case write(node: WriteNode, currentState: VariableName)
-
-    var currentState: VariableName {
+    var allVariables: [VariableName] {
         switch self {
-        case .read(_, let currentState), .write(_, let currentState):
-            return currentState
-        }
-    }
-
-    var executeOnEntry: Bool {
-        switch self {
-        case .read(let node, _):
-            return node.executeOnEntry
-        case .write(let node, _):
-            return node.executeOnEntry
-        }
-    }
-
-    var properties: [VariableName: SignalLiteral] {
-        switch self {
-        case .read(let node, _):
-            return node.properties
-        case .write(let node, _):
-            return node.properties
-        }
-    }
-
-    var nextState: VariableName? {
-        switch self {
-        case .read:
-            return nil
-        case .write(let node, _):
-            return node.nextState
+        case .boolean(let expression):
+            return VHDLParsing.Expression.logical(operation: expression).allVariables
+        case .conditional(let expression):
+            return VHDLParsing.Expression.conditional(condition: expression).allVariables
         }
     }
 
