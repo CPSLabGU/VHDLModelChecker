@@ -74,7 +74,7 @@ public struct VHDLModelChecker {
         var nodes: [Requirement] = []
         var seen: Set<Requirement> = []
         repeat {
-            print("Number of nodes: \(self.iterator.nodes.count)")
+            print("Number of nodes: \(nodes.count)")
             // nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
             if let nextNode = nodes.popLast() {
                 nodes.append(contentsOf: try self.satisfy(node: nextNode, seen: &seen))
