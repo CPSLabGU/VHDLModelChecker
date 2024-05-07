@@ -56,7 +56,7 @@
 import Foundation
 import VHDLParsing
 
-struct NodeRequirement {
+struct NodeRequirement: Equatable, Hashable, Codable {
 
     let node: UUID
 
