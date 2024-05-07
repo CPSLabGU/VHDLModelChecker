@@ -60,7 +60,7 @@ extension VariableName {
     static let currentState = VariableName(rawValue: "currentState")!
 
     static let executeOnEntry = VariableName(rawValue: "executeOnEntry")!
-    
+
     static let nextState = VariableName(rawValue: "nextState")!
 
 }
