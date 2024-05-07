@@ -100,10 +100,7 @@ public struct VHDLModelChecker {
                         guard $0.value.properties.keys.contains(where: { variables.contains($0) }) else {
                             return nil
                         }
-                        guard let propertyReq = PropertyRequirement(constraint: expression) else {
-                            throw VerificationError.invalidRequirement(requirement: requirement)
-                        }
-                        let nodeReq = NodeRequirement(node: $0.key, requirements: [propertyReq])
+                        let nodeReq = NodeRequirement(node: $0.key, requirements: [expression.expression])
                         return Requirement.now(requirement: nodeReq)
                     }
                 }
@@ -118,7 +115,7 @@ public struct VHDLModelChecker {
                 throw VerificationError.unsatisfied(requirement: node)
             }
             _ = try requirement.requirements.allSatisfy {
-                guard $0.requirement(req.properties) else {
+                guard $0.evaluate(node: req) else {
                     throw VerificationError.unsatisfied(requirement: node)
                 }
                 return true
@@ -135,7 +132,7 @@ public struct VHDLModelChecker {
             guard let req = self.iterator.nodes[requirement.node] else {
                 throw VerificationError.unsatisfied(requirement: node)
             }
-            if requirement.requirements.allSatisfy({ $0.requirement(req.properties) }) {
+            if requirement.requirements.allSatisfy({ $0.evaluate(node: req) }) {
                 return []
             }
         }

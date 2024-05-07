@@ -1,4 +1,4 @@
-// NodeRequirement.swift
+// Expression+evaluate.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,13 +53,15 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import VHDLParsing
 
-struct NodeRequirement {
+extension Expression {
 
-    let node: UUID
-
-    let requirements: [Expression]
+    func evaluate(node: KripkeNode) -> Bool {
+        guard let requirement = PropertyRequirement(constraint: self) else {
+            return false
+        }
+        return requirement.requirement(node)
+    }
 
 }

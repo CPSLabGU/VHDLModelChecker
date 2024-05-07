@@ -67,4 +67,13 @@ extension VHDLExpression {
         }
     }
 
+    var expression: VHDLParsing.Expression {
+        switch self {
+        case .boolean(let expression):
+            return .logical(operation: expression)
+        case .conditional(let expression):
+            return .conditional(condition: expression)
+        }
+    }
+
 }

@@ -58,9 +58,9 @@ import VHDLParsing
 
 struct PropertyRequirement {
 
-    let requirement: ([VariableName: SignalLiteral]) -> Bool
+    let requirement: (KripkeNode) -> Bool
 
-    init(_ requirement: @escaping ([VariableName: SignalLiteral]) -> Bool) {
+    init(_ requirement: @escaping (KripkeNode) -> Bool) {
         self.requirement = requirement
     }
 
@@ -149,51 +149,101 @@ struct PropertyRequirement {
     init?(constraint: ComparisonOperation) {
         switch constraint {
         case .equality(let lhs, let rhs):
-            guard let variable = lhs.variable, let rhs = rhs.literal else {
+            guard let variable = lhs.variable else {
                 return nil
             }
-            self.init { $0[variable].flatMap { $0 == rhs } ?? true }
+            guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
+                switch variable {
+                case .currentState:
+                    guard let rhs = rhs.variable else {
+                        return nil
+                    }
+                    self.init { $0.currentState == rhs }
+                case .executeOnEntry:
+                    guard let rhs = rhs.literal?.boolean else {
+                        return nil
+                    }
+                    self.init { $0.executeOnEntry == rhs }
+                case .nextState:
+                    guard let rhs = rhs.variable else {
+                        return nil
+                    }
+                    self.init { $0.nextState == rhs }
+                default:
+                    return nil
+                }
+                return
+            }
+            guard let rhs = rhs.literal else {
+                return nil
+            }
+            self.init { $0.properties[variable].flatMap { $0 == rhs } ?? true }
         case .notEquals(let lhs, let rhs):
-            guard let variable = lhs.variable, let rhs = rhs.literal else {
+            guard let variable = lhs.variable else {
                 return nil
             }
-            self.init { $0[variable].flatMap { $0 != rhs } ?? true }
+            guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
+                switch variable {
+                case .currentState:
+                    guard let rhs = rhs.variable else {
+                        return nil
+                    }
+                    self.init { $0.currentState != rhs }
+                case .executeOnEntry:
+                    guard let rhs = rhs.literal?.boolean else {
+                        return nil
+                    }
+                    self.init { $0.executeOnEntry != rhs }
+                case .nextState:
+                    guard let rhs = rhs.variable else {
+                        return nil
+                    }
+                    self.init { $0.nextState != rhs }
+                default:
+                    return nil
+                }
+                return
+            }
+            guard let rhs = rhs.literal else {
+                return nil
+            }
+            self.init { $0.properties[variable].flatMap { $0 != rhs } ?? true }
         case .greaterThan(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs > $0 } ?? true }
+                self.init { $0.properties[rhs].flatMap { lhs > $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 > rhs } ?? true }
+            self.init { $0.properties[variable].flatMap { $0 > rhs } ?? true }
         case .greaterThanOrEqual(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs >= $0 } ?? true }
+                self.init { $0.properties[rhs].flatMap { lhs >= $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 >= rhs } ?? true }
+            self.init { $0.properties[variable].flatMap { $0 >= rhs } ?? true }
         case .lessThan(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs < $0 } ?? true }
+                self.init { $0.properties[rhs].flatMap { lhs < $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 < rhs } ?? true }
+            self.init { $0.properties[variable].flatMap { $0 < rhs } ?? true }
         case .lessThanOrEqual(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
                 guard let lhs = lhs.literal, let rhs = rhs.variable else {
                     return nil
                 }
-                self.init { $0[rhs].flatMap { lhs <= $0 } ?? true }
+                self.init { $0.properties[rhs].flatMap { lhs <= $0 } ?? true }
                 return
             }
-            self.init { $0[variable].flatMap { $0 <= rhs } ?? true }
+            self.init { $0.properties[variable].flatMap { $0 <= rhs } ?? true }
         }
     }
 
@@ -310,12 +360,12 @@ extension SignalLiteral: Comparable {
     //     return value
     // }
 
-    // var boolean: Bool? {
-    //     guard case .boolean(let value) = self else {
-    //         return nil
-    //     }
-    //     return value
-    // }
+    var boolean: Bool? {
+        guard case .boolean(let value) = self else {
+            return nil
+        }
+        return value
+    }
 
     // var decimal: Double? {
     //     guard case .decimal(let value) = self else {

@@ -1,4 +1,4 @@
-// NodeRequirement.swift
+// VariableName+constants.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,13 +53,14 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import VHDLParsing
 
-struct NodeRequirement {
+extension VariableName {
 
-    let node: UUID
+    static let currentState = VariableName(rawValue: "currentState")!
 
-    let requirements: [Expression]
+    static let executeOnEntry = VariableName(rawValue: "executeOnEntry")!
+    
+    static let nextState = VariableName(rawValue: "nextState")!
 
 }
