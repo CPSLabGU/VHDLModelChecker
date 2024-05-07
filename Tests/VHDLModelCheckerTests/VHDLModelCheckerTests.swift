@@ -13,6 +13,8 @@ final class VHDLModelCheckerTests: XCTestCase {
         // spec:language VHDL
 
         A G RecoveryModeMachine_failureCount = 3 -> recoveryMode = '1'
+
+        A G RecoveryModeMachine_failureCount < 4
         """
         guard let specification = Specification(rawValue: specRaw) else {
             XCTFail("Failed to create spec.")

@@ -72,19 +72,16 @@ extension TCTLParser.Expression {
             let validNodes = lhs.findNodes(
                 for: requirement, seen: &seen, nodes: nodes, edges: edges, exactly: true, f
             )
-            let allEdges = validNodes.flatMap {
-                guard let newEdges: [NodeEdge] = edges[$0.requirement.node] else {
-                    fatalError("Missing destination from edge.")
+            let allEdges: [UUID] = validNodes.compactMap { (node: Requirement) -> [UUID]? in
+                guard let newEdges: [NodeEdge] = edges[node.requirement.node] else {
+                    return nil
                 }
                 return newEdges.map { $0.destination }
             }
-            let newNodes = Dictionary(uniqueKeysWithValues: Set(allEdges).map {
-                guard let node = nodes[$0] else {
-                    fatalError("Failed to get nodes!")
-                }
-                return ($0, node)
-            })
-            return rhs.findNodes(for: requirement, seen: &seen, nodes: newNodes, edges: edges, f)
+            .flatMap { $0 }
+            let edgesSet = Set(allEdges)
+            return rhs.findNodes(for: requirement, seen: &seen, nodes: nodes, edges: edges, f)
+                .filter { edgesSet.contains($0.requirement.node) }
         case .vhdl(let expression):
             return expression.findNodes(for: requirement, seen: &seen, nodes: nodes, exactly: exactly, f)
         }
