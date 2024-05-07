@@ -81,13 +81,15 @@ public struct VHDLModelChecker {
                 }
             }
             if let nextRequirement = requirements.popLast() {
-                nodes.append(contentsOf: try self.findNodes(for: nextRequirement))
+                nodes.append(contentsOf: try self.findNodes(for: nextRequirement, seen: &seen))
             }
         } while !nodes.isEmpty
         return true
     }
 
-    func findNodes(for requirement: GloballyQuantifiedExpression) throws -> [Requirement] {
+    func findNodes(
+        for requirement: GloballyQuantifiedExpression, seen: inout Set<Requirement>
+    ) throws -> [Requirement] {
         switch requirement {
         case .always(let expression):
             switch expression {
@@ -97,13 +99,14 @@ public struct VHDLModelChecker {
                     return []
                 case .vhdl(let expression):
                     let variables = Set(expression.allVariables)
-                    return try self.iterator.nodes.compactMap {
+                    return self.iterator.nodes.compactMap {
                         guard $0.value.properties.keys.contains(where: { variables.contains($0) }) else {
                             return nil
                         }
                         let nodeReq = NodeRequirement(node: $0.key, requirements: [expression.expression])
                         return Requirement.now(requirement: nodeReq)
                     }
+                    .filter { !seen.contains($0) }
                 }
             }
         }
