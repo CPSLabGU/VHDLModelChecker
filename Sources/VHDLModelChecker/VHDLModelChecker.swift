@@ -94,19 +94,8 @@ public struct VHDLModelChecker {
         case .always(let expression):
             switch expression {
             case .globally(let expression):
-                switch expression {
-                case .implies(let lhs, let rhs):
-                    return []
-                case .vhdl(let expression):
-                    let variables = Set(expression.allVariables)
-                    return self.iterator.nodes.compactMap {
-                        guard $0.value.properties.keys.contains(where: { variables.contains($0) }) else {
-                            return nil
-                        }
-                        let nodeReq = NodeRequirement(node: $0.key, requirements: [expression.expression])
-                        return Requirement.now(requirement: nodeReq)
-                    }
-                    .filter { !seen.contains($0) }
+                return expression.findNodes(for: requirement, seen: &seen, nodes: self.iterator.nodes) {
+                    Requirement.now(requirement: NodeRequirement(node: $0, requirements: [$1]))
                 }
             }
         }
