@@ -146,14 +146,18 @@ public struct VHDLModelChecker {
                 return []
             }
             guard let edges = self.iterator.edges[requirement.node] else {
-                return []
+                throw VerificationError.unsatisfied(requirement: node)
             }
-            return edges.map {
+            let newNodes = edges.map {
                 Requirement.later(
                     requirement: NodeRequirement(node: $0.destination, requirements: requirement.requirements)
                 )
             }
             .filter { !seen.contains($0) }
+            guard !newNodes.isEmpty else {
+                throw VerificationError.unsatisfied(requirement: node)
+            }
+            return newNodes
         }
     }
 
