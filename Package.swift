@@ -19,7 +19,8 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
         .package(url: "https://github.com/mipalgu/VHDLParsing", from: "2.4.0"),
-        .package(url: "git@github.com:Morgan2010/TCTLParser.git", branch: "main")
+        .package(url: "git@github.com:Morgan2010/TCTLParser.git", branch: "main"),
+        .package(url: "git@github.com:Morgan2010/VHDLKripkeStructures.git", branch: "main")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -29,7 +30,8 @@ let package = Package(
             name: "VHDLModelChecker",
             dependencies: [
                 .product(name: "VHDLParsing", package: "VHDLParsing"),
-                .product(name: "TCTLParser", package: "TCTLParser")
+                .product(name: "TCTLParser", package: "TCTLParser"),
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
             ]
         ),
         .testTarget(
@@ -37,7 +39,8 @@ let package = Package(
             dependencies: [
                 .target(name: "VHDLModelChecker"),
                 .product(name: "VHDLParsing", package: "VHDLParsing"),
-                .product(name: "TCTLParser", package: "TCTLParser")
+                .product(name: "TCTLParser", package: "TCTLParser"),
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
             ]
         )
     ]
