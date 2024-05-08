@@ -53,19 +53,27 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-enum Requirement: Equatable, Hashable, Codable {
+import Foundation
+import TCTLParser
 
-    case now(requirement: NodeRequirement)
+class Requirement: Equatable, Hashable, Codable {
 
-    case later(requirement: NodeRequirement)
+    let constraint: GloballyQuantifiedExpression
 
-    var requirement: NodeRequirement {
-        switch self {
-        case .now(requirement: let requirement):
-            return requirement
-        case .later(requirement: let requirement):
-            return requirement
-        }
+    let node: UUID
+
+    init(constraint: GloballyQuantifiedExpression, node: UUID) {
+        self.constraint = constraint
+        self.node = node
+    }
+
+    static func == (lhs: Requirement, rhs: Requirement) -> Bool {
+        lhs.node == rhs.node && lhs.constraint == rhs.constraint
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(node)
+        hasher.combine(constraint)
     }
 
 }

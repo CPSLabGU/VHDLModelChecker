@@ -70,78 +70,25 @@ public struct VHDLModelChecker {
     }
 
     public func verify(against specification: Specification) throws -> Bool {
-        var requirements = specification.requirements
-        var nodes: [Requirement] = []
+        var constraints = specification.requirements
+        var requirements: [Requirement] = []
         var seen: Set<Requirement> = []
         repeat {
-            print("Number of nodes: \(nodes.count)")
+            print("Number of reqs: \(requirements.count)")
             // nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
-            if let nextNode = nodes.popLast() {
-                nodes.append(contentsOf: try self.satisfy(node: nextNode, seen: &seen))
-                guard nodes.isEmpty else {
-                    continue
-                }
-            }
             if let nextRequirement = requirements.popLast() {
-                nodes.append(contentsOf: try self.findNodes(for: nextRequirement, seen: &seen))
+                requirements.append(contentsOf: try self.satisfy(requirement: nextRequirement, seen: &seen))
             }
-        } while !nodes.isEmpty
+            if let nextConstraint = constraints.popLast() {
+                // nodes.append(contentsOf: try self.findNodes(for: nextRequirement, seen: &seen))
+                return false
+            }
+        } while !requirements.isEmpty
         return true
     }
 
-    func findNodes(
-        for requirement: GloballyQuantifiedExpression, seen: inout Set<Requirement>
-    ) throws -> [Requirement] {
-        requirement.findNodes(for: nil, seen: &seen, nodes: self.iterator.nodes, edges: self.iterator.edges)
-    }
-
-    func satisfy(node: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
-        guard !seen.contains(node) else {
-            return []
-        }
-        switch node {
-        case .now(let requirement):
-            guard let req = self.iterator.nodes[requirement.node] else {
-                throw VerificationError.missingNode(requirement: node)
-            }
-            _ = try requirement.requirements.allSatisfy {
-                guard $0.evaluate(node: req) else {
-                    throw VerificationError.unsatisfied(requirement: node, node: req)
-                }
-                return true
-            }
-            seen.insert(node)
-            guard let edges = self.iterator.edges[requirement.node] else {
-                return []
-            }
-            return edges.map {
-                Requirement.now(
-                    requirement: NodeRequirement(node: $0.destination, requirements: requirement.requirements)
-                )
-            }
-            .filter { !seen.contains($0) }
-        case .later(let requirement):
-            guard let req = self.iterator.nodes[requirement.node] else {
-                throw VerificationError.missingNode(requirement: node)
-            }
-            defer { seen.insert(node) }
-            if requirement.requirements.allSatisfy({ $0.evaluate(node: req) }) {
-                return []
-            }
-            guard let edges = self.iterator.edges[requirement.node] else {
-                throw VerificationError.unsatisfied(requirement: node, node: req)
-            }
-            let newNodes = edges.map {
-                Requirement.later(
-                    requirement: NodeRequirement(node: $0.destination, requirements: requirement.requirements)
-                )
-            }
-            .filter { !seen.contains($0) }
-            guard !newNodes.isEmpty else {
-                throw VerificationError.unsatisfied(requirement: node, node: req)
-            }
-            return newNodes
-        }
+    func satisfy(requirement: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
+        []
     }
 
 }
