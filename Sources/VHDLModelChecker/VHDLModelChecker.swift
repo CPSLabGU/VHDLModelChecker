@@ -69,7 +69,7 @@ public struct VHDLModelChecker {
         self.iterator = iterator
     }
 
-    public func verify(against specification: Specification) throws -> Bool {
+    public func verify(against specification: Specification) throws {
         var constraints = specification.requirements
         var requirements: [Requirement] = []
         var seen: Set<Requirement> = []
@@ -84,8 +84,7 @@ public struct VHDLModelChecker {
                     contentsOf: try self.createRequirements(constraint: nextConstraint, seen: &seen)
                 )
             }
-        } while !requirements.isEmpty
-        return true
+        } while !requirements.isEmpty || !constraints.isEmpty
     }
 
     func createRequirements(

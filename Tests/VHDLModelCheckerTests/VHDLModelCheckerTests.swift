@@ -39,6 +39,6 @@ final class VHDLModelCheckerTests: XCTestCase {
         }
         print("Valid States: \(validStates.count)")
         let modelChecker = VHDLModelChecker(structure: kripkeStructure)
-        _ = try modelChecker.verify(against: specification)
+        try modelChecker.verify(against: specification)
     }
 }
