@@ -80,11 +80,18 @@ public struct VHDLModelChecker {
                 requirements.append(contentsOf: try self.satisfy(requirement: nextRequirement, seen: &seen))
             }
             if let nextConstraint = constraints.popLast() {
-                // nodes.append(contentsOf: try self.findNodes(for: nextRequirement, seen: &seen))
-                return false
+                requirements.append(
+                    contentsOf: try self.createRequirements(constraint: nextConstraint, seen: &seen)
+                )
             }
         } while !requirements.isEmpty
         return true
+    }
+
+    func createRequirements(
+        constraint: GloballyQuantifiedExpression, seen: inout Set<Requirement>
+    ) throws -> [Requirement] {
+        return []
     }
 
     func satisfy(requirement: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
