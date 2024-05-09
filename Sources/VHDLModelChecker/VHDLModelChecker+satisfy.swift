@@ -148,16 +148,16 @@ extension VHDLModelChecker {
                 return false
             }
         }
-        let nextConstraints = (Array(nowPaths) + Array(futurePaths))
-            .map { $0.constraint }.filter { !seen.contains($0) }
-        guard !nextConstraints.isEmpty else {
-            throw VerificationError.notSupported
-        }
-        let edgeConstraints = try nextConstraints.flatMap { constraint in
+        let constraints = (Array(nowPaths) + Array(futurePaths)).map { $0.constraint }
+        let edgeConstraints = try constraints.flatMap { constraint in
             guard let edges = self.iterator.edges[constraint.node] else {
                 throw VerificationError.notSupported
             }
             return edges.map { Constraint(constraint: constraint.constraint, node: $0.destination) }
+        }
+        .filter { !seen.contains($0) }
+        guard !edgeConstraints.isEmpty else {
+            throw VerificationError.notSupported
         }
         return [ConstrainedPath.any(paths: edgeConstraints)]
     }
