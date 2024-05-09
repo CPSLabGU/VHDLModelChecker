@@ -18,7 +18,9 @@ final class VHDLModelCheckerTests: XCTestCase {
     // swiftlint:disable implicitly_unwrapped_optional
 
     /// The specification to test against.
-    lazy var specification: Specification! = Specification(rawValue: specRaw)
+    lazy var specification: RequirementsSpecification = .tctl(
+        specification: Specification(rawValue: specRaw)!
+    )
 
     /// The kripke structure to test.
     var kripkeStructure: KripkeStructure! = nil
@@ -30,7 +32,7 @@ final class VHDLModelCheckerTests: XCTestCase {
 
     /// Initialise the test data before every test.
     override func setUp() {
-        specification = Specification(rawValue: specRaw)
+        specification = .tctl(specification: Specification(rawValue: specRaw)!)
         let path = FileManager.default.currentDirectoryPath.appending(
             "/Tests/VHDLModelCheckerTests/output.json"
         )
