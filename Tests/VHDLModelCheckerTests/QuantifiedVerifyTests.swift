@@ -98,6 +98,77 @@ final class QuantifiedVerifyTests: XCTestCase {
         .first
     }
 
-    
+    func testAlways() throws {
+        let result = try GloballyQuantifiedExpression.always(
+            expression: .globally(expression: .language(expression: trueExp))
+        )
+        .verify(currentNode: failureCount2Node, inCycle: true)
+        XCTAssertEqual(result, [.completed])
+        let result2 = try GloballyQuantifiedExpression.always(
+            expression: .globally(expression: .language(expression: trueExp))
+        )
+        .verify(currentNode: failureCount2Node, inCycle: false)
+        XCTAssertEqual(result2, [.progressing])
+        XCTAssertThrowsError(
+            try GloballyQuantifiedExpression.always(
+                expression: .globally(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true)
+        )
+        XCTAssertThrowsError(
+            try GloballyQuantifiedExpression.always(
+                expression: .globally(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false)
+        )
+    }
+
+    func testEventually() throws {
+        let result = try GloballyQuantifiedExpression.eventually(
+            expression: .globally(expression: .language(expression: trueExp))
+        )
+        .verify(currentNode: failureCount2Node, inCycle: true)
+        XCTAssertEqual(result, [.completed])
+        let result2 = try GloballyQuantifiedExpression.eventually(
+            expression: .globally(expression: .language(expression: trueExp))
+        )
+        .verify(currentNode: failureCount2Node, inCycle: false)
+        XCTAssertEqual(result2, [.progressing])
+        let result3 = try GloballyQuantifiedExpression.eventually(
+            expression: .finally(expression: .language(expression: trueExp))
+        )
+        .verify(currentNode: failureCount2Node, inCycle: true)
+        XCTAssertEqual(result3, [.completed])
+        let result4 = try GloballyQuantifiedExpression.eventually(
+            expression: .finally(expression: .language(expression: trueExp))
+        )
+        .verify(currentNode: failureCount2Node, inCycle: false)
+        XCTAssertEqual(result4, [.completed])
+        XCTAssertThrowsError(
+            try GloballyQuantifiedExpression.eventually(
+                expression: .globally(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true)
+        )
+        XCTAssertThrowsError(
+            try GloballyQuantifiedExpression.eventually(
+                expression: .globally(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false)
+        )
+        XCTAssertThrowsError(
+            try GloballyQuantifiedExpression.eventually(
+                expression: .next(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true)
+        )
+        XCTAssertEqual(
+            try GloballyQuantifiedExpression.eventually(
+                expression: .next(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.progressing]
+        )
+    }
 
 }
