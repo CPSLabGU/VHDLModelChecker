@@ -1,4 +1,4 @@
-// Expression+evaluate.swift
+// GloballyQuantifiedExpression+helpers.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,15 +53,12 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import VHDLParsing
+import TCTLParser
 
-extension Expression {
+extension GloballyQuantifiedExpression {
 
-    func evaluate(node: KripkeNode) -> Bool {
-        guard let requirement = PropertyRequirement(constraint: self) else {
-            return false
-        }
-        return requirement.requirement(node)
+    var allVariables: [Variable] {
+        self.expression.allVariables
     }
 
 }

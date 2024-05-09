@@ -251,68 +251,6 @@ struct PropertyRequirement {
 
 extension VHDLParsing.Expression {
 
-    var allVariables: [VariableName] {
-        switch self {
-        case .binary(let operation):
-            switch operation {
-            case .addition(let lhs, let rhs), .concatenate(let lhs, let rhs), .division(let lhs, let rhs),
-                .multiplication(let lhs, let rhs), .subtraction(let lhs, let rhs):
-                return lhs.allVariables + rhs.allVariables
-            }
-        case .cast(let operation):
-            return operation.expression.allVariables
-        case .conditional(let condition):
-            switch condition {
-            case .comparison(let operation):
-                switch operation {
-                case .equality(let lhs, let rhs), .greaterThan(let lhs, let rhs),
-                    .greaterThanOrEqual(let lhs, let rhs), .lessThan(let lhs, let rhs),
-                    .lessThanOrEqual(let lhs, let rhs), .notEquals(let lhs, let rhs):
-                        return lhs.allVariables + rhs.allVariables
-                }
-            case .edge(let condition):
-                switch condition {
-                case .rising(let expression), .falling(let expression):
-                    return expression.allVariables
-                }
-            case .literal:
-                return []
-            }
-        case .functionCall(let call):
-            switch call {
-            case .custom(let function):
-                return function.parameters.map(\.argument).flatMap(\.allVariables)
-            case .mathReal(let function):
-                switch function {
-                case .ceil(let expression), .floor(let expression), .round(let expression),
-                    .sign(let expression), .sqrt(let expression):
-                    return expression.allVariables
-                case .fmax(let arg0, let arg1), .fmin(let arg0, let arg1):
-                    return arg0.allVariables + arg1.allVariables
-                }
-            }
-        case .literal:
-            return []
-        case .logical(let operation):
-            switch operation {
-            case .and(let lhs, let rhs), .nand(let lhs, let rhs), .nor(let lhs, let rhs),
-                .or(let lhs, let rhs), .xnor(let lhs, let rhs), .xor(let lhs, let rhs):
-                return lhs.allVariables + rhs.allVariables
-            case .not(let expression):
-                return expression.allVariables
-            }
-        case .precedence(let expression):
-            return expression.allVariables
-        case .reference(let variable):
-            switch variable {
-            case .indexed(let name, _):
-                return name.allVariables
-            case .variable(let reference):
-                return reference.allVariables
-            }
-        }
-    }
-
     var variable: VariableName? {
         guard
             case .reference(let variable) = self,
