@@ -73,7 +73,7 @@ extension GloballyQuantifiedExpression {
             let results = try expression.verify(currentNode: node, inCycle: inCycle)
             return inCycle
                 ? results.map { $0 == .progressing ? .completed : $0 }
-                : results.map { $0 == .completed ? .progressing : $0 }
+                : results
         case .eventually(let expression):
             let result = try expression.verify(currentNode: node, inCycle: inCycle)
             if inCycle, result.contains(.progressing) {
