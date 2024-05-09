@@ -77,10 +77,20 @@ final class VerifyTests: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    let trueExp = VHDLParsing.Expression.conditional(condition: .comparison(value: .equality(
+        lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+        rhs: .literal(value: .integer(value: 2))
+    )))
+
+    let falseExp = VHDLParsing.Expression.conditional(condition: .comparison(value: .equality(
+        lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+        rhs: .literal(value: .integer(value: 3))
+    )))
+
     /// A node with a failure count of 3.
-    var failureCount3Node: KripkeNode! {
+    var failureCount2Node: KripkeNode! {
         kripkeStructure.ringlets.lazy.compactMap { ringlet -> KripkeNode? in
-            guard ringlet.write.properties[.failureCount] == .integer(value: 3) else {
+            guard ringlet.write.properties[.failureCount] == .integer(value: 2) else {
                 return nil
             }
             return KripkeNode.write(node: ringlet.write, currentState: ringlet.state)
@@ -92,62 +102,292 @@ final class VerifyTests: XCTestCase {
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
-                rhs: .literal(value: .integer(value: 3))
+                rhs: .literal(value: .integer(value: 2))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .currentState))),
                 rhs: .reference(variable: .variable(reference: .variable(
-                    name: failureCount3Node.currentState
+                    name: failureCount2Node.currentState
                 )))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .nextState))),
                 rhs: .reference(variable: .variable(reference: .variable(
-                    name: failureCount3Node.nextState!
+                    name: failureCount2Node.nextState!
                 )))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .executeOnEntry))),
-                rhs: .literal(value: .boolean(value: failureCount3Node.executeOnEntry))
+                rhs: .literal(value: .boolean(value: failureCount2Node.executeOnEntry))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
-                rhs: .literal(value: .integer(value: 2))
+                rhs: .literal(value: .integer(value: 3))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .currentState))),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .nextState))),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
         )
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .executeOnEntry))),
-                rhs: .literal(value: .boolean(value: !failureCount3Node.executeOnEntry))
+                rhs: .literal(value: .boolean(value: !failureCount2Node.executeOnEntry))
             )))
-            .verify(node: failureCount3Node)
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    func testGreaterThan() {
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThan(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 1))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThan(
+                lhs: .literal(value: .integer(value: 3)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThan(
+                lhs: .literal(value: .integer(value: 1)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThan(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 3))
+            )))
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    func testNot() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .not(value: .conditional(
+                condition: .comparison(value: .equality(
+                    lhs: .reference(variable: .variable(reference: .variable(name: .executeOnEntry))),
+                    rhs: .literal(value: .boolean(value: !failureCount2Node.executeOnEntry))
+                ))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .not(value: .conditional(
+                condition: .comparison(value: .equality(
+                    lhs: .reference(variable: .variable(reference: .variable(name: .executeOnEntry))),
+                    rhs: .literal(value: .boolean(value: failureCount2Node.executeOnEntry))
+                ))
+            )))
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    func testNotEquals() {
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .notEquals(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 2))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .notEquals(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 3))
+            )))
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    func testGreaterOrEqual() {
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 1))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
+                lhs: .literal(value: .integer(value: 3)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
+                lhs: .literal(value: .integer(value: 1)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 3))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 2))
+            )))
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    func testAnd() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .and(lhs: falseExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .and(lhs: falseExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testOr() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .or(lhs: trueExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .or(lhs: trueExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .or(lhs: falseExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .or(lhs: falseExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testXOR() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .xor(lhs: trueExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .xor(lhs: falseExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .xor(lhs: trueExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .xor(lhs: falseExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testNAND() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .nand(lhs: trueExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .nand(lhs: falseExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .nand(lhs: falseExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .nand(lhs: trueExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testNOR() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .nor(lhs: falseExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .nor(lhs: trueExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .nor(lhs: falseExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .nor(lhs: trueExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testXNOR() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .xnor(lhs: trueExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .xnor(lhs: falseExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .xnor(lhs: trueExp, rhs: falseExp))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .xnor(lhs: falseExp, rhs: trueExp))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testLiteral() {
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .literal(value: true)).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .literal(value: false)).verify(node: failureCount2Node)
         )
     }
 

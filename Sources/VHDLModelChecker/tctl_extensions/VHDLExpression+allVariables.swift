@@ -101,6 +101,20 @@ extension VHDLParsing.Expression {
             try operation.verify(node: node)
         case .precedence(let value):
             try value.verify(node: node)
+        case .reference(let variable):
+            guard case .variable(let reference) = variable, case .variable(let name) = reference else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+            switch name {
+            case .executeOnEntry:
+                guard node.executeOnEntry else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            default:
+                guard let value = node.properties[name]?.boolean, value else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            }
         default:
             throw VerificationError.notSupported
         }
@@ -114,7 +128,7 @@ extension ConditionalExpression {
         switch self {
         case .literal(let value):
             guard value else {
-                throw VerificationError.notSupported
+                throw VerificationError.unsatisfied(node: node)
             }
         case .edge:
             throw VerificationError.notSupported
@@ -131,29 +145,29 @@ extension ComparisonOperation {
         switch self {
         case .equality(let lhs, let rhs):
             guard let variable = lhs.variable else {
-                throw VerificationError.notSupported
+                throw VerificationError.unsatisfied(node: node)
             }
             guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
                 switch variable {
                 case .currentState:
                     guard let rhs = rhs.variable, node.currentState == rhs else {
-                        throw VerificationError.notSupported
+                        throw VerificationError.unsatisfied(node: node)
                     }
                 case .executeOnEntry:
                     guard let rhs = rhs.literal?.boolean, node.executeOnEntry == rhs else {
-                        throw VerificationError.notSupported
+                        throw VerificationError.unsatisfied(node: node)
                     }
                 case .nextState:
                     guard let rhs = rhs.variable, node.nextState == rhs else {
-                        throw VerificationError.notSupported
+                        throw VerificationError.unsatisfied(node: node)
                     }
                 default:
-                    throw VerificationError.notSupported
+                    throw VerificationError.unsatisfied(node: node)
                 }
                 return
             }
             guard let rhs = rhs.literal, let value = node.properties[variable], value == rhs else {
-                throw VerificationError.notSupported
+                throw VerificationError.unsatisfied(node: node)
             }
         case .notEquals(let lhs, let rhs):
             try BooleanExpression.not(
@@ -168,12 +182,12 @@ extension ComparisonOperation {
                     let value = node.properties[rhs],
                     lhs > value
                 else {
-                    throw VerificationError.notSupported
+                    throw VerificationError.unsatisfied(node: node)
                 }
                 return
             }
             guard let value = node.properties[variable], value > rhs else {
-                throw VerificationError.notSupported
+                throw VerificationError.unsatisfied(node: node)
             }
         case .greaterThanOrEqual(let lhs, let rhs):
             try BooleanExpression.or(
@@ -214,7 +228,7 @@ extension BooleanExpression {
             guard (try? expression.verify(node: node)) != nil else {
                 return
             }
-            throw VerificationError.notSupported
+            throw VerificationError.unsatisfied(node: node)
         case .nand(let lhs, let rhs):
             try BooleanExpression.not(value: .logical(operation: .and(lhs: lhs, rhs: rhs))).verify(node: node)
         case .nor(let lhs, let rhs):
@@ -224,7 +238,7 @@ extension BooleanExpression {
             case (nil, .some), (.some, nil):
                 return
             default:
-                throw VerificationError.notSupported
+                throw VerificationError.unsatisfied(node: node)
             }
         case .xnor(let lhs, let rhs):
             try BooleanExpression.not(value: .logical(operation: .xor(lhs: lhs, rhs: rhs))).verify(node: node)
