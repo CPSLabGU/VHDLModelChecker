@@ -64,19 +64,28 @@ extension GloballyQuantifiedExpression {
 
     func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
+        let results: [VerifyStatus]
+        let expression: PathQuantifiedExpression
         switch self {
-        case .always(let expression):
-            let results = try expression.verify(currentNode: node, inCycle: inCycle)
-            return inCycle
-                ? results.map { $0 == .progressing ? .completed : $0 }
-                : results
-        case .eventually(let expression):
-            let result = try expression.verify(currentNode: node, inCycle: inCycle)
-            if inCycle, result.contains(.progressing) {
-                // Need to handle eventually accross multiple branches.
+        case .always(let exp), .eventually(let exp):
+            results = try exp.verify(currentNode: node, inCycle: inCycle)
+            expression = exp
+        }
+        guard inCycle else {
+            return results
+        }
+        switch expression {
+        case .next:
+            return [.progressing]
+        case .finally:
+            guard !results.contains(.progressing) else {
                 throw VerificationError.unsatisfied(node: node)
             }
-            return result
+            return results
+        case .globally:
+            return results.map { $0 == .progressing ? .completed : $0 }
+        default:
+            throw VerificationError.notSupported
         }
     }
 

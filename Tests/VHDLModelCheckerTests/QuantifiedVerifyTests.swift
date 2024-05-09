@@ -167,14 +167,14 @@ final class QuantifiedVerifyTests: XCTestCase {
                 expression: .next(expression: .language(expression: trueExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: true),
-            [.completed]
+            [.progressing]
         )
         XCTAssertEqual(
             try GloballyQuantifiedExpression.always(
                 expression: .next(expression: .language(expression: falseExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: true),
-            [.completed]
+            [.progressing]
         )
     }
 
@@ -211,11 +211,12 @@ final class QuantifiedVerifyTests: XCTestCase {
             )
             .verify(currentNode: failureCount2Node, inCycle: false)
         )
-        XCTAssertThrowsError(
+        XCTAssertEqual(
             try GloballyQuantifiedExpression.eventually(
                 expression: .next(expression: .language(expression: falseExp))
             )
-            .verify(currentNode: failureCount2Node, inCycle: true)
+            .verify(currentNode: failureCount2Node, inCycle: true),
+            [.progressing]
         )
         XCTAssertEqual(
             try GloballyQuantifiedExpression.eventually(

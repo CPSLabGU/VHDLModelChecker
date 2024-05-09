@@ -219,4 +219,41 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    func testImpliesProgressive() throws {
+        let nextTrue = TCTLParser.Expression.quantified(
+            expression: .always(expression: .next(expression: .language(expression: trueExp)))
+        )
+        let nextFalse = TCTLParser.Expression.quantified(
+            expression: .always(expression: .next(expression: .language(expression: falseExp)))
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextTrue, rhs: .language(expression: falseExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: .language(expression: falseExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextTrue, rhs: .language(expression: falseExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true),
+            [.revisitting(expression: .language(expression: falseExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextTrue, rhs: .language(expression: trueExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: .language(expression: trueExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextTrue, rhs: .language(expression: trueExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true),
+            [.revisitting(expression: .language(expression: trueExp))]
+        )
+    }
+
 }
