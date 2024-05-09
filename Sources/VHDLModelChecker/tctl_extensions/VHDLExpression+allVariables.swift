@@ -103,7 +103,7 @@ extension VHDLParsing.Expression {
             try value.verify(node: node)
         case .reference(let variable):
             guard case .variable(let reference) = variable, case .variable(let name) = reference else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.notSupported
             }
             switch name {
             case .executeOnEntry:

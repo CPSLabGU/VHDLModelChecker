@@ -391,4 +391,35 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    func testPrecedence() {
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: .precedence(value: trueExp)))
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: .precedence(value: falseExp)))
+                .verify(node: failureCount2Node)
+        )
+    }
+
+    func testReference() {
+        guard failureCount2Node.executeOnEntry else {
+            XCTAssertThrowsError(
+                try VHDLExpression.boolean(expression: .and(
+                    lhs: trueExp,
+                    rhs: .reference(variable: .variable(reference: .variable(name: .executeOnEntry)))
+                ))
+                .verify(node: failureCount2Node)
+            )
+            return
+        }
+        XCTAssertNoThrow(
+            try VHDLExpression.boolean(expression: .and(
+                lhs: trueExp,
+                rhs: .reference(variable: .variable(reference: .variable(name: .executeOnEntry)))
+            ))
+            .verify(node: failureCount2Node)
+        )
+    }
+
 }
