@@ -53,6 +53,7 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 import VHDLParsing
@@ -90,6 +91,8 @@ public struct VHDLModelChecker {
     func createConstraints(
         requirement: GloballyQuantifiedExpression, seen: inout Set<Constraint>
     ) throws -> [Constraint] {
+        let pathExpression = requirement.expression
+        let nodes = try self.validNodes(for: pathExpression)
         return []
     }
 
@@ -97,9 +100,24 @@ public struct VHDLModelChecker {
         []
     }
 
+    func validNodes(for expression: PathQuantifiedExpression) throws -> [UUID] {
+        switch expression {
+        case .globally(let expression):
+            return []
+        default:
+            throw VerificationError.notSupported
+        }
+    }
+
+    func validNodes(for expression: TCTLParser.Expression) throws -> [UUID] {
+        []
+    }
+
 }
 
 enum VerificationError: Error {
+
+    case notSupported
 
     case missingNode(constraint: Constraint)
 

@@ -1,4 +1,4 @@
-// VHDLExpression+allVariables.swift
+// Variable.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,30 +53,41 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
 import VHDLParsing
 
-extension VHDLExpression {
+enum Variable: RawRepresentable, Equatable, Hashable, Codable, Sendable {
 
-    var allVariables: [Variable] {
+    case currentState
+
+    case executeOnEntry
+
+    case nextState
+
+    case property(name: VariableName)
+
+    var rawValue: VariableName {
         switch self {
-        case .boolean(let expression):
-            return VHDLParsing.Expression.logical(operation: expression).allVariables.map {
-                Variable(rawValue: $0)
-            }
-        case .conditional(let expression):
-            return VHDLParsing.Expression.conditional(condition: expression).allVariables.map {
-                Variable(rawValue: $0)
-            }
+        case .currentState:
+            return .currentState
+        case .executeOnEntry:
+            return .executeOnEntry
+        case .nextState:
+            return .nextState
+        case .property(let name):
+            return name
         }
     }
 
-    var expression: VHDLParsing.Expression {
-        switch self {
-        case .boolean(let expression):
-            return .logical(operation: expression)
-        case .conditional(let expression):
-            return .conditional(condition: expression)
+    init(rawValue: VariableName) {
+        switch rawValue {
+        case .currentState:
+            self = .currentState
+        case .executeOnEntry:
+            self = .executeOnEntry
+        case .nextState:
+            self = .nextState
+        default:
+            self = .property(name: rawValue)
         }
     }
 
