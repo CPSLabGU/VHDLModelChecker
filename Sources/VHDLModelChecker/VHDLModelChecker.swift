@@ -101,9 +101,9 @@ public struct VHDLModelChecker {
 
 enum VerificationError: Error {
 
-    case missingNode(requirement: Constraint)
+    case missingNode(constraint: Constraint)
 
-    case unsatisfied(requirement: Constraint, node: KripkeNode)
+    case unsatisfied(constraint: Constraint, node: KripkeNode)
 
     case invalidRequirement(requirement: GloballyQuantifiedExpression)
 
