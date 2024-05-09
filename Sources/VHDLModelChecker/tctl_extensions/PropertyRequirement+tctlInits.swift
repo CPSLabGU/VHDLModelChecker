@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// PropertyRequirement+tctlInits.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,81 +53,59 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import TCTLParser
-import VHDLKripkeStructures
-import VHDLParsing
 
-public struct VHDLModelChecker {
+extension PropertyRequirement {
 
-    let iterator: KripkeStructureIterator
-
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
-    }
-
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
-    }
-
-    public func verify(against specification: Specification) throws {
-        var requirements = specification.requirements
-        var constraints: [ConstrainedPath] = []
-        var seen: Set<Constraint> = []
-        repeat {
-            print("Number of reqs: \(requirements.count)")
-            // nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
-            if let nextConstraint = constraints.popLast() {
-                constraints.append(contentsOf: try self.satisfy(constraint: nextConstraint, seen: &seen))
-            }
-            if let nextRequirement = requirements.popLast() {
-                constraints.append(
-                    contentsOf: try self.createConstraints(requirement: nextRequirement, seen: seen)
-                )
-            }
-        } while !requirements.isEmpty || !constraints.isEmpty
-    }
-
-    func createConstraints(
-        requirement: GloballyQuantifiedExpression, seen: Set<Constraint>
-    ) throws -> [ConstrainedPath] {
-        let pathExpression = requirement.expression
-        let createExpression: (TCTLParser.Expression) -> ConstrainedExpression
-        let createPath: ([Constraint]) -> ConstrainedPath
-        switch pathExpression {
-        case .globally:
-            createExpression = { .now(constraint: $0) }
-        case .finally:
-            createExpression = { .future(constraint: $0) }
-        default:
-            throw VerificationError.notSupported
-        }
-        switch requirement {
-        case .always:
-            createPath = { .all(paths: $0) }
-        case .eventually:
-            createPath = { .any(paths: $0) }
-        }
-        guard let subExpression = pathExpression.expression else {
-            throw VerificationError.notSupported
-        }
-        let constraints: [Constraint] = try self.validNodes(for: pathExpression).compactMap {
-            let constraint = Constraint(
-                constraint: createExpression(subExpression), node: $0
-            )
-            guard !seen.contains(constraint) else {
+    init?(constraint: Expression) {
+        switch constraint {
+        case .language(let expression):
+            self.init(constraint: expression)
+        case .precedence(let expression):
+            guard let subExpression = PropertyRequirement(constraint: expression) else {
                 return nil
             }
-            return constraint
+            self.init { (subExpression.requirement($0)) }
+        case .implies(let lhs, let rhs):
+            guard
+                let lhsReq = PropertyRequirement(constraint: lhs),
+                let rhsReq = PropertyRequirement(constraint: rhs)
+            else {
+                return nil
+            }
+            self.init { lhsReq.requirement($0) ? rhsReq.requirement($0) : true }
+        case .quantified(let expression):
+            self.init(constraint: expression)
         }
-        guard !constraints.isEmpty else {
-            return []
-        }
-        return [createPath(constraints)]
     }
 
-    func satisfy(constraint: ConstrainedPath, seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
-        []
+    init?(constraint: LanguageExpression) {
+        switch constraint {
+        case .vhdl(let expression):
+            self.init(constraint: expression)
+        }
+    }
+
+    init?(constraint: GloballyQuantifiedExpression) {
+        switch constraint {
+        case .always(let expression), .eventually(let expression):
+            guard let requirement = PropertyRequirement(constraint: expression) else {
+                return nil
+            }
+            self.init { requirement.requirement($0) }
+        }
+    }
+
+    init?(constraint: PathQuantifiedExpression) {
+        switch constraint {
+        case .finally(let expression), .globally(let expression):
+            guard let req = PropertyRequirement(constraint: expression) else {
+                return nil
+            }
+            self.init { req.requirement($0) }
+        default:
+            return nil
+        }
     }
 
 }
