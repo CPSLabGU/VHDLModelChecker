@@ -58,10 +58,34 @@ extension VHDLModelChecker {
     func satisfy(constraint path: ConstrainedPath, seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
         switch path {
         case .all(let paths):
-            return []
+            return try self.satisfy(all: paths, seen: &seen)
         case .any(let paths):
             return try self.satisfy(any: paths, seen: &seen)
         }
+    }
+
+    func satisfy(all paths: [Constraint], seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
+        try paths.forEach { constraint in
+            seen.insert(constraint)
+            guard let node = self.iterator.nodes[constraint.node] else {
+                throw VerificationError.notSupported
+            }
+            switch constraint.constraint {
+            case .now(let expression), .future(let expression):
+                guard let req = PropertyRequirement(constraint: expression), req.requirement(node) else {
+                    throw VerificationError.notSupported
+                }
+            default:
+                throw VerificationError.notSupported
+            }
+        }
+        let nextPaths = try paths.flatMap { constraint in
+            guard let edges = self.iterator.edges[constraint.node] else {
+                throw VerificationError.notSupported
+            }
+            return edges.map { Constraint(constraint: constraint.constraint, node: $0.destination) }
+        }
+        return [ConstrainedPath.all(paths: nextPaths)]
     }
 
     func satisfy(any paths: [Constraint], seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
@@ -100,7 +124,38 @@ extension VHDLModelChecker {
         guard !isFinished else {
             return []
         }
-        return []
+        let lazyPaths = nextPaths.lazy
+        let nowPaths = lazyPaths.filter {
+            guard case .success = $0 else {
+                return false
+            }
+            switch $0.constraint.constraint {
+            case .now:
+                return true
+            default:
+                return false
+            }
+        }
+        let futurePaths = lazyPaths.filter {
+            switch $0.constraint.constraint {
+            case .future:
+                return true
+            default:
+                return false
+            }
+        }
+        let nextConstraints = (Array(nowPaths) + Array(futurePaths))
+            .map { $0.constraint }.filter { !seen.contains($0) }
+        guard !nextConstraints.isEmpty else {
+            throw VerificationError.notSupported
+        }
+        let edgeConstraints = try nextConstraints.flatMap { constraint in
+            guard let edges = self.iterator.edges[constraint.node] else {
+                throw VerificationError.notSupported
+            }
+            return edges.map { Constraint(constraint: constraint.constraint, node: $0.destination) }
+        }
+        return [ConstrainedPath.any(paths: edgeConstraints)]
     }
 
 }
