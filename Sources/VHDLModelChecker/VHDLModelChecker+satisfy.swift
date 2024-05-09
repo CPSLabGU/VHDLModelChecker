@@ -65,27 +65,8 @@ extension VHDLModelChecker {
     }
 
     func satisfy(all paths: [Constraint], seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
-        try paths.forEach { constraint in
-            seen.insert(constraint)
-            guard let node = self.iterator.nodes[constraint.node] else {
-                throw VerificationError.notSupported
-            }
-            switch constraint.constraint {
-            case .now(let expression), .future(let expression):
-                guard let req = PropertyRequirement(constraint: expression), req.requirement(node) else {
-                    throw VerificationError.notSupported
-                }
-            default:
-                throw VerificationError.notSupported
-            }
-        }
-        let nextPaths = try paths.flatMap { constraint in
-            guard let edges = self.iterator.edges[constraint.node] else {
-                throw VerificationError.notSupported
-            }
-            return edges.map { Constraint(constraint: constraint.constraint, node: $0.destination) }
-        }
-        .filter { !seen.contains($0) }
+        let nextPaths = try paths.flatMap { try self.satisfy(allConstraint: $0, seen: &seen) }
+            .filter { !seen.contains($0) }
         guard !nextPaths.isEmpty else {
             return []
         }
@@ -93,32 +74,7 @@ extension VHDLModelChecker {
     }
 
     func satisfy(any paths: [Constraint], seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
-        let nextPaths = try paths.map { (constraint: Constraint) -> VerificationState in
-            seen.insert(constraint)
-            guard let node = self.iterator.nodes[constraint.node] else {
-                throw VerificationError.notSupported
-            }
-            switch constraint.constraint {
-            case .now(let expression):
-                guard let req = PropertyRequirement(constraint: expression) else {
-                    throw VerificationError.notSupported
-                }
-                guard req.requirement(node) else {
-                    return .failure(constraint: constraint)
-                }
-                return .success(constraint: constraint)
-            case .future(let expression):
-                guard let req = PropertyRequirement(constraint: expression) else {
-                    throw VerificationError.notSupported
-                }
-                guard req.requirement(node) else {
-                    return .failure(constraint: constraint)
-                }
-                return .success(constraint: constraint)
-            default:
-                throw VerificationError.notSupported
-            }
-        }
+        let nextPaths = try paths.map { try self.satisfy(anyConstraint: $0, seen: &seen) }
         let isFinished = nextPaths.contains {
             guard case .success(let constraint) = $0, case .future = constraint.constraint else {
                 return false
@@ -160,6 +116,56 @@ extension VHDLModelChecker {
             throw VerificationError.notSupported
         }
         return [ConstrainedPath.any(paths: edgeConstraints)]
+    }
+
+    func satisfy(
+        allConstraint constraint: Constraint, seen: inout Set<Constraint>
+    ) throws -> [Constraint] {
+        seen.insert(constraint)
+        guard let node = self.iterator.nodes[constraint.node] else {
+            throw VerificationError.notSupported
+        }
+        switch constraint.constraint {
+        case .now(let expression), .future(let expression):
+            guard let req = PropertyRequirement(constraint: expression), req.requirement(node) else {
+                throw VerificationError.notSupported
+            }
+        default:
+            throw VerificationError.notSupported
+        }
+        guard let edges = self.iterator.edges[constraint.node] else {
+            throw VerificationError.notSupported
+        }
+        return edges.map { Constraint(constraint: constraint.constraint, node: $0.destination) }
+    }
+
+    func satisfy(
+        anyConstraint constraint: Constraint, seen: inout Set<Constraint>
+    ) throws -> VerificationState {
+        seen.insert(constraint)
+        guard let node = self.iterator.nodes[constraint.node] else {
+            throw VerificationError.notSupported
+        }
+        switch constraint.constraint {
+        case .now(let expression):
+            guard let req = PropertyRequirement(constraint: expression) else {
+                throw VerificationError.notSupported
+            }
+            guard req.requirement(node) else {
+                return .failure(constraint: constraint)
+            }
+            return .success(constraint: constraint)
+        case .future(let expression):
+            guard let req = PropertyRequirement(constraint: expression) else {
+                throw VerificationError.notSupported
+            }
+            guard req.requirement(node) else {
+                return .failure(constraint: constraint)
+            }
+            return .success(constraint: constraint)
+        default:
+            throw VerificationError.notSupported
+        }
     }
 
 }
