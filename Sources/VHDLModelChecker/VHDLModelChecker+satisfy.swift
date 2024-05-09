@@ -74,14 +74,13 @@ extension VHDLModelChecker {
     }
 
     func satisfy(any paths: [Constraint], seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
-        let nextPaths = try paths.map { try self.satisfy(anyConstraint: $0, seen: &seen) }
-        let isFinished = nextPaths.contains {
-            guard case .success(let constraint) = $0, case .future = constraint.constraint else {
-                return false
+        var nextPaths: [VerificationState] = []
+        for path in paths {
+            let result = try self.satisfy(anyConstraint: path, seen: &seen)
+            guard case .success(let constraint) = result, case .future = constraint.constraint else {
+                nextPaths.append(result)
+                continue
             }
-            return true
-        }
-        guard !isFinished else {
             return []
         }
         let lazyPaths = nextPaths.lazy
