@@ -66,15 +66,17 @@ extension GloballyQuantifiedExpression {
         inCycle ? [] : [.quantified(expression: self)]
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> VerifyStatus {
+    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .always(let expression):
-            _ = try expression.verify(currentNode: node, inCycle: inCycle)
-            return inCycle ? .completed : .progressing
+            let results = try expression.verify(currentNode: node, inCycle: inCycle)
+            return inCycle
+                ? results.map { $0 == .progressing ? .completed : $0 }
+                : results.map { $0 == .completed ? .progressing : $0 }
         case .eventually(let expression):
             let result = try expression.verify(currentNode: node, inCycle: inCycle)
-            if inCycle, result == .progressing {
+            if inCycle, result.contains(.progressing) {
                 // Need to handle eventually accross multiple branches.
                 throw VerificationError.unsatisfied(node: node)
             }

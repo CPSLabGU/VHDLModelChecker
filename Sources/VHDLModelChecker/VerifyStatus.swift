@@ -53,13 +53,18 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import TCTLParser
+
 /// The status of an ongoing verification.
-enum VerifyStatus {
+enum VerifyStatus: Equatable {
 
     /// The current verification holds and is complete.
     case completed
 
     /// The current verification holds but is not yet complete.
     case progressing
+
+    /// The current verification holds but needs to re-evaluate a future expression.
+    case revisitting(expression: Expression)
 
 }

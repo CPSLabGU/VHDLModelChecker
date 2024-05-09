@@ -84,24 +84,29 @@ extension Expression {
         }
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> VerifyStatus {
+    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):
             try expression.verify(node: node)
-            return .completed
+            return [.completed]
         case .precedence(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle)
         case .quantified(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle)
         case .implies(let lhs, let rhs):
-            guard let result = try? lhs.verify(currentNode: node, inCycle: inCycle) else {
-                return .completed
+            guard let results = try? lhs.verify(currentNode: node, inCycle: inCycle) else {
+                return [.completed]
             }
-            guard result == .completed else {
-                return .progressing
+            return try results.flatMap {
+                if $0 == .completed {
+                    return try rhs.verify(currentNode: node, inCycle: inCycle)
+                } else if $0 == .progressing {
+                    return [VerifyStatus.revisitting(expression: rhs)]
+                } else {
+                    return [$0, VerifyStatus.revisitting(expression: rhs)]
+                }
             }
-            return try rhs.verify(currentNode: node, inCycle: inCycle)
         }
     }
 
