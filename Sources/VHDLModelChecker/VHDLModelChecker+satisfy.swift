@@ -85,6 +85,10 @@ extension VHDLModelChecker {
             }
             return edges.map { Constraint(constraint: constraint.constraint, node: $0.destination) }
         }
+        .filter { !seen.contains($0) }
+        guard !nextPaths.isEmpty else {
+            return []
+        }
         return [ConstrainedPath.all(paths: nextPaths)]
     }
 
