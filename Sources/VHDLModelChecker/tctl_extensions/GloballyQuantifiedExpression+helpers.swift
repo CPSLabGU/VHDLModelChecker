@@ -61,14 +61,25 @@ extension GloballyQuantifiedExpression {
         self.expression.allVariables
     }
 
-    func successorExpression(currentNode: KripkeNode, inCycle: Bool) throws -> Expression? {
+    func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
         // Reduces the expression to an expression to apply to the successors of the current node.
-        throw VerificationError.notSupported
+        inCycle ? [] : [.quantified(expression: self)]
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws {
+    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> VerifyStatus {
         // Verifies a node but does not take into consideration successor nodes.
-        throw VerificationError.notSupported
+        switch self {
+        case .always(let expression):
+            _ = try expression.verify(currentNode: node, inCycle: inCycle)
+            return inCycle ? .completed : .progressing
+        case .eventually(let expression):
+            let result = try expression.verify(currentNode: node, inCycle: inCycle)
+            if inCycle, result == .progressing {
+                // Need to handle eventually accross multiple branches.
+                throw VerificationError.unsatisfied(node: node)
+            }
+            return result
+        }
     }
 
 }

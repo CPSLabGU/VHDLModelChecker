@@ -1,4 +1,4 @@
-// PathQuantifiedExpression+helpers.swift
+// VerifyStatus.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,55 +53,13 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+/// The status of an ongoing verification.
+enum VerifyStatus {
 
-extension PathQuantifiedExpression {
+    /// The current verification holds and is complete.
+    case completed
 
-    var allVariables: [Variable] {
-        guard let expression = self.expression else {
-            guard let lhs = self.lhs, let rhs = self.rhs else {
-                fatalError("Impossible!")
-            }
-            return Array(Set(lhs.allVariables).union(Set(rhs.allVariables)))
-        }
-        return expression.allVariables
-    }
-
-    func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
-        // Reduces the expression to an expression to apply to the successors of the current node.
-        switch self {
-        case .globally, .finally:
-            return inCycle ? [] : [.quantified(expression: .always(expression: self))]
-        case .next(let expression):
-            return [expression]
-        case .until, .weak:
-            throw VerificationError.notSupported
-        }
-    }
-
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> VerifyStatus {
-        // Verifies a node but does not take into consideration successor nodes.
-        switch self {
-        case .globally(let expression):
-            _ = try expression.verify(currentNode: node, inCycle: inCycle)
-            guard !inCycle else {
-                return .completed
-            }
-            return .progressing
-        case .finally(let expression):
-            do {
-                return try expression.verify(currentNode: node, inCycle: inCycle)
-            } catch {
-                if inCycle {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-                return .progressing
-            }
-        case .next:
-            return .progressing
-        case .until, .weak:
-            throw VerificationError.notSupported
-        }
-    }
+    /// The current verification holds but is not yet complete.
+    case progressing
 
 }

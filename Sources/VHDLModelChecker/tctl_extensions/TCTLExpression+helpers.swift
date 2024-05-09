@@ -70,25 +70,38 @@ extension Expression {
         }
     }
 
-    func successorExpression(currentNode: KripkeNode, inCycle: Bool) throws -> Expression? {
+    func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
         // Reduces the expression to an expression to apply to the successors of the current node.
-        throw VerificationError.notSupported
+        switch self {
+        case .language:
+            return []
+        case .precedence(let expression):
+            return try expression.successorExpression(currentNode: node, inCycle: inCycle)
+        case .quantified(let expression):
+            return try expression.successorExpression(currentNode: node, inCycle: inCycle)
+        case .implies:
+            throw VerificationError.notSupported
+        }
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws {
+    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> VerifyStatus {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):
             try expression.verify(node: node)
+            return .completed
         case .precedence(let expression):
-            try expression.verify(currentNode: node, inCycle: inCycle)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         case .quantified(let expression):
-            try expression.verify(currentNode: node, inCycle: inCycle)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         case .implies(let lhs, let rhs):
-            guard (try? lhs.verify(currentNode: node, inCycle: inCycle)) != nil else {
-                return
+            guard let result = try? lhs.verify(currentNode: node, inCycle: inCycle) else {
+                return .completed
             }
-            try rhs.verify(currentNode: node, inCycle: inCycle)
+            guard result == .completed else {
+                return .progressing
+            }
+            return try rhs.verify(currentNode: node, inCycle: inCycle)
         }
     }
 
