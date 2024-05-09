@@ -80,4 +80,8 @@ extension VHDLExpression {
         }
     }
 
+    func verify(node: KripkeNode) throws {
+        throw VerificationError.notSupported
+    }
+
 }

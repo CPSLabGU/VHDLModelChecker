@@ -64,4 +64,8 @@ extension LanguageExpression {
         }
     }
 
+    func verify(node: KripkeNode) throws {
+        throw VerificationError.notSupported
+    }
+
 }

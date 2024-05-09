@@ -70,4 +70,14 @@ extension Expression {
         }
     }
 
+    func successorExpression(currentNode: KripkeNode, inCycle: Bool) throws -> Expression? {
+        // Reduces the expression to an expression to apply to the successors of the current node.
+        throw VerificationError.notSupported
+    }
+
+    func verify(currentNode node: KripkeNode, inCycle: Bool) throws {
+        // Verifies a node but does not take into consideration successor nodes.
+        throw VerificationError.notSupported
+    }
+
 }
