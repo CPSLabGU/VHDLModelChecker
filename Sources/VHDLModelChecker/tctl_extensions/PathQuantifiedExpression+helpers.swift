@@ -85,9 +85,9 @@ extension PathQuantifiedExpression {
         case .globally(let expression):
             let results = try expression.verify(currentNode: node, inCycle: inCycle)
             if inCycle {
-                return results.map { $0 == .progressing ? .completed : $0 }
+                return results.filter { $0 != .progressing && $0 != .completed } + [.completed]
             } else {
-                return results.map { $0 == .completed ? .progressing : $0 }
+                return results.filter { $0 != .progressing && $0 != .completed } + [.progressing]
             }
         case .finally(let expression):
             do {

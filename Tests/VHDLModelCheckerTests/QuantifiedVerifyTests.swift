@@ -227,3 +227,5 @@ final class QuantifiedVerifyTests: XCTestCase {
     }
 
 }
+
+// "E F (A X x == 3) -> y == 5"

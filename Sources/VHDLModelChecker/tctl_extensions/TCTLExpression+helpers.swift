@@ -99,12 +99,13 @@ extension Expression {
                 return [.completed]
             }
             return try results.flatMap {
-                if $0 == .completed {
+                switch $0 {
+                case .completed:
                     return try rhs.verify(currentNode: node, inCycle: inCycle)
-                } else if $0 == .progressing {
-                    return [VerifyStatus.revisitting(expression: rhs)]
-                } else {
-                    return [$0, VerifyStatus.revisitting(expression: rhs)]
+                case .progressing:
+                    return [.revisitting(expression: rhs)]
+                case .revisitting(let expression):
+                    return [.revisitting(expression: .implies(lhs: expression, rhs: rhs))]
                 }
             }
         }
