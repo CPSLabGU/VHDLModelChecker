@@ -225,6 +225,12 @@ final class QuantifiedVerifyTests: XCTestCase {
             .verify(currentNode: failureCount2Node, inCycle: false),
             [.progressing]
         )
+        XCTAssertThrowsError(
+            try GloballyQuantifiedExpression.eventually(
+                expression: .finally(expression: .language(expression: falseExp))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true)
+        )
     }
 
 }
