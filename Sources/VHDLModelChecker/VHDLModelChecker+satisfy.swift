@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// VHDLModelChecker+satisfy.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,92 +53,54 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import TCTLParser
-import VHDLKripkeStructures
-import VHDLParsing
+extension VHDLModelChecker {
 
-public struct VHDLModelChecker {
-
-    let iterator: KripkeStructureIterator
-
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
+    func satisfy(constraint path: ConstrainedPath, seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
+        switch path {
+        case .all(let paths):
+            return []
+        case .any(let paths):
+            return try self.satisfy(any: paths, seen: &seen)
+        }
     }
 
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
-    }
-
-    public func verify(against specification: Specification) throws {
-        var requirements = specification.requirements
-        var constraints: [ConstrainedPath] = []
-        var seen: Set<Constraint> = []
-        repeat {
-            print("Number of reqs: \(requirements.count)")
-            // nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
-            if let nextConstraint = constraints.popLast() {
-                constraints.append(contentsOf: try self.satisfy(constraint: nextConstraint, seen: &seen))
+    func satisfy(any paths: [Constraint], seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
+        let nextPaths = try paths.map { (constraint: Constraint) -> VerificationState in
+            seen.insert(constraint)
+            guard let node = self.iterator.nodes[constraint.node] else {
+                throw VerificationError.notSupported
             }
-            if let nextRequirement = requirements.popLast() {
-                constraints.append(
-                    contentsOf: try self.createConstraints(requirement: nextRequirement, seen: seen)
-                )
+            switch constraint.constraint {
+            case .now(let expression):
+                guard let req = PropertyRequirement(constraint: expression) else {
+                    throw VerificationError.notSupported
+                }
+                guard req.requirement(node) else {
+                    return .failure(constraint: constraint)
+                }
+                return .success(constraint: constraint)
+            case .future(let expression):
+                guard let req = PropertyRequirement(constraint: expression) else {
+                    throw VerificationError.notSupported
+                }
+                guard req.requirement(node) else {
+                    return .failure(constraint: constraint)
+                }
+                return .success(constraint: constraint)
+            default:
+                throw VerificationError.notSupported
             }
-        } while !requirements.isEmpty || !constraints.isEmpty
-    }
-
-    func createConstraints(
-        requirement: GloballyQuantifiedExpression, seen: Set<Constraint>
-    ) throws -> [ConstrainedPath] {
-        let pathExpression = requirement.expression
-        let createExpression: (TCTLParser.Expression) -> ConstrainedExpression
-        let createPath: ([Constraint]) -> ConstrainedPath
-        switch pathExpression {
-        case .globally:
-            createExpression = { .now(constraint: $0) }
-        case .finally:
-            createExpression = { .future(constraint: $0) }
-        default:
-            throw VerificationError.notSupported
         }
-        switch requirement {
-        case .always:
-            createPath = { .all(paths: $0) }
-        case .eventually:
-            createPath = { .any(paths: $0) }
-        }
-        guard let subExpression = pathExpression.expression else {
-            throw VerificationError.notSupported
-        }
-        let constraints: [Constraint] = try self.validNodes(for: pathExpression).compactMap {
-            let constraint = Constraint(
-                constraint: createExpression(subExpression), node: $0
-            )
-            guard !seen.contains(constraint) else {
-                return nil
+        let isFinished = nextPaths.contains {
+            guard case .success(let constraint) = $0, case .future = constraint.constraint else {
+                return false
             }
-            return constraint
+            return true
         }
-        guard !constraints.isEmpty else {
+        guard !isFinished else {
             return []
         }
-        return [createPath(constraints)]
-    }
-
-}
-
-enum VerificationState {
-
-    case success(constraint: Constraint)
-
-    case failure(constraint: Constraint)
-
-    var constraint: Constraint {
-        switch self {
-        case .success(let constraint), .failure(let constraint):
-            return constraint
-        }
+        return []
     }
 
 }
