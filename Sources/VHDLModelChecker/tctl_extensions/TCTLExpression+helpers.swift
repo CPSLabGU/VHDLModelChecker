@@ -77,7 +77,19 @@ extension Expression {
 
     func verify(currentNode node: KripkeNode, inCycle: Bool) throws {
         // Verifies a node but does not take into consideration successor nodes.
-        throw VerificationError.notSupported
+        switch self {
+        case .language(let expression):
+            try expression.verify(node: node)
+        case .precedence(let expression):
+            try expression.verify(currentNode: node, inCycle: inCycle)
+        case .quantified(let expression):
+            try expression.verify(currentNode: node, inCycle: inCycle)
+        case .implies(let lhs, let rhs):
+            guard (try? lhs.verify(currentNode: node, inCycle: inCycle)) != nil else {
+                return
+            }
+            try rhs.verify(currentNode: node, inCycle: inCycle)
+        }
     }
 
 }

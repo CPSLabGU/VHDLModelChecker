@@ -65,7 +65,12 @@ extension LanguageExpression {
     }
 
     func verify(node: KripkeNode) throws {
-        throw VerificationError.notSupported
+        switch self {
+        case .vhdl(let expression):
+            try expression.verify(node: node)
+        @unknown default:
+            throw VerificationError.notSupported
+        }
     }
 
 }
