@@ -147,15 +147,7 @@ extension VHDLModelChecker {
             throw VerificationError.notSupported
         }
         switch constraint.constraint {
-        case .now(let expression):
-            guard let req = PropertyRequirement(constraint: expression) else {
-                throw VerificationError.notSupported
-            }
-            guard req.requirement(node) else {
-                return .failure(constraint: constraint)
-            }
-            return .success(constraint: constraint)
-        case .future(let expression):
+        case .now(let expression), .future(let expression):
             guard let req = PropertyRequirement(constraint: expression) else {
                 throw VerificationError.notSupported
             }
