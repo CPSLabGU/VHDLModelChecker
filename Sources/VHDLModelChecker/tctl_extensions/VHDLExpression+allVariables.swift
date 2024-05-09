@@ -81,7 +81,154 @@ extension VHDLExpression {
     }
 
     func verify(node: KripkeNode) throws {
-        throw VerificationError.notSupported
+        switch self {
+        case .boolean(let expression):
+            try expression.verify(node: node)
+        case .conditional(let expression):
+            try expression.verify(node: node)
+        }
+    }
+
+}
+
+extension VHDLParsing.Expression {
+
+    func verify(node: KripkeNode) throws {
+        switch self {
+        case .conditional(let condition):
+            try condition.verify(node: node)
+        case .logical(let operation):
+            try operation.verify(node: node)
+        case .precedence(let value):
+            try value.verify(node: node)
+        default:
+            throw VerificationError.notSupported
+        }
+    }
+
+}
+
+extension ConditionalExpression {
+
+    func verify(node: KripkeNode) throws {
+        switch self {
+        case .literal(let value):
+            guard value else {
+                throw VerificationError.notSupported
+            }
+        case .edge:
+            throw VerificationError.notSupported
+        case .comparison(let comparison):
+            try comparison.verify(node: node)
+        }
+    }
+
+}
+
+extension ComparisonOperation {
+
+    func verify(node: KripkeNode) throws {
+        switch self {
+        case .equality(let lhs, let rhs):
+            guard let variable = lhs.variable else {
+                throw VerificationError.notSupported
+            }
+            guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
+                switch variable {
+                case .currentState:
+                    guard let rhs = rhs.variable, node.currentState == rhs else {
+                        throw VerificationError.notSupported
+                    }
+                case .executeOnEntry:
+                    guard let rhs = rhs.literal?.boolean, node.executeOnEntry == rhs else {
+                        throw VerificationError.notSupported
+                    }
+                case .nextState:
+                    guard let rhs = rhs.variable, node.nextState == rhs else {
+                        throw VerificationError.notSupported
+                    }
+                default:
+                    throw VerificationError.notSupported
+                }
+                return
+            }
+            guard let rhs = rhs.literal, let value = node.properties[variable], value == rhs else {
+                throw VerificationError.notSupported
+            }
+        case .notEquals(let lhs, let rhs):
+            try BooleanExpression.not(
+                value: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            )
+            .verify(node: node)
+        case .greaterThan(let lhs, let rhs):
+            guard let variable = lhs.variable, let rhs = rhs.literal else {
+                guard
+                    let lhs = lhs.literal,
+                    let rhs = rhs.variable,
+                    let value = node.properties[rhs],
+                    lhs > value
+                else {
+                    throw VerificationError.notSupported
+                }
+                return
+            }
+            guard let value = node.properties[variable], value > rhs else {
+                throw VerificationError.notSupported
+            }
+        case .greaterThanOrEqual(let lhs, let rhs):
+            try BooleanExpression.or(
+                lhs: .conditional(condition: .comparison(value: .greaterThan(lhs: lhs, rhs: rhs))),
+                rhs: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            )
+            .verify(node: node)
+        case .lessThan(let lhs, let rhs):
+            try BooleanExpression.not(value: .conditional(condition: .comparison(value: .greaterThanOrEqual(
+                lhs: lhs, rhs: rhs
+            ))))
+            .verify(node: node)
+        case .lessThanOrEqual(let lhs, let rhs):
+            try BooleanExpression.or(
+                lhs: .conditional(condition: .comparison(value: .lessThan(lhs: lhs, rhs: rhs))),
+                rhs: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            )
+            .verify(node: node)
+        }
+    }
+
+}
+
+extension BooleanExpression {
+
+    func verify(node: KripkeNode) throws {
+        switch self {
+        case .and(let lhs, let rhs):
+            try lhs.verify(node: node)
+            try rhs.verify(node: node)
+        case .or(let lhs, let rhs):
+            do {
+                try lhs.verify(node: node)
+            } catch {
+                try rhs.verify(node: node)
+            }
+        case .not(let expression):
+            guard (try? expression.verify(node: node)) != nil else {
+                return
+            }
+            throw VerificationError.notSupported
+        case .nand(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .and(lhs: lhs, rhs: rhs))).verify(node: node)
+        case .nor(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .or(lhs: lhs, rhs: rhs))).verify(node: node)
+        case .xor(let lhs, let rhs):
+            switch (try? lhs.verify(node: node), try? rhs.verify(node: node)) {
+            case (nil, .some), (.some, nil):
+                return
+            default:
+                throw VerificationError.notSupported
+            }
+        case .xnor(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .xor(lhs: lhs, rhs: rhs))).verify(node: node)
+        }
     }
 
 }
