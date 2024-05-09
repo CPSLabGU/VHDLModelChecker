@@ -55,8 +55,15 @@
 
 import VHDLParsing
 
+// swiftlint:disable force_unwrapping
+// swiftlint:disable missing_docs
+
+/// Add constants.
 extension VariableName {
 
     static let failureCount = VariableName(rawValue: "RecoveryModeMachine_failureCount")!
 
 }
+
+// swiftlint:enable missing_docs
+// swiftlint:enable force_unwrapping
