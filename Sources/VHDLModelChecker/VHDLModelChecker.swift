@@ -100,6 +100,14 @@ public struct VHDLModelChecker {
         []
     }
 
+    func validNodes(for expression: GloballyQuantifiedExpression) throws -> [UUID] {
+        try self.validNodes(for: expression.expression)
+    }
+
+    func validNodesExactly(for expression: GloballyQuantifiedExpression) throws -> [UUID] {
+        try self.validNodesExactly(for: expression.expression)
+    }
+
     func validNodes(for expression: PathQuantifiedExpression) throws -> [UUID] {
         switch expression {
         case .globally(let expression):
@@ -109,20 +117,63 @@ public struct VHDLModelChecker {
         }
     }
 
-    func validNodes(for expression: TCTLParser.Expression) throws -> [UUID] {
-        []
+    func validNodesExactly(for expression: PathQuantifiedExpression) throws -> [UUID] {
+        switch expression {
+        case .globally(let expression):
+            return []
+        default:
+            throw VerificationError.notSupported
+        }
     }
 
-}
+    func validNodes(for expression: TCTLParser.Expression) throws -> [UUID] {
+        switch expression {
+        case .implies(let lhs, _):
+            return try self.validNodes(for: lhs)
+        case .language(let expression):
+            let allVariables = Set(expression.allVariables)
+            guard
+                !allVariables.contains(.currentState),
+                !allVariables.contains(.nextState),
+                !allVariables.contains(.executeOnEntry)
+            else {
+                return Array(self.iterator.nodes.keys)
+            }
+            let ids = self.iterator.nodes.filter {
+                $0.value.properties.keys.contains { allVariables.contains(Variable(rawValue: $0)) }
+            }
+            .keys
+            return Array(ids)
+        case .precedence(let expression):
+            return try self.validNodes(for: expression)
+        case .quantified(let expression):
+            return try self.validNodes(for: expression)
+        }
+    }
 
-enum VerificationError: Error {
-
-    case notSupported
-
-    case missingNode(constraint: Constraint)
-
-    case unsatisfied(constraint: Constraint, node: KripkeNode)
-
-    case invalidRequirement(requirement: GloballyQuantifiedExpression)
+    func validNodesExactly(for expression: TCTLParser.Expression) throws -> [UUID] {
+        switch expression {
+        case .implies(let lhs, _):
+            return try self.validNodesExactly(for: lhs)
+        case .language(let expression):
+            let allVariables = Set(expression.allVariables)
+            guard
+                !allVariables.contains(.currentState),
+                !allVariables.contains(.nextState),
+                !allVariables.contains(.executeOnEntry)
+            else {
+                return Array(self.iterator.nodes.keys)
+            }
+            let ids = self.iterator.nodes.filter {
+                $0.value.properties.keys.allSatisfy { allVariables.contains(Variable(rawValue: $0)) }
+            }
+            .keys
+            return Array(ids)
+        case .precedence(let expression):
+            return try self.validNodesExactly(for: expression)
+        case .quantified(let expression):
+            return try self.validNodesExactly(for: expression)
+        }
+    }
 
 }
