@@ -268,6 +268,82 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    func testLessThan() {
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThan(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 1))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThan(
+                lhs: .literal(value: .integer(value: 3)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThan(
+                lhs: .literal(value: .integer(value: 1)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThan(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 3))
+            )))
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    func testLessThanOrEqual() {
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 1))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
+                lhs: .literal(value: .integer(value: 3)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
+                lhs: .literal(value: .integer(value: 1)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 3))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
+                lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+                rhs: .literal(value: .integer(value: 2))
+            )))
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
+                lhs: .literal(value: .integer(value: 2)),
+                rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
+            )))
+            .verify(node: failureCount2Node)
+        )
+    }
+
     func testAnd() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: trueExp))
