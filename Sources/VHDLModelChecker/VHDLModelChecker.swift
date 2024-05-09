@@ -77,7 +77,7 @@ public struct VHDLModelChecker {
             print("Number of reqs: \(requirements.count)")
             // nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
             if let nextConstraint = constraints.popLast() {
-                constraints.append(contentsOf: try self.satisfy(requirement: nextConstraint, seen: &seen))
+                constraints.append(contentsOf: try self.satisfy(constraint: nextConstraint, seen: &seen))
             }
             if let nextRequirement = requirements.popLast() {
                 constraints.append(
@@ -93,7 +93,7 @@ public struct VHDLModelChecker {
         return []
     }
 
-    func satisfy(requirement: Constraint, seen: inout Set<Constraint>) throws -> [Constraint] {
+    func satisfy(constraint: Constraint, seen: inout Set<Constraint>) throws -> [Constraint] {
         []
     }
 
