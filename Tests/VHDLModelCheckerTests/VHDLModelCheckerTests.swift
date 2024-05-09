@@ -65,12 +65,13 @@ final class VHDLModelCheckerTests: XCTestCase {
 
     /// Test that the `validNodeExactly` method fetches the correct nodes.
     func testLanguageValidNodesExactly() throws {
-        let validNodes = try modelChecker.validNodesExactly(
-            for: .vhdl(expression: .conditional(expression: .comparison(value: .equality(
+        let requirement = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(
+            value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
                 rhs: .literal(value: .integer(value: 3))
-            ))))
-        )
+            )
+        )))
+        let validNodes = try modelChecker.validNodesExactly(for: requirement)
         var expected: [KripkeNode] = []
         kripkeStructure.ringlets.forEach {
             if $0.read.properties[.failureCount] == .integer(value: 3) {
@@ -82,6 +83,19 @@ final class VHDLModelCheckerTests: XCTestCase {
         }
         let expectedSet = Set(expected)
         let result = Set(validNodes.compactMap { self.modelChecker.iterator.nodes[$0] })
+        let validNodes2 = try modelChecker.validNodes(for: GloballyQuantifiedExpression.always(
+            expression: .globally(expression: .implies(
+                lhs: .language(expression: requirement),
+                rhs: .language(expression: .vhdl(expression: .conditional(expression: .comparison(
+                    value: .equality(
+                        lhs: .reference(variable: .variable(reference: .variable(name: .recoveryMode))),
+                        rhs: .literal(value: .bit(value: .high))
+                    )
+                ))))
+            ))
+        ))
+        let result2 = Set(validNodes2.compactMap { self.modelChecker.iterator.nodes[$0] })
         XCTAssertEqual(expectedSet, result)
+        XCTAssertEqual(expectedSet, result2)
     }
 }

@@ -63,6 +63,8 @@ extension VariableName {
 
     static let failureCount = VariableName(rawValue: "RecoveryModeMachine_failureCount")!
 
+    static let recoveryMode = VariableName(rawValue: "recoveryMode")!
+
 }
 
 // swiftlint:enable missing_docs

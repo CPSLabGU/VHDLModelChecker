@@ -111,7 +111,7 @@ public struct VHDLModelChecker {
     func validNodes(for expression: PathQuantifiedExpression) throws -> [UUID] {
         switch expression {
         case .globally(let expression):
-            return []
+            return try self.validNodes(for: expression)
         default:
             throw VerificationError.notSupported
         }
@@ -120,7 +120,7 @@ public struct VHDLModelChecker {
     func validNodesExactly(for expression: PathQuantifiedExpression) throws -> [UUID] {
         switch expression {
         case .globally(let expression):
-            return []
+            return try self.validNodesExactly(for: expression)
         default:
             throw VerificationError.notSupported
         }
@@ -129,7 +129,7 @@ public struct VHDLModelChecker {
     func validNodes(for expression: TCTLParser.Expression) throws -> [UUID] {
         switch expression {
         case .implies(let lhs, _):
-            return try self.validNodes(for: lhs)
+            return try self.validNodesExactly(for: lhs)
         case .language(let expression):
             let allVariables = Set(expression.allVariables)
             guard
