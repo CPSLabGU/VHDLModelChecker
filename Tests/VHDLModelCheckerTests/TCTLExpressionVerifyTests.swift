@@ -254,6 +254,34 @@ final class TCTLExpressionVerifyTests: XCTestCase {
             .verify(currentNode: failureCount2Node, inCycle: true),
             [.revisitting(expression: .language(expression: trueExp))]
         )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextFalse, rhs: .language(expression: trueExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: .language(expression: trueExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextFalse, rhs: .language(expression: trueExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true),
+            [.revisitting(expression: .language(expression: trueExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextFalse, rhs: .language(expression: falseExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: .language(expression: falseExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(
+                lhs: nextFalse, rhs: .language(expression: falseExp)
+            )
+            .verify(currentNode: failureCount2Node, inCycle: true),
+            [.revisitting(expression: .language(expression: falseExp))]
+        )
     }
 
 }
