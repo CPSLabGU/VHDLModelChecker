@@ -142,4 +142,26 @@ final class PathVerifyTests: XCTestCase {
         )
     }
 
+    func testFinally() throws {
+        XCTAssertEqual(
+            try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.progressing]
+        )
+        XCTAssertEqual(
+            try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertThrowsError(
+            try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
+                .verify(currentNode: failureCount2Node, inCycle: true)
+        )
+    }
+
 }
