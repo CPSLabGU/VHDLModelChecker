@@ -156,23 +156,22 @@ public struct VHDLModelChecker {
         case .implies(let lhs, _):
             return try self.validNodesExactly(for: lhs)
         case .language(let expression):
-            let allVariables = Set(expression.allVariables)
-            guard
-                !allVariables.contains(.currentState),
-                !allVariables.contains(.nextState),
-                !allVariables.contains(.executeOnEntry)
-            else {
-                return Array(self.iterator.nodes.keys)
-            }
-            let ids = self.iterator.nodes.filter {
-                $0.value.properties.keys.allSatisfy { allVariables.contains(Variable(rawValue: $0)) }
-            }
-            .keys
-            return Array(ids)
+            return try self.validNodesExactly(for: expression)
         case .precedence(let expression):
             return try self.validNodesExactly(for: expression)
         case .quantified(let expression):
             return try self.validNodesExactly(for: expression)
+        }
+    }
+
+    func validNodesExactly(for expression: LanguageExpression) throws -> [UUID] {
+        switch expression {
+        case .vhdl(let expression):
+            guard let propertyRequirement = PropertyRequirement(constraint: expression) else {
+                throw VerificationError.notSupported
+            }
+            let ids = self.iterator.nodes.filter { propertyRequirement.requirement($0.value) }.keys
+            return Array(ids)
         }
     }
 
