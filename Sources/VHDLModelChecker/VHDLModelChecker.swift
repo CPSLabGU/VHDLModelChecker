@@ -92,65 +92,35 @@ public struct VHDLModelChecker {
         requirement: GloballyQuantifiedExpression, seen: Set<Constraint>
     ) throws -> [ConstrainedPath] {
         let pathExpression = requirement.expression
-        let f: (GloballyQuantifiedExpression, [UUID]) -> ConstrainedPath
-        switch (requirement, pathExpression) {
-        case (.always, .globally):
-            f = {
-                ConstrainedPath.all(paths: $1.compactMap {
-                    let constraint = Constraint(
-                        constraint: .now(constraint: .quantified(expression: requirement)), node: $0
-                    )
-                    guard !seen.contains(constraint) else {
-                        return nil
-                    }
-                    return constraint
-                })
-            }
-        case (.always, .finally):
-            f = {
-                ConstrainedPath.all(paths: $1.compactMap {
-                    let constraint = Constraint(
-                        constraint: .future(constraint: .quantified(expression: requirement)), node: $0
-                    )
-                    guard !seen.contains(constraint) else {
-                        return nil
-                    }
-                    return constraint
-                })
-            }
-        case (.eventually, .globally):
-            f = {
-                ConstrainedPath.any(paths: $1.compactMap {
-                    let constraint = Constraint(
-                        constraint: .now(constraint: .quantified(expression: requirement)), node: $0
-                    )
-                    guard !seen.contains(constraint) else {
-                        return nil
-                    }
-                    return constraint
-                })
-            }
-        case (.eventually, .finally):
-            f = {
-                ConstrainedPath.any(paths: $1.compactMap {
-                    let constraint = Constraint(
-                        constraint: .future(constraint: .quantified(expression: requirement)), node: $0
-                    )
-                    guard !seen.contains(constraint) else {
-                        return nil
-                    }
-                    return constraint
-                })
-            }
+        let createExpression: (TCTLParser.Expression) -> ConstrainedExpression
+        let createPath: ([Constraint]) -> ConstrainedPath
+        switch pathExpression {
+        case .globally:
+            createExpression = { .now(constraint: $0) }
+        case .finally:
+            createExpression = { .future(constraint: $0) }
         default:
             throw VerificationError.notSupported
         }
-        let ids = try self.validNodes(for: pathExpression)
-        let newPath = f(requirement, ids)
-        guard !newPath.paths.isEmpty else {
+        switch requirement {
+        case .always:
+            createPath = { .all(paths: $0) }
+        case .eventually:
+            createPath = { .any(paths: $0) }
+        }
+        let constraints: [Constraint] = try self.validNodes(for: pathExpression).compactMap {
+            let constraint = Constraint(
+                constraint: createExpression(.quantified(expression: requirement)), node: $0
+            )
+            guard !seen.contains(constraint) else {
+                return nil
+            }
+            return constraint
+        }
+        guard !constraints.isEmpty else {
             return []
         }
-        return [newPath]
+        return [createPath(constraints)]
     }
 
     func satisfy(constraint: ConstrainedPath, seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
