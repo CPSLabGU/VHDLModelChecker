@@ -54,6 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
+import TCTLParser
 import VHDLKripkeStructures
 import VHDLParsing
 
@@ -74,6 +75,10 @@ public struct VHDLModelChecker {
         case .tctl(let spec):
             try self.verify(tctl: spec)
         }
+    }
+
+    func verify(tctl: Specification) throws {
+        throw VerificationError.notSupported
     }
 
 }

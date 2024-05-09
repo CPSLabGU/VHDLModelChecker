@@ -57,10 +57,6 @@ import TCTLParser
 
 extension GloballyQuantifiedExpression {
 
-    var allVariables: [Variable] {
-        self.expression.allVariables
-    }
-
     func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
         // Reduces the expression to an expression to apply to the successors of the current node.
         inCycle ? [] : [.quantified(expression: self)]

@@ -57,16 +57,6 @@ import TCTLParser
 
 extension PathQuantifiedExpression {
 
-    var allVariables: [Variable] {
-        guard let expression = self.expression else {
-            guard let lhs = self.lhs, let rhs = self.rhs else {
-                fatalError("Impossible!")
-            }
-            return Array(Set(lhs.allVariables).union(Set(rhs.allVariables)))
-        }
-        return expression.allVariables
-    }
-
     func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
         // Reduces the expression to an expression to apply to the successors of the current node.
         switch self {

@@ -59,8 +59,6 @@ enum VerificationError: Error {
 
     case notSupported
 
-    case missingNode(constraint: Constraint)
-
     case unsatisfied(node: KripkeNode)
 
     case invalidRequirement(requirement: GloballyQuantifiedExpression)

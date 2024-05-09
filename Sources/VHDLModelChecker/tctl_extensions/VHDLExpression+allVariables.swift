@@ -58,19 +58,6 @@ import VHDLParsing
 
 extension VHDLExpression {
 
-    var allVariables: [Variable] {
-        switch self {
-        case .boolean(let expression):
-            return VHDLParsing.Expression.logical(operation: expression).allVariables.map {
-                Variable(rawValue: $0)
-            }
-        case .conditional(let expression):
-            return VHDLParsing.Expression.conditional(condition: expression).allVariables.map {
-                Variable(rawValue: $0)
-            }
-        }
-    }
-
     var expression: VHDLParsing.Expression {
         switch self {
         case .boolean(let expression):

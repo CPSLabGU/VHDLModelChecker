@@ -57,19 +57,6 @@ import TCTLParser
 
 extension Expression {
 
-    var allVariables: [Variable] {
-        switch self {
-        case .implies(let lhs, let rhs):
-            return Array(Set(lhs.allVariables).union(Set(rhs.allVariables)))
-        case .language(let expression):
-            return expression.allVariables
-        case .precedence(let expression):
-            return expression.allVariables
-        case .quantified(let expression):
-            return expression.allVariables
-        }
-    }
-
     func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
         // Reduces the expression to an expression to apply to the successors of the current node.
         switch self {

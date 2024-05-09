@@ -57,13 +57,6 @@ import TCTLParser
 
 extension LanguageExpression {
 
-    var allVariables: [Variable] {
-        switch self {
-        case .vhdl(let expression):
-            return expression.allVariables
-        }
-    }
-
     func verify(node: KripkeNode) throws {
         switch self {
         case .vhdl(let expression):
