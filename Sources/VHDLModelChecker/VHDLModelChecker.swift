@@ -70,30 +70,30 @@ public struct VHDLModelChecker {
     }
 
     public func verify(against specification: Specification) throws {
-        var constraints = specification.requirements
-        var requirements: [Requirement] = []
-        var seen: Set<Requirement> = []
+        var requirements = specification.requirements
+        var constraints: [Constraint] = []
+        var seen: Set<Constraint> = []
         repeat {
             print("Number of reqs: \(requirements.count)")
             // nodes.forEach { print(self.iterator.nodes[$0.requirement.node]!) }
-            if let nextRequirement = requirements.popLast() {
-                requirements.append(contentsOf: try self.satisfy(requirement: nextRequirement, seen: &seen))
-            }
             if let nextConstraint = constraints.popLast() {
-                requirements.append(
-                    contentsOf: try self.createRequirements(constraint: nextConstraint, seen: &seen)
+                constraints.append(contentsOf: try self.satisfy(requirement: nextConstraint, seen: &seen))
+            }
+            if let nextRequirement = requirements.popLast() {
+                constraints.append(
+                    contentsOf: try self.createRequirements(requirement: nextRequirement, seen: &seen)
                 )
             }
         } while !requirements.isEmpty || !constraints.isEmpty
     }
 
     func createRequirements(
-        constraint: GloballyQuantifiedExpression, seen: inout Set<Requirement>
-    ) throws -> [Requirement] {
+        requirement: GloballyQuantifiedExpression, seen: inout Set<Constraint>
+    ) throws -> [Constraint] {
         return []
     }
 
-    func satisfy(requirement: Requirement, seen: inout Set<Requirement>) throws -> [Requirement] {
+    func satisfy(requirement: Constraint, seen: inout Set<Constraint>) throws -> [Constraint] {
         []
     }
 
@@ -101,9 +101,9 @@ public struct VHDLModelChecker {
 
 enum VerificationError: Error {
 
-    case missingNode(requirement: Requirement)
+    case missingNode(requirement: Constraint)
 
-    case unsatisfied(requirement: Requirement, node: KripkeNode)
+    case unsatisfied(requirement: Constraint, node: KripkeNode)
 
     case invalidRequirement(requirement: GloballyQuantifiedExpression)
 

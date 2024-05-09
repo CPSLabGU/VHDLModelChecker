@@ -1,4 +1,4 @@
-// Requirement.swift
+// Constraint.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -56,7 +56,7 @@
 import Foundation
 import TCTLParser
 
-class Requirement: Equatable, Hashable, Codable {
+class Constraint: Equatable, Hashable, Codable {
 
     let constraint: GloballyQuantifiedExpression
 
@@ -67,7 +67,7 @@ class Requirement: Equatable, Hashable, Codable {
         self.node = node
     }
 
-    static func == (lhs: Requirement, rhs: Requirement) -> Bool {
+    static func == (lhs: Constraint, rhs: Constraint) -> Bool {
         lhs.node == rhs.node && lhs.constraint == rhs.constraint
     }
 
