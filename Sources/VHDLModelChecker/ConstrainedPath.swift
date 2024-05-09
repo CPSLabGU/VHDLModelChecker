@@ -1,4 +1,4 @@
-// Constraint.swift
+// ConstrainedPath.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,27 +53,17 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import TCTLParser
+enum ConstrainedPath: Equatable, Hashable, Codable {
 
-class Constraint: Equatable, Hashable, Codable {
+    case all(paths: [Constraint])
 
-    let constraint: ConstrainedExpression
+    case any(paths: [Constraint])
 
-    let node: UUID
-
-    init(constraint: ConstrainedExpression, node: UUID) {
-        self.constraint = constraint
-        self.node = node
-    }
-
-    static func == (lhs: Constraint, rhs: Constraint) -> Bool {
-        lhs.node == rhs.node && lhs.constraint == rhs.constraint
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(node)
-        hasher.combine(constraint)
+    var paths: [Constraint] {
+        switch self {
+        case .all(let paths), .any(let paths):
+            return paths
+        }
     }
 
 }

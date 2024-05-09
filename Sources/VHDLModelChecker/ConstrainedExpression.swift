@@ -1,4 +1,4 @@
-// Constraint.swift
+// ConstrainedExpression.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,27 +53,14 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import TCTLParser
 
-class Constraint: Equatable, Hashable, Codable {
+enum ConstrainedExpression: Equatable, Hashable, Codable, Sendable {
 
-    let constraint: ConstrainedExpression
+    case now(constraint: Expression)
 
-    let node: UUID
+    case future(constraint: Expression)
 
-    init(constraint: ConstrainedExpression, node: UUID) {
-        self.constraint = constraint
-        self.node = node
-    }
-
-    static func == (lhs: Constraint, rhs: Constraint) -> Bool {
-        lhs.node == rhs.node && lhs.constraint == rhs.constraint
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(node)
-        hasher.combine(constraint)
-    }
+    case until(now: Expression, unless: Expression)
 
 }

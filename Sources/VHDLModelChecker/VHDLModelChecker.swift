@@ -72,7 +72,7 @@ public struct VHDLModelChecker {
 
     public func verify(against specification: Specification) throws {
         var requirements = specification.requirements
-        var constraints: [Constraint] = []
+        var constraints: [ConstrainedPath] = []
         var seen: Set<Constraint> = []
         repeat {
             print("Number of reqs: \(requirements.count)")
@@ -82,21 +82,78 @@ public struct VHDLModelChecker {
             }
             if let nextRequirement = requirements.popLast() {
                 constraints.append(
-                    contentsOf: try self.createConstraints(requirement: nextRequirement, seen: &seen)
+                    contentsOf: try self.createConstraints(requirement: nextRequirement, seen: seen)
                 )
             }
         } while !requirements.isEmpty || !constraints.isEmpty
     }
 
     func createConstraints(
-        requirement: GloballyQuantifiedExpression, seen: inout Set<Constraint>
-    ) throws -> [Constraint] {
+        requirement: GloballyQuantifiedExpression, seen: Set<Constraint>
+    ) throws -> [ConstrainedPath] {
         let pathExpression = requirement.expression
-        let nodes = try self.validNodes(for: pathExpression)
-        return []
+        let f: (GloballyQuantifiedExpression, [UUID]) -> ConstrainedPath
+        switch (requirement, pathExpression) {
+        case (.always, .globally):
+            f = {
+                ConstrainedPath.all(paths: $1.compactMap {
+                    let constraint = Constraint(
+                        constraint: .now(constraint: .quantified(expression: requirement)), node: $0
+                    )
+                    guard !seen.contains(constraint) else {
+                        return nil
+                    }
+                    return constraint
+                })
+            }
+        case (.always, .finally):
+            f = {
+                ConstrainedPath.all(paths: $1.compactMap {
+                    let constraint = Constraint(
+                        constraint: .future(constraint: .quantified(expression: requirement)), node: $0
+                    )
+                    guard !seen.contains(constraint) else {
+                        return nil
+                    }
+                    return constraint
+                })
+            }
+        case (.eventually, .globally):
+            f = {
+                ConstrainedPath.any(paths: $1.compactMap {
+                    let constraint = Constraint(
+                        constraint: .now(constraint: .quantified(expression: requirement)), node: $0
+                    )
+                    guard !seen.contains(constraint) else {
+                        return nil
+                    }
+                    return constraint
+                })
+            }
+        case (.eventually, .finally):
+            f = {
+                ConstrainedPath.any(paths: $1.compactMap {
+                    let constraint = Constraint(
+                        constraint: .future(constraint: .quantified(expression: requirement)), node: $0
+                    )
+                    guard !seen.contains(constraint) else {
+                        return nil
+                    }
+                    return constraint
+                })
+            }
+        default:
+            throw VerificationError.notSupported
+        }
+        let ids = try self.validNodes(for: pathExpression)
+        let newPath = f(requirement, ids)
+        guard !newPath.paths.isEmpty else {
+            return []
+        }
+        return [newPath]
     }
 
-    func satisfy(constraint: Constraint, seen: inout Set<Constraint>) throws -> [Constraint] {
+    func satisfy(constraint: ConstrainedPath, seen: inout Set<Constraint>) throws -> [ConstrainedPath] {
         []
     }
 
