@@ -61,7 +61,7 @@ enum VerificationError: Error {
 
     case missingNode(constraint: Constraint)
 
-    case unsatisfied(constraint: Constraint, node: KripkeNode)
+    case unsatisfied(node: KripkeNode)
 
     case invalidRequirement(requirement: GloballyQuantifiedExpression)
 
