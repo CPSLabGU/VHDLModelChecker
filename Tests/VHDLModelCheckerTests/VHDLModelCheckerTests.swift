@@ -19,6 +19,7 @@ final class VHDLModelCheckerTests: XCTestCase {
 
     /// The specification to test against.
     lazy var specification: RequirementsSpecification = .tctl(
+        // swiftlint:disable:next force_unwrapping
         specification: Specification(rawValue: specRaw)!
     )
 
@@ -32,6 +33,7 @@ final class VHDLModelCheckerTests: XCTestCase {
 
     /// Initialise the test data before every test.
     override func setUp() {
+        // swiftlint:disable:next force_unwrapping
         specification = .tctl(specification: Specification(rawValue: specRaw)!)
         let path = FileManager.default.currentDirectoryPath.appending(
             "/Tests/VHDLModelCheckerTests/output.json"
