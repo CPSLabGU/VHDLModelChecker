@@ -57,20 +57,6 @@ import TCTLParser
 
 extension Expression {
 
-    func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
-        // Reduces the expression to an expression to apply to the successors of the current node.
-        switch self {
-        case .language:
-            return []
-        case .precedence(let expression):
-            return try expression.successorExpression(currentNode: node, inCycle: inCycle)
-        case .quantified(let expression):
-            return try expression.successorExpression(currentNode: node, inCycle: inCycle)
-        case .implies:
-            throw VerificationError.notSupported
-        }
-    }
-
     func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {

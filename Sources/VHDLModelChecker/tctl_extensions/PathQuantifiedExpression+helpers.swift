@@ -57,18 +57,6 @@ import TCTLParser
 
 extension PathQuantifiedExpression {
 
-    func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
-        // Reduces the expression to an expression to apply to the successors of the current node.
-        switch self {
-        case .globally, .finally:
-            return inCycle ? [] : [.quantified(expression: .always(expression: self))]
-        case .next(let expression):
-            return [expression]
-        case .until, .weak:
-            throw VerificationError.notSupported
-        }
-    }
-
     func verify(
         currentNode node: KripkeNode, inCycle: Bool, quantifier: GlobalQuantifiedType
     ) throws -> [VerifyStatus] {
