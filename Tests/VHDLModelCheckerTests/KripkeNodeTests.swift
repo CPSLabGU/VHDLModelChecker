@@ -1,4 +1,4 @@
-// KripkeNode.swift
+// KripkeNodeTests.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,56 +53,55 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import VHDLKripkeStructures
+@testable import VHDLModelChecker
 import VHDLParsing
+import XCTest
 
-/// A node within the Kripke structure.
-enum KripkeNode: Equatable, Hashable, Codable, Sendable {
+/// Test class for ``KripkeNode``.
+final class KripkeNodeTests: XCTestCase {
 
-    /// A `read` node representing the time immediately before the start of a ringlet.
-    case read(node: ReadNode, currentState: VariableName)
+    /// A mock read state.
+    let fakeRead = ReadNode(properties: [.failureCount: .integer(value: 3)], executeOnEntry: true)
 
-    /// A `write` node representing the time immediately after the end of a ringlet.
-    case write(node: WriteNode, currentState: VariableName)
+    /// A mock write state.
+    let fakeWrite = WriteNode(
+        properties: [.failureCount: .integer(value: 3)], nextState: .recoveryMode, executeOnEntry: true
+    )
 
-    /// The current state of this node.
-    var currentState: VariableName {
-        switch self {
-        case .read(_, let currentState), .write(_, let currentState):
-            return currentState
-        }
+    /// A test `read` node.
+    var readNode: KripkeNode {
+        KripkeNode.read(node: fakeRead, currentState: .currentState)
     }
 
-    /// Whether this mode executed the `onEntry` action.
-    var executeOnEntry: Bool {
-        switch self {
-        case .read(let node, _):
-            return node.executeOnEntry
-        case .write(let node, _):
-            return node.executeOnEntry
-        }
+    /// A test `write` node.
+    var writeNode: KripkeNode {
+        KripkeNode.write(node: fakeWrite, currentState: .currentState)
     }
 
-    /// The properties (variables) within the node.
-    var properties: [VariableName: SignalLiteral] {
-        switch self {
-        case .read(let node, _):
-            return node.properties
-        case .write(let node, _):
-            return node.properties
-        }
+    /// Test that the current state is derived from the node.
+    func testCurrentState() {
+        XCTAssertEqual(readNode.currentState, .currentState)
+        XCTAssertEqual(writeNode.currentState, .currentState)
     }
 
-    /// The name of the `LLFSMs` next state to execute. This property only concerns `write` state as a
-    /// transition is performed at the end of this state to a new state.
-    var nextState: VariableName? {
-        switch self {
-        case .read:
-            return nil
-        case .write(let node, _):
-            return node.nextState
-        }
+    /// Test that `executeOnEntry` is derived from the node.
+    func testExecuteOnEntry() {
+        XCTAssertTrue(readNode.executeOnEntry)
+        XCTAssertTrue(writeNode.executeOnEntry)
+    }
+
+    /// Test the `nextState` is accessible in write nodes.
+    func testNextState() {
+        XCTAssertNil(readNode.nextState)
+        XCTAssertEqual(writeNode.nextState, .recoveryMode)
+    }
+
+    /// Test the properties getter works correctly.
+    func testProperties() {
+        let properties = [VariableName.failureCount: SignalLiteral.integer(value: 3)]
+        XCTAssertEqual(readNode.properties, properties)
+        XCTAssertEqual(writeNode.properties, properties)
     }
 
 }
