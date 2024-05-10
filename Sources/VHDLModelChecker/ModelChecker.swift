@@ -126,12 +126,6 @@ final class Revisit: Equatable, Hashable {
 
 }
 
-extension KripkeStructureIterator {
-    var initialNodes: [(UUID, KripkeNode)] {
-        []
-    }
-}
-
 final class ModelChecker {
 
     var jobs: [Job] = []
@@ -141,7 +135,10 @@ final class ModelChecker {
     init() {}
 
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
-        for (id, initialNode) in structure.initialNodes {
+        for (id) in structure.initialStates {
+            guard let initialNode = structure.nodes[id] else {
+                throw VerificationError.notSupported
+            }
             for expression in specification.requirements {
                 let job = Job(
                     nodeId: id,

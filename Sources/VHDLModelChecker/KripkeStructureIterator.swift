@@ -62,11 +62,14 @@ struct KripkeStructureIterator {
 
     let edges: [UUID: [NodeEdge]]
 
+    let initialStates: Set<UUID>
+
     init(structure: KripkeStructure) {
         let ringlets = structure.ringlets.lazy
         var nodes: [UUID: KripkeNode] = [:]
         var edges: [UUID: [NodeEdge]] = [:]
         var ids: [KripkeNode: UUID] = [:]
+        var initialStates: Set<UUID> = []
         ringlets.forEach {
             let read = KripkeNode.read(node: $0.read, currentState: $0.state)
             let write = KripkeNode.write(node: $0.write, currentState: $0.state)
@@ -109,16 +112,20 @@ struct KripkeStructureIterator {
             } else {
                 readID = UUID()
                 ids[read] = readID
+                if structure.initialStates.contains($0.read) {
+                    initialStates.insert(readID)
+                }
             }
             nodes[readID] = read
             edges[readID] = [NodeEdge(edge: $0.edge, destination: writeID)]
         }
-        self.init(nodes: nodes, edges: edges)
+        self.init(nodes: nodes, edges: edges, initialStates: initialStates)
     }
 
-    init(nodes: [UUID: KripkeNode], edges: [UUID: [NodeEdge]]) {
+    init(nodes: [UUID: KripkeNode], edges: [UUID: [NodeEdge]], initialStates: Set<UUID>) {
         self.nodes = nodes
         self.edges = edges
+        self.initialStates = initialStates
     }
 
 }
