@@ -1,4 +1,4 @@
-// GloballyQuantifiedExpression+helpers.swift
+// GloballyQuantifiedExpressionTests.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,58 +54,48 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+@testable import VHDLModelChecker
+import XCTest
 
-/// Add verify methods to expression.
-extension GloballyQuantifiedExpression {
+/// Test class for `GloballyQuantifiedExpression` extensions.
+final class GloballyQuantifiedExpressionTests: XCTestCase {
 
-    /// The current quantifier of this expression.
-    var quantifier: GlobalQuantifiedType {
-        switch self {
-        case .always:
-            return .always
-        case .eventually:
-            return .eventually
-        }
+    /// A test expression.
+    let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
+        lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+        rhs: .literal(value: .integer(value: 2))
+    ))))
+
+    /// An `always` expression.
+    var always: GloballyQuantifiedExpression {
+        .always(expression: .globally(expression: .language(expression: trueExp)))
     }
 
-    /// Create an expression from it's quantifier and path quantified expression.
-    /// - Parameters:
-    ///   - quantifier: The quantifier to apply to the `expression`.
-    ///   - expression: The expression constrained by this expression.
-    init(quantifier: GlobalQuantifiedType, expression: PathQuantifiedExpression) {
-        switch quantifier {
-        case .always:
-            self = .always(expression: expression)
-        case .eventually:
-            self = .eventually(expression: expression)
-        }
+    /// An `eventually` expression.
+    var eventually: GloballyQuantifiedExpression {
+        .eventually(expression: .globally(expression: .language(expression: trueExp)))
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
-        // Verifies a node but does not take into consideration successor nodes.
-        let results: [VerifyStatus]
-        let expression: PathQuantifiedExpression
-        switch self {
-        case .always(let exp), .eventually(let exp):
-            results = try exp.verify(currentNode: node, inCycle: inCycle, quantifier: quantifier)
-            expression = exp
-        }
-        guard inCycle else {
-            return results
-        }
-        switch expression {
-        case .next(let expression):
-            return [.successor(expression: expression)]
-        case .finally:
-            guard !results.contains(where: \.isSuccessor) else {
-                throw VerificationError.unsatisfied(node: node)
-            }
-            return results
-        case .globally:
-            return results.map { $0.isSuccessor ? .completed : $0 }
-        default:
-            throw VerificationError.notSupported
-        }
+    /// Test the quantifier is derived correctly.
+    func testQuantifier() {
+        XCTAssertEqual(always.quantifier, .always)
+        XCTAssertEqual(eventually.quantifier, .eventually)
+    }
+
+    /// Test the quantifier init constructs the expression correctly.
+    func testQuantifierInit() {
+        XCTAssertEqual(
+            GloballyQuantifiedExpression(
+                quantifier: .always, expression: .globally(expression: .language(expression: trueExp))
+            ),
+            always
+        )
+        XCTAssertEqual(
+            GloballyQuantifiedExpression(
+                quantifier: .eventually, expression: .globally(expression: .language(expression: trueExp))
+            ),
+            eventually
+        )
     }
 
 }

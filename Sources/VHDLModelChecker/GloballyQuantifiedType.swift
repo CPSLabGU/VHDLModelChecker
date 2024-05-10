@@ -1,4 +1,4 @@
-// GloballyQuantifiedExpression+helpers.swift
+// GloballyQuantifiedType.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,59 +53,12 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+/// A type representing the quantifier within a `TCTLParser.GloballyQuantifiedExpression``.
+enum GlobalQuantifiedType: Hashable, Codable, Sendable, CaseIterable {
 
-/// Add verify methods to expression.
-extension GloballyQuantifiedExpression {
+    /// The `always` quantifier (A).
+    case always
 
-    /// The current quantifier of this expression.
-    var quantifier: GlobalQuantifiedType {
-        switch self {
-        case .always:
-            return .always
-        case .eventually:
-            return .eventually
-        }
-    }
-
-    /// Create an expression from it's quantifier and path quantified expression.
-    /// - Parameters:
-    ///   - quantifier: The quantifier to apply to the `expression`.
-    ///   - expression: The expression constrained by this expression.
-    init(quantifier: GlobalQuantifiedType, expression: PathQuantifiedExpression) {
-        switch quantifier {
-        case .always:
-            self = .always(expression: expression)
-        case .eventually:
-            self = .eventually(expression: expression)
-        }
-    }
-
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
-        // Verifies a node but does not take into consideration successor nodes.
-        let results: [VerifyStatus]
-        let expression: PathQuantifiedExpression
-        switch self {
-        case .always(let exp), .eventually(let exp):
-            results = try exp.verify(currentNode: node, inCycle: inCycle, quantifier: quantifier)
-            expression = exp
-        }
-        guard inCycle else {
-            return results
-        }
-        switch expression {
-        case .next(let expression):
-            return [.successor(expression: expression)]
-        case .finally:
-            guard !results.contains(where: \.isSuccessor) else {
-                throw VerificationError.unsatisfied(node: node)
-            }
-            return results
-        case .globally:
-            return results.map { $0.isSuccessor ? .completed : $0 }
-        default:
-            throw VerificationError.notSupported
-        }
-    }
-
+    /// The `eventually` quantifier (E).
+    case eventually
 }
