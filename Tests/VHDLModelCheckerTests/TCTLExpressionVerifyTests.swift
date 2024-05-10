@@ -60,6 +60,10 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+
+/// Test class for the `verify` method on the `TCTLParser.Expression` enum.
 final class TCTLExpressionVerifyTests: XCTestCase {
 
     /// The kripke structure to test.
@@ -77,51 +81,61 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    /// An expression that evaluates to `true` for `failureCount2Node`.
     let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 2))
     ))))
 
+    /// An expression that evaluates to `false` for `failureCount2Node`.
     let falseExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 3))
     ))))
 
+    /// A X <trueExp>
     var nextTrue: TCTLParser.Expression {
         .quantified(
             expression: .always(expression: .next(expression: .language(expression: trueExp)))
         )
     }
 
+    /// A X <falseExp>
     var nextFalse: TCTLParser.Expression {
         .quantified(
             expression: .always(expression: .next(expression: .language(expression: falseExp)))
         )
     }
 
+    /// A G <trueExp>
     var globallyTrue: TCTLParser.Expression {
         .quantified(
             expression: .always(expression: .globally(expression: .language(expression: trueExp)))
         )
     }
 
+    /// A G <falseExp>
     var globallyFalse: TCTLParser.Expression {
         .quantified(
             expression: .always(expression: .globally(expression: .language(expression: falseExp)))
         )
     }
 
+    /// A F <trueExp>
     var finallyTrue: TCTLParser.Expression {
         .quantified(
             expression: .always(expression: .finally(expression: .language(expression: trueExp)))
         )
     }
 
+    /// A F <falseExp>
     var finallyFalse: TCTLParser.Expression {
         .quantified(
             expression: .always(expression: .finally(expression: .language(expression: falseExp)))
         )
     }
+
+    // swiftlint:disable implicitly_unwrapped_optional
 
     /// A node with a failure count of 3.
     var failureCount2Node: KripkeNode! {
@@ -134,6 +148,9 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         .first
     }
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
+    /// Test that language expression verifies correctly.
     func testLanguageVerify() throws {
         let result = try TCTLParser.Expression.language(expression: trueExp)
                 .verify(currentNode: failureCount2Node, inCycle: false)
@@ -144,6 +161,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test that the precedence expression verifies correctly.
     func testPrecedence() throws {
         let result = try TCTLParser.Expression.precedence(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: false)
@@ -154,6 +172,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test that the `quantified` case verifies correctly.
     func testQuantified() throws {
         XCTAssertEqual(
             try TCTLParser.Expression.quantified(
@@ -206,6 +225,9 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    // swiftlint:disable function_body_length
+
+    /// Test the implies case verifies correctly for simple cases.
     func testImplies() throws {
         XCTAssertThrowsError(
             try TCTLParser.Expression.implies(
@@ -263,6 +285,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies case verifies correctly for successor expressions.
     func testImpliesProgressive() throws {
         XCTAssertEqual(
             try TCTLParser.Expression.implies(
@@ -362,6 +385,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from next expressions.
     func testImpliesRevisittingNext() throws {
         let lhs = TCTLParser.Expression.implies(lhs: nextTrue, rhs: .language(expression: trueExp))
         XCTAssertEqual(
@@ -561,6 +585,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from global expressions.
     func testImpliesGlobally() throws {
         let lhs = TCTLParser.Expression.implies(lhs: globallyTrue, rhs: .language(expression: trueExp))
         XCTAssertEqual(
@@ -687,6 +712,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from finally expressions.
     func testImpliesFinally() throws {
         let lhs = TCTLParser.Expression.implies(lhs: finallyTrue, rhs: .language(expression: trueExp))
         XCTAssertEqual(
@@ -814,6 +840,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from next expressions in the rhs.
     func testImpliesRevisittingNextRhs() throws {
         let lhsTrue = TCTLParser.Expression.language(expression: trueExp)
         let lhsFalse = TCTLParser.Expression.language(expression: falseExp)
@@ -945,6 +972,8 @@ final class TCTLExpressionVerifyTests: XCTestCase {
 
 // MARK: - Globally RHS.
 
+    /// Test the implies verifies correctly when creating revisitting states from globally expressions in the
+    /// rhs.
     /// <T | F> -> (A G <T | F> -> <T | F>)
     func testImpliesRevisittingGloballyRhs() throws {
         let lhsTrue = TCTLParser.Expression.language(expression: trueExp)
@@ -1054,6 +1083,8 @@ final class TCTLExpressionVerifyTests: XCTestCase {
 
 // MARK: - Finally RHS.
 
+    /// Test the implies verifies correctly when creating revisitting states from finally expressions in the
+    /// rhs.
     /// <T | F> -> (A F <T | F> -> <T | F>)
     func testImpliesRevisittingFinallyRHS() throws {
         let lhsTrue = TCTLParser.Expression.language(expression: trueExp)
@@ -1160,6 +1191,8 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from next expressions in the rhs
+    /// most value.
     /// <T | F> -> (<T | F> -> A X <T | F>)
     func testImpliesRevisittingNextRHS() throws {
         let lhsTrue = TCTLParser.Expression.language(expression: trueExp)
@@ -1250,6 +1283,8 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from next expressions in the lhs
+    /// most value.
     /// (<T | F> -> A X <T | F>) -> <T | F>
     func testImpliesRevisittingNextLHS() throws {
         let rhsTrue = TCTLParser.Expression.language(expression: trueExp)
@@ -1280,7 +1315,7 @@ final class TCTLExpressionVerifyTests: XCTestCase {
 
             // (P -> A X Q) -> R
             // revisit(R): Q -> Q
-            
+
             // (P -> A G Q) -> R
             // revisit(R): A G Q -> A G Q
             // (P -> A G Q) -> R = 
@@ -1380,6 +1415,8 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// Test the implies verifies correctly when creating revisitting states from globally expressions in the
+    /// lhs most value.
     /// <T | F> -> (<T | F> -> A G <T | F>)
     func testImpliesRevisittingGloballyLHS() throws {
         let trueExp = TCTLParser.Expression.language(expression: trueExp)
@@ -1529,11 +1566,15 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
-    /// (<T | F> -> A G <T | F>) -> <T | F>
+    // (<T | F> -> A G <T | F>) -> <T | F>
 
-    
-    /// <T | F> -> (<T | F> -> A F <T | F>)
-    
-    /// (<T | F> -> A F <T | F>) -> <T | F>
+    // <T | F> -> (<T | F> -> A F <T | F>)
+
+    // (<T | F> -> A F <T | F>) -> <T | F>
+
+    // swiftlint:enable function_body_length
 
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length
