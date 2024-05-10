@@ -1,4 +1,4 @@
-// VerifyStatus.swift
+// VerifyStatusTests.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,62 +54,68 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+@testable import VHDLModelChecker
+import VHDLParsing
+import XCTest
 
-/// The status of an ongoing verification.
-enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertible {
+/// Test class for ``VerifyStatus``.
+final class VerifyStatusTests: XCTestCase {
 
-    /// The current verification holds and is complete.
-    case completed
+    /// An expression that evaluates to `true` for `failureCount2Node`.
+    let trueExp = TCTLParser.Expression.language(expression: .vhdl(expression: .conditional(
+        expression: .comparison(value: .equality(
+            lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+            rhs: .literal(value: .integer(value: 2))
+        ))
+    )))
 
-    /// The current verification holds at the current node, but requires
-    /// traversing further nodes to evaluate it completely.
-    /// - Parameter expression: The expression to evaluate at the next node.
-    case successor(expression: Expression)
+    /// An expression that evaluates to `false` for `failureCount2Node`.
+    let falseExp = TCTLParser.Expression.language(expression: .vhdl(expression: .conditional(
+        expression: .comparison(value: .equality(
+            lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+            rhs: .literal(value: .integer(value: 3))
+        ))
+    )))
 
-    /// The current verification holds but contains sub-expressions that need
-    /// to be evaluated at future nodes before the verification can be considered
-    /// complete.
-    /// - Parameters:
-    ///   - expression: The expression to re-evaluate once all successor expressions
-    ///     have been evaluated.
-    ///   - successors: The expressions that need to be evaluated before
-    ///     `expression` can be evaulated.
-    case revisitting(expression: Expression, successors: [Successor])
-
-    /// A print-friendly string representing this instance.
-    var description: String {
-        switch self {
-        case .completed:
-            return "completed"
-        case .successor(let expression):
-            return "successor(" + expression.rawValue + ")"
-        case .revisitting(let expression, let successors):
-            return "revisitting("
-                + expression.rawValue
-                + ", ["
-                + successors.map(\.description).joined(separator: ", ")
-                + "])"
-        }
+    /// A `successor` status.
+    var successor: VerifyStatus {
+        .successor(expression: trueExp)
     }
 
-    /// Whether the current status is a successor.
-    var isSuccessor: Bool {
-        switch self {
-        case .successor:
-            return true
-        default:
-            return false
-        }
+    /// A `revisitting` status.
+    var revisitting: VerifyStatus {
+        .revisitting(expression: trueExp, successors: [.skip(expression: falseExp)])
     }
 
-    /// Whether the current status is a revisitting status.
-    var isRevisitting: Bool {
-        switch self {
-        case .revisitting:
-            return true
-        default:
-            return false
-        }
+    /// Test the `isSuccessor` only returns `true` for `successor` cases.
+    func testIsSuccessor() {
+        XCTAssertFalse(VerifyStatus.completed.isSuccessor)
+        XCTAssertTrue(successor.isSuccessor)
+        XCTAssertFalse(revisitting.isSuccessor)
+    }
+
+    /// Test the `isRevisitting` property only returns `true` for `revisitting` caes.
+    func testIsRevisitting() {
+        XCTAssertFalse(VerifyStatus.completed.isRevisitting)
+        XCTAssertFalse(successor.isRevisitting)
+        XCTAssertTrue(revisitting.isRevisitting)
+    }
+
+    /// Test that the `description` is formatted correctly.
+    func testDescription() {
+        let skipTrue = Successor.skip(expression: trueExp)
+        let skipFalse = Successor.skip(expression: falseExp)
+        XCTAssertEqual(VerifyStatus.completed.description, "completed")
+        XCTAssertEqual(successor.description, "successor(\(trueExp.rawValue))")
+        XCTAssertEqual(
+            revisitting.description, "revisitting(\(trueExp.rawValue), [\(skipFalse.description)])"
+        )
+        XCTAssertEqual(
+            VerifyStatus.revisitting(
+                expression: trueExp, successors: [skipFalse, skipTrue]
+            ).description,
+            "revisitting(\(trueExp.rawValue), [\(skipFalse.description), \(skipTrue.description)])"
+        )
     }
 
 }
