@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// NodeEdgeTests.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,23 +55,23 @@
 
 import Foundation
 import VHDLKripkeStructures
+@testable import VHDLModelChecker
+import XCTest
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge {
+/// Test class for ``NodeEdge``.
+final class NodeEdgeTests: XCTestCase {
 
-    /// The cost of taking this edge represented as a time cost and an energy cost.
-    let edge: Edge
+    /// Test data.
+    let edge = Edge(time: 100, energy: 250)
 
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
+    /// The id of the edge.
+    let id = UUID()
 
-    /// Create an edge from it's stored properties.
-    /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(edge: Edge, destination: UUID) {
-        self.edge = edge
-        self.destination = destination
+    /// Test the init sets the stored properties correctly.
+    func testInit() {
+        let nodeEdge = NodeEdge(edge: edge, destination: id)
+        XCTAssertEqual(nodeEdge.edge, edge)
+        XCTAssertEqual(nodeEdge.destination, id)
     }
 
 }
