@@ -69,15 +69,22 @@ extension PathQuantifiedExpression {
         }
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
+    func verify(
+        currentNode node: KripkeNode, inCycle: Bool, quantifier: GlobalQuantifiedType
+    ) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .globally(let expression):
             let results = try expression.verify(currentNode: node, inCycle: inCycle)
             if inCycle {
-                return results.filter { $0 != .progressing && $0 != .completed } + [.completed]
+                return results.filter { $0 != .completed } + [.completed]
             } else {
-                return results.filter { $0 != .progressing && $0 != .completed } + [.progressing]
+                // Need to confirm the successor expression below.
+                return results + [
+                    .successor(expression: .quantified(
+                        expression: .init(quantifier: quantifier, expression: self)
+                    ))
+                ]
             }
         case .finally(let expression):
             do {
@@ -86,10 +93,14 @@ extension PathQuantifiedExpression {
                 if inCycle {
                     throw VerificationError.unsatisfied(node: node)
                 }
-                return [.progressing]
+                return [
+                    .successor(expression: Expression.quantified(
+                        expression: .init(quantifier: quantifier, expression: self)
+                    ))
+                ]
             }
-        case .next:
-            return [.progressing]
+        case .next(let expression):
+            return [.successor(expression: expression)]
         case .until, .weak:
             throw VerificationError.notSupported
         }

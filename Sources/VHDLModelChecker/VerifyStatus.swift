@@ -56,15 +56,57 @@
 import TCTLParser
 
 /// The status of an ongoing verification.
-enum VerifyStatus: Equatable {
+enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertible {
 
     /// The current verification holds and is complete.
     case completed
 
-    /// The current verification holds but is not yet complete.
-    case progressing
+    /// The current verification holds at the current node, but requires
+    /// traversing further nodes to evaluate it completely.
+    /// - Parameter expression: The expression to evaluate at the next node.
+    case successor(expression: Expression)
 
-    /// The current verification holds but needs to re-evaluate a future expression.
-    case revisitting(expression: Expression)
+    /// The current verification holds but contains sub-expressions that need
+    /// to be evaluated at future nodes before the verification can be considered
+    /// complete.
+    /// - Parameters:
+    ///   - expression: The expression to re-evaluate once all successor expressions
+    ///     have been evaluated.
+    ///   - successors: The expressions that need to be evaluated before
+    ///     `expression` can be evaulated.
+    case revisitting(expression: Expression, successors: [Expression])
+
+    var description: String {
+        switch self {
+        case .completed:
+            return "completed"
+        case .successor(let expression):
+            return "successor(" + expression.rawValue + ")"
+        case .revisitting(let expression, let successors):
+            return "revisiting("
+                + expression.rawValue
+                + ", ["
+                + successors.map(\.rawValue).joined(separator: ", ")
+                + "])"
+        }
+    }
+
+    var isSuccessor: Bool {
+        switch self {
+        case .successor:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var isRevisitting: Bool {
+        switch self {
+        case .revisitting:
+            return true
+        default:
+            return false
+        }
+    }
 
 }

@@ -55,7 +55,30 @@
 
 import TCTLParser
 
+enum GlobalQuantifiedType: Hashable, Codable, Sendable, CaseIterable {
+    case always
+    case eventually
+}
+
 extension GloballyQuantifiedExpression {
+
+    var quantifier: GlobalQuantifiedType {
+        switch self {
+        case .always:
+            return .always
+        case .eventually:
+            return .eventually
+        }
+    }
+
+    init(quantifier: GlobalQuantifiedType, expression: PathQuantifiedExpression) {
+        switch quantifier {
+        case .always:
+            self = .always(expression: expression)
+        case .eventually:
+            self = .eventually(expression: expression)
+        }
+    }
 
     func successorExpression(currentNode node: KripkeNode, inCycle: Bool) throws -> [Expression] {
         // Reduces the expression to an expression to apply to the successors of the current node.
@@ -68,22 +91,22 @@ extension GloballyQuantifiedExpression {
         let expression: PathQuantifiedExpression
         switch self {
         case .always(let exp), .eventually(let exp):
-            results = try exp.verify(currentNode: node, inCycle: inCycle)
+            results = try exp.verify(currentNode: node, inCycle: inCycle, quantifier: quantifier)
             expression = exp
         }
         guard inCycle else {
             return results
         }
         switch expression {
-        case .next:
-            return [.progressing]
+        case .next(let expression):
+            return [.successor(expression: expression)]
         case .finally:
-            guard !results.contains(.progressing) else {
+            guard !results.contains(where: \.isSuccessor) else {
                 throw VerificationError.unsatisfied(node: node)
             }
             return results
         case .globally:
-            return results.map { $0 == .progressing ? .completed : $0 }
+            return results.map { $0.isSuccessor ? .completed : $0 }
         default:
             throw VerificationError.notSupported
         }

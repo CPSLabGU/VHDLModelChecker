@@ -89,10 +89,27 @@ extension Expression {
                 switch $0 {
                 case .completed:
                     return try rhs.verify(currentNode: node, inCycle: inCycle)
-                case .progressing:
-                    return [.revisitting(expression: rhs)]
-                case .revisitting(let expression):
-                    return [.revisitting(expression: .implies(lhs: expression, rhs: rhs))]
+                    // let hasRevisitting = nestedResults.contains { $0.isRevisitting }
+                    // guard hasRevisitting else {
+                    //     return nestedResults
+                    // }
+                    // return nestedResults.map {
+                    //     switch $0 {
+                    //     case .completed, .revisitting:
+                    //         return $0
+                    //     case .progressing:
+                    //         return .revisitting(expression: rhs)
+                    //     }
+                    // }
+                case .successor(let expression):
+                    return [.revisitting(expression: rhs, successors: [expression])]
+                case .revisitting(let expression, let successors):
+                    return [
+                        .revisitting(
+                            expression: .implies(lhs: expression, rhs: rhs),
+                            successors: successors
+                        )
+                    ]
                 }
             }
         }

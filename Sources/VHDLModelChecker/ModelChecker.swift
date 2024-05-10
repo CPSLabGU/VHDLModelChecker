@@ -173,10 +173,6 @@ final class ModelChecker {
         } catch let error {
             throw error
         }
-        let successorExpressions = try job.expression.successorExpression(
-            currentNode: job.node,
-            inCycle: job.history.contains(job.nodeId)
-        )
         let successors = structure.edges[job.nodeId]?.compactMap { edge in
             structure.nodes[edge.destination].map { (edge.destination, $0) }
         } ?? []
@@ -192,19 +188,17 @@ final class ModelChecker {
                         revisits: []
                     ))
                 }
-            case .progressing:
-                self.jobs.append(contentsOf: successors.flatMap { nodeId, node in
-                    successorExpressions.map {
-                        Job(
-                            nodeId: nodeId,
-                            node: node,
-                            expression: $0,
-                            history: job.history.union([job.nodeId]),
-                            revisits: job.revisits
-                        )
-                    }
+            case .successor(let expression):
+                self.jobs.append(contentsOf: successors.map { nodeId, node in
+                    Job(
+                        nodeId: nodeId,
+                        node: node,
+                        expression: expression,
+                        history: job.history.union([job.nodeId]),
+                        revisits: job.revisits
+                    )
                 })
-            case .revisitting(let expression):
+            case .revisitting(let expression, let successorExpressions):
                 self.jobs.append(contentsOf: successors.flatMap { nodeId, node in
                     successorExpressions.map {
                         Job(
