@@ -1,4 +1,28 @@
 {
+  "initialStates" : [
+    {
+      "executeOnEntry" : true,
+      "properties" : [
+        "RecoveryModeMachine_failureCount",
+        "0",
+        "bootMode",
+        "'0'",
+        "RecoveryModeMachine_recoveryMode",
+        "'0'"
+      ]
+    },
+    {
+      "executeOnEntry" : true,
+      "properties" : [
+        "RecoveryModeMachine_failureCount",
+        "0",
+        "bootMode",
+        "'1'",
+        "RecoveryModeMachine_recoveryMode",
+        "'0'"
+      ]
+    }
+  ],
   "ringlets" : [
     {
       "edge" : {
@@ -8,6 +32,62 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
+          "bootMode",
+          "'0'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "0"
+        ]
+      },
+      "state" : "Initial",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "Initial",
+        "properties" : [
+          "recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "0"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootMode",
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "0"
+        ]
+      },
+      "state" : "Initial",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "WaitForFailure",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "0",
+          "recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
           "RecoveryModeMachine_recoveryMode",
           "'0'",
           "bootMode",
@@ -34,7 +114,7 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : true,
+        "executeOnEntry" : false,
         "properties" : [
           "RecoveryModeMachine_failureCount",
           "0",
@@ -49,10 +129,10 @@
         "executeOnEntry" : true,
         "nextState" : "WaitForFailure",
         "properties" : [
-          "recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "0"
+          "0",
+          "recoveryMode",
+          "'0'"
         ]
       }
     },
@@ -62,13 +142,13 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
+        "executeOnEntry" : true,
         "properties" : [
-          "bootMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "0",
+          "1",
           "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootMode",
           "'0'"
         ]
       },
@@ -78,7 +158,7 @@
         "nextState" : "Initial",
         "properties" : [
           "RecoveryModeMachine_failureCount",
-          "0",
+          "1",
           "recoveryMode",
           "'0'"
         ]
@@ -90,12 +170,12 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
+        "executeOnEntry" : true,
         "properties" : [
           "bootMode",
           "'1'",
           "RecoveryModeMachine_failureCount",
-          "0",
+          "1",
           "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
@@ -118,11 +198,11 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : true,
+        "executeOnEntry" : false,
         "properties" : [
-          "bootMode",
-          "'0'",
           "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootMode",
           "'0'",
           "RecoveryModeMachine_failureCount",
           "1"
@@ -133,95 +213,11 @@
         "executeOnEntry" : false,
         "nextState" : "Initial",
         "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
           "recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "bootMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "Initial",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "0"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "bootMode",
-          "'0'"
-        ]
-      },
-      "state" : "Initial",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "bootMode",
-          "'1'",
-          "RecoveryModeMachine_recoveryMode",
           "'0'",
           "RecoveryModeMachine_failureCount",
           "1"
         ]
-      },
-      "state" : "Initial",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "0"
-        ]
       }
     },
     {
@@ -230,38 +226,10 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "bootMode",
-          "'0'"
-        ]
-      },
-      "state" : "Initial",
-      "write" : {
         "executeOnEntry" : false,
-        "nextState" : "Initial",
         "properties" : [
           "RecoveryModeMachine_failureCount",
-          "2",
-          "recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
+          "1",
           "bootMode",
           "'1'",
           "RecoveryModeMachine_recoveryMode",
@@ -273,6 +241,62 @@
         "executeOnEntry" : true,
         "nextState" : "WaitForFailure",
         "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "0",
+          "recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "bootMode",
+          "'0'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      },
+      "state" : "Initial",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "Initial",
+        "properties" : [
+          "recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootMode",
+          "'1'"
+        ]
+      },
+      "state" : "Initial",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "WaitForFailure",
+        "properties" : [
           "recoveryMode",
           "'0'",
           "RecoveryModeMachine_failureCount",
@@ -288,11 +312,11 @@
       "read" : {
         "executeOnEntry" : false,
         "properties" : [
-          "bootMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
           "2",
           "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootMode",
           "'0'"
         ]
       },
@@ -329,10 +353,10 @@
         "executeOnEntry" : true,
         "nextState" : "WaitForFailure",
         "properties" : [
-          "recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "0"
+          "0",
+          "recoveryMode",
+          "'0'"
         ]
       }
     },
@@ -344,10 +368,10 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "bootMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
           "3",
+          "bootMode",
+          "'0'",
           "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
@@ -372,12 +396,68 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "bootMode",
           "'1'",
           "RecoveryModeMachine_failureCount",
-          "3"
+          "3",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      },
+      "state" : "Initial",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "WaitForFailure",
+        "properties" : [
+          "recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "0"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "bootMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "3",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      },
+      "state" : "Initial",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "3",
+          "recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "3",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootMode",
+          "'1'"
         ]
       },
       "state" : "Initial",
@@ -398,71 +478,15 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "bootMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "3"
-        ]
-      },
-      "state" : "Initial",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "3",
-          "recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "bootMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "3"
-        ]
-      },
-      "state" : "Initial",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "0",
-          "recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "bootFailure",
-          "'0'",
           "operationalMode",
           "'0'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
           "RecoveryModeMachine_failureCount",
           "0",
-          "RecoveryModeMachine_recoveryMode",
+          "bootFailure",
           "'0'"
         ]
       },
@@ -471,10 +495,10 @@
         "executeOnEntry" : false,
         "nextState" : "WaitForFailure",
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "0"
+          "0",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
         ]
       }
     },
@@ -486,12 +510,12 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "operationalMode",
-          "'1'",
           "RecoveryModeMachine_failureCount",
           "0",
           "RecoveryModeMachine_recoveryMode",
           "'0'",
+          "operationalMode",
+          "'1'",
           "bootFailure",
           "'0'"
         ]
@@ -516,14 +540,14 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "bootFailure",
-          "'1'",
           "operationalMode",
           "'0'",
           "RecoveryModeMachine_failureCount",
           "0",
           "RecoveryModeMachine_recoveryMode",
-          "'0'"
+          "'0'",
+          "bootFailure",
+          "'1'"
         ]
       },
       "state" : "WaitForFailure",
@@ -548,70 +572,10 @@
         "properties" : [
           "RecoveryModeMachine_recoveryMode",
           "'0'",
+          "RecoveryModeMachine_failureCount",
+          "0",
           "bootFailure",
           "'1'",
-          "operationalMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "0"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "operationalMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "0",
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "0",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "0",
           "operationalMode",
           "'1'"
         ]
@@ -640,8 +604,38 @@
           "'0'",
           "operationalMode",
           "'0'",
+          "RecoveryModeMachine_failureCount",
+          "0",
           "bootFailure",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "WaitForFailure",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "0",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "operationalMode",
           "'1'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootFailure",
+          "'0'",
           "RecoveryModeMachine_failureCount",
           "0"
         ]
@@ -649,12 +643,12 @@
       "state" : "WaitForFailure",
       "write" : {
         "executeOnEntry" : true,
-        "nextState" : "WaitForFailureReset",
+        "nextState" : "Initial",
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "1"
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
         ]
       }
     },
@@ -668,102 +662,12 @@
         "properties" : [
           "RecoveryModeMachine_failureCount",
           "0",
-          "bootFailure",
-          "'1'",
-          "operationalMode",
-          "'1'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "operationalMode",
-          "'0'",
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "1"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "operationalMode",
-          "'1'",
-          "bootFailure",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "operationalMode",
-          "'0'",
           "RecoveryModeMachine_recoveryMode",
           "'0'",
           "bootFailure",
           "'1'",
-          "RecoveryModeMachine_failureCount",
-          "1"
+          "operationalMode",
+          "'0'"
         ]
       },
       "state" : "WaitForFailure",
@@ -771,38 +675,8 @@
         "executeOnEntry" : true,
         "nextState" : "WaitForFailureReset",
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "operationalMode",
-          "'1'",
           "RecoveryModeMachine_failureCount",
           "1",
-          "bootFailure",
-          "'1'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
           "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
@@ -815,6 +689,36 @@
       },
       "read" : {
         "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "0",
+          "bootFailure",
+          "'1'",
+          "operationalMode",
+          "'1'"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
         "properties" : [
           "bootFailure",
           "'0'",
@@ -844,16 +748,16 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
+        "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "operationalMode",
-          "'1'",
           "bootFailure",
           "'0'",
           "RecoveryModeMachine_recoveryMode",
-          "'0'"
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "operationalMode",
+          "'1'"
         ]
       },
       "state" : "WaitForFailure",
@@ -874,11 +778,41 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
+        "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "operationalMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "bootFailure",
+          "'1'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "WaitForFailureReset",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "operationalMode",
+          "'1'",
+          "RecoveryModeMachine_recoveryMode",
           "'0'",
           "RecoveryModeMachine_failureCount",
           "1",
@@ -889,6 +823,96 @@
       "state" : "WaitForFailure",
       "write" : {
         "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "operationalMode",
+          "'0'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "bootFailure",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "WaitForFailure",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "operationalMode",
+          "'1'",
+          "bootFailure",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "bootFailure",
+          "'1'",
+          "operationalMode",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : true,
         "nextState" : "WaitForFailureReset",
         "properties" : [
           "RecoveryModeMachine_recoveryMode",
@@ -906,12 +930,12 @@
       "read" : {
         "executeOnEntry" : false,
         "properties" : [
-          "bootFailure",
-          "'1'",
           "operationalMode",
           "'1'",
           "RecoveryModeMachine_failureCount",
           "1",
+          "bootFailure",
+          "'1'",
           "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
@@ -921,10 +945,10 @@
         "executeOnEntry" : true,
         "nextState" : "Initial",
         "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
           "RecoveryModeMachine_recoveryMode",
-          "'0'"
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
         ]
       }
     },
@@ -936,13 +960,13 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2",
           "operationalMode",
           "'0'",
           "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "bootFailure",
           "'0'"
         ]
       },
@@ -951,10 +975,10 @@
         "executeOnEntry" : false,
         "nextState" : "WaitForFailure",
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "2"
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
         ]
       }
     },
@@ -966,14 +990,14 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "operationalMode",
           "'1'",
-          "bootFailure",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "2"
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootFailure",
+          "'0'"
         ]
       },
       "state" : "WaitForFailure",
@@ -1028,10 +1052,10 @@
         "properties" : [
           "bootFailure",
           "'1'",
-          "RecoveryModeMachine_failureCount",
-          "2",
           "operationalMode",
           "'1'",
+          "RecoveryModeMachine_failureCount",
+          "2",
           "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
@@ -1056,12 +1080,12 @@
       "read" : {
         "executeOnEntry" : false,
         "properties" : [
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
           "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootFailure",
+          "'0'",
           "operationalMode",
           "'0'"
         ]
@@ -1086,12 +1110,42 @@
       "read" : {
         "executeOnEntry" : false,
         "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
           "operationalMode",
           "'1'",
-          "RecoveryModeMachine_failureCount",
-          "2",
           "bootFailure",
           "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      },
+      "state" : "WaitForFailure",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "3",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "bootFailure",
+          "'1'",
+          "operationalMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2",
           "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
@@ -1099,7 +1153,7 @@
       "state" : "WaitForFailure",
       "write" : {
         "executeOnEntry" : true,
-        "nextState" : "Initial",
+        "nextState" : "WaitForFailureReset",
         "properties" : [
           "RecoveryModeMachine_recoveryMode",
           "'0'",
@@ -1116,44 +1170,14 @@
       "read" : {
         "executeOnEntry" : false,
         "properties" : [
-          "operationalMode",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "bootFailure",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "2"
-        ]
-      },
-      "state" : "WaitForFailure",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "WaitForFailureReset",
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "3"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "bootFailure",
-          "'1'",
-          "operationalMode",
-          "'1'",
           "RecoveryModeMachine_failureCount",
           "2",
           "RecoveryModeMachine_recoveryMode",
-          "'0'"
+          "'0'",
+          "bootFailure",
+          "'1'",
+          "operationalMode",
+          "'1'"
         ]
       },
       "state" : "WaitForFailure",
@@ -1176,129 +1200,9 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "operationalMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "1"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "bootFailure",
           "'0'",
           "operationalMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "1"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "bootFailure",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "operationalMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "WaitForFailureReset",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "bootFailure",
-          "'1'",
-          "operationalMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "1"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "operationalMode",
-          "'0'",
-          "bootFailure",
           "'0'",
           "RecoveryModeMachine_failureCount",
           "1",
@@ -1324,16 +1228,16 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
+        "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "1",
           "bootFailure",
           "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "operationalMode",
-          "'1'"
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
         ]
       },
       "state" : "WaitForFailureReset",
@@ -1341,10 +1245,10 @@
         "executeOnEntry" : true,
         "nextState" : "Initial",
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "RecoveryModeMachine_failureCount",
-          "1"
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
         ]
       }
     },
@@ -1354,15 +1258,15 @@
         "time" : 0
       },
       "read" : {
-        "executeOnEntry" : false,
+        "executeOnEntry" : true,
         "properties" : [
           "RecoveryModeMachine_failureCount",
           "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
           "bootFailure",
           "'1'",
           "operationalMode",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
           "'0'"
         ]
       },
@@ -1384,12 +1288,132 @@
         "time" : 0
       },
       "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "operationalMode",
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "bootFailure",
+          "'1'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "operationalMode",
+          "'0'",
+          "bootFailure",
+          "'0'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "WaitForFailure",
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "bootFailure",
+          "'0'",
+          "operationalMode",
+          "'1'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "1",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
         "executeOnEntry" : false,
         "properties" : [
           "bootFailure",
           "'1'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "operationalMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "WaitForFailureReset",
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "1"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
           "RecoveryModeMachine_failureCount",
           "1",
+          "bootFailure",
+          "'1'",
           "operationalMode",
           "'1'",
           "RecoveryModeMachine_recoveryMode",
@@ -1416,20 +1440,50 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2",
           "bootFailure",
           "'0'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
           "operationalMode",
-          "'0'"
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
         ]
       },
       "state" : "WaitForFailureReset",
       "write" : {
         "executeOnEntry" : true,
         "nextState" : "WaitForFailure",
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "operationalMode",
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootFailure",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
         "properties" : [
           "RecoveryModeMachine_failureCount",
           "2",
@@ -1446,14 +1500,164 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "operationalMode",
+          "'0'",
+          "bootFailure",
+          "'1'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "WaitForFailureReset",
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "bootFailure",
+          "'1'",
+          "operationalMode",
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "operationalMode",
+          "'0'",
           "bootFailure",
           "'0'",
           "RecoveryModeMachine_failureCount",
           "2",
           "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "WaitForFailure",
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "bootFailure",
           "'0'",
           "operationalMode",
           "'1'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "Initial",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "bootFailure",
+          "'1'",
+          "operationalMode",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : false,
+        "nextState" : "WaitForFailureReset",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : false,
+        "properties" : [
+          "bootFailure",
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "2",
+          "operationalMode",
+          "'1'",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
         ]
       },
       "state" : "WaitForFailureReset",
@@ -1476,223 +1680,13 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "operationalMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2",
           "RecoveryModeMachine_recoveryMode",
           "'0'",
-          "bootFailure",
-          "'1'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "WaitForFailureReset",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "bootFailure",
-          "'1'",
-          "operationalMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "operationalMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "WaitForFailure",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "operationalMode",
-          "'1'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "operationalMode",
-          "'0'",
-          "bootFailure",
-          "'1'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : false,
-        "nextState" : "WaitForFailureReset",
-        "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : false,
-        "properties" : [
-          "operationalMode",
-          "'1'",
-          "bootFailure",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "2",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "Initial",
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "2"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
-          "operationalMode",
-          "'0'",
-          "bootFailure",
-          "'0'",
-          "RecoveryModeMachine_failureCount",
-          "3"
-        ]
-      },
-      "state" : "WaitForFailureReset",
-      "write" : {
-        "executeOnEntry" : true,
-        "nextState" : "SetRecovery",
-        "properties" : [
           "RecoveryModeMachine_failureCount",
           "3",
-          "RecoveryModeMachine_recoveryMode",
-          "'0'"
-        ]
-      }
-    },
-    {
-      "edge" : {
-        "energy" : 0,
-        "time" : 0
-      },
-      "read" : {
-        "executeOnEntry" : true,
-        "properties" : [
-          "bootFailure",
-          "'0'",
           "operationalMode",
-          "'1'",
-          "RecoveryModeMachine_failureCount",
-          "3",
-          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootFailure",
           "'0'"
         ]
       },
@@ -1717,13 +1711,43 @@
         "executeOnEntry" : true,
         "properties" : [
           "operationalMode",
+          "'1'",
+          "RecoveryModeMachine_recoveryMode",
           "'0'",
+          "RecoveryModeMachine_failureCount",
+          "3",
+          "bootFailure",
+          "'0'"
+        ]
+      },
+      "state" : "WaitForFailureReset",
+      "write" : {
+        "executeOnEntry" : true,
+        "nextState" : "SetRecovery",
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "3",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'"
+        ]
+      }
+    },
+    {
+      "edge" : {
+        "energy" : 0,
+        "time" : 0
+      },
+      "read" : {
+        "executeOnEntry" : true,
+        "properties" : [
+          "RecoveryModeMachine_failureCount",
+          "3",
           "RecoveryModeMachine_recoveryMode",
           "'0'",
           "bootFailure",
           "'1'",
-          "RecoveryModeMachine_failureCount",
-          "3"
+          "operationalMode",
+          "'0'"
         ]
       },
       "state" : "WaitForFailureReset",
@@ -1746,14 +1770,14 @@
       "read" : {
         "executeOnEntry" : true,
         "properties" : [
-          "RecoveryModeMachine_recoveryMode",
-          "'0'",
           "operationalMode",
           "'1'",
-          "bootFailure",
-          "'1'",
           "RecoveryModeMachine_failureCount",
-          "3"
+          "3",
+          "RecoveryModeMachine_recoveryMode",
+          "'0'",
+          "bootFailure",
+          "'1'"
         ]
       },
       "state" : "WaitForFailureReset",
@@ -1787,10 +1811,10 @@
         "executeOnEntry" : false,
         "nextState" : "SetRecovery",
         "properties" : [
-          "RecoveryModeMachine_failureCount",
-          "0",
           "recoveryMode",
-          "'1'"
+          "'1'",
+          "RecoveryModeMachine_failureCount",
+          "0"
         ]
       }
     },
