@@ -60,6 +60,7 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+/// Class that tests the `verify` function on `PathQuantifiedExpression`.
 final class PathVerifyTests: XCTestCase {
 
     /// The kripke structure to test.
@@ -77,15 +78,19 @@ final class PathVerifyTests: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    /// An expression that evaluates to `true` for `failureCount2Node`.
     let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 2))
     ))))
 
+    /// An expression that evaluates to `false` for `failureCount2Node`.
     let falseExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 3))
     ))))
+
+    // swiftlint:disable implicitly_unwrapped_optional
 
     /// A node with a failure count of 3.
     var failureCount2Node: KripkeNode! {
@@ -98,6 +103,9 @@ final class PathVerifyTests: XCTestCase {
         .first
     }
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
+    /// Test that the `verify` function performs correctly with the `next` quantifier.
     func testNext() throws {
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
@@ -141,6 +149,7 @@ final class PathVerifyTests: XCTestCase {
         )
     }
 
+    /// Test that the `verify` function performs correctly with the `globally` quantifier.
     func testGlobally() throws {
         XCTAssertEqual(
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
@@ -188,6 +197,7 @@ final class PathVerifyTests: XCTestCase {
         )
     }
 
+    /// Test that the `verify` function performs correctly with the `finally` quantifier.
     func testFinally() throws {
         XCTAssertEqual(
             try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
