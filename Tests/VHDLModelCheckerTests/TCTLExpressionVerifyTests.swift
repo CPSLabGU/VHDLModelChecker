@@ -1108,4 +1108,153 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    /// <T | F> -> (<T | F> -> A G <T | F>)
+    func testImpliesRevisittingGloballyLHS() throws {
+        let trueExp = TCTLParser.Expression.language(expression: trueExp)
+        let falseExp = TCTLParser.Expression.language(expression: falseExp)
+        let rhs = TCTLParser.Expression.implies(lhs: trueExp, rhs: globallyTrue)
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.progressing]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs2 = TCTLParser.Expression.implies(lhs: falseExp, rhs: globallyTrue)
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs3 = TCTLParser.Expression.implies(lhs: trueExp, rhs: globallyFalse)
+        XCTAssertThrowsError(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: false)
+        )
+        XCTAssertThrowsError(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: true)
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs4 = TCTLParser.Expression.implies(lhs: falseExp, rhs: globallyFalse)
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs5 = TCTLParser.Expression.quantified(expression: .always(expression: .globally(
+            expression: .implies(lhs: trueExp, rhs: globallyTrue)
+        )))
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs5)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.progressing]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs5)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs5)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs5)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs6 = TCTLParser.Expression.quantified(expression: .always(expression: .globally(
+            expression: .implies(lhs: globallyTrue, rhs: trueExp)
+        )))
+        XCTAssertEqual(
+            try rhs6.verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: trueExp), .progressing]
+        )
+        XCTAssertEqual(
+            try rhs6.verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs6)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: trueExp), .revisitting(expression: trueExp)]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: trueExp, rhs: rhs6)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs6)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: falseExp, rhs: rhs6)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+    }
+
+    /// (<T | F> -> A G <T | F>) -> <T | F>
+
+    
+    /// <T | F> -> (<T | F> -> A F <T | F>)
+    
+    /// (<T | F> -> A F <T | F>) -> <T | F>
+
 }
