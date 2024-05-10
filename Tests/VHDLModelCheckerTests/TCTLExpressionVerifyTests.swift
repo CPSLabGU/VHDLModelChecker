@@ -839,4 +839,91 @@ final class TCTLExpressionVerifyTests: XCTestCase {
         )
     }
 
+    func testImpliesRevisittingFinallyRHS() throws {
+        let lhsTrue = TCTLParser.Expression.language(expression: trueExp)
+        let lhsFalse = TCTLParser.Expression.language(expression: falseExp)
+        let rhs = TCTLParser.Expression.implies(lhs: finallyTrue, rhs: .language(expression: trueExp))
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs2 = TCTLParser.Expression.implies(lhs: finallyTrue, rhs: .language(expression: falseExp))
+        XCTAssertThrowsError(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: false)
+        )
+        XCTAssertThrowsError(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: true)
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs2)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs3 = TCTLParser.Expression.implies(lhs: finallyFalse, rhs: .language(expression: trueExp))
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: .language(expression: trueExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs3)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        let rhs4 = TCTLParser.Expression.implies(lhs: finallyFalse, rhs: .language(expression: falseExp))
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.revisitting(expression: .language(expression: falseExp))]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsTrue, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: false),
+            [.completed]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.implies(lhs: lhsFalse, rhs: rhs4)
+                .verify(currentNode: failureCount2Node, inCycle: true),
+            [.completed]
+        )
+    }
+
 }
