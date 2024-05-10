@@ -102,7 +102,7 @@ extension Expression {
                     //     }
                     // }
                 case .successor(let expression):
-                    return [.revisitting(expression: rhs, successors: [expression])]
+                    return [.revisitting(expression: rhs, successors: [.skip(expression: expression)])]
                 case .revisitting(let expression, let successors):
                     return [
                         .revisitting(

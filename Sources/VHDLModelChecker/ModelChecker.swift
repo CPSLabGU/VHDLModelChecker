@@ -61,6 +61,7 @@ final class Job: Equatable, Hashable {
     var nodeId: UUID
     var node: KripkeNode
     var expression: Expression
+    var ignoreFailure: Bool
     var history: Set<UUID>
     var revisits: [Revisit]
 
@@ -68,12 +69,14 @@ final class Job: Equatable, Hashable {
         nodeId: UUID,
         node: KripkeNode,
         expression: Expression,
+        ignoreFailure: Bool,
         history: Set<UUID>,
         revisits: [Revisit]
     ) {
         self.nodeId = nodeId
         self.node = node
         self.expression = expression
+        self.ignoreFailure = ignoreFailure
         self.history = history
         self.revisits = revisits
     }
@@ -82,6 +85,7 @@ final class Job: Equatable, Hashable {
         lhs.nodeId == rhs.nodeId
             && lhs.node == rhs.node
             && lhs.expression == rhs.expression
+            && lhs.ignoreFailure == rhs.ignoreFailure
             && lhs.history == rhs.history
             && lhs.revisits == rhs.revisits
     }
@@ -90,6 +94,7 @@ final class Job: Equatable, Hashable {
         hasher.combine(nodeId)
         hasher.combine(node)
         hasher.combine(expression)
+        hasher.combine(ignoreFailure)
         hasher.combine(history)
         hasher.combine(revisits)
     }
@@ -142,6 +147,7 @@ final class ModelChecker {
                     nodeId: id,
                     node: initialNode,
                     expression: .quantified(expression: expression),
+                    ignoreFailure: false,
                     history: [],
                     revisits: []
                 )
@@ -166,10 +172,10 @@ final class ModelChecker {
                 inCycle: job.history.contains(job.nodeId)
             )
         } catch let error as VerificationError {
-            guard case .unsatisfied = error, !job.revisits.isEmpty else {
-                throw error
+            if job.ignoreFailure {
+                return
             }
-            return
+            throw error
         } catch let error {
             throw error
         }
@@ -184,6 +190,7 @@ final class ModelChecker {
                         nodeId: $0.nodeId,
                         node: $0.node,
                         expression: $0.expression,
+                        ignoreFailure: false,
                         history: job.history.union([job.nodeId]),
                         revisits: []
                     ))
@@ -194,6 +201,7 @@ final class ModelChecker {
                         nodeId: nodeId,
                         node: node,
                         expression: expression,
+                        ignoreFailure: job.ignoreFailure,
                         history: job.history.union([job.nodeId]),
                         revisits: job.revisits
                     )
@@ -204,7 +212,8 @@ final class ModelChecker {
                         Job(
                             nodeId: nodeId,
                             node: node,
-                            expression: $0,
+                            expression: $0.expression,
+                            ignoreFailure: !$0.isRequired,
                             history: job.history.union([job.nodeId]),
                             revisits: job.revisits + [
                                 Revisit(

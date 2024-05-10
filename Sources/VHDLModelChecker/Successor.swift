@@ -1,4 +1,4 @@
-// VerifyStatus.swift
+// Successor.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,56 +55,42 @@
 
 import TCTLParser
 
-/// The status of an ongoing verification.
-enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertible {
+/// A category of successor expression defining the behaviour of the verification.
+enum Successor: CustomStringConvertible, Equatable, Hashable, Codable, Sendable {
 
-    /// The current verification holds and is complete.
-    case completed
+    /// This successor is required to pass for the verification to hold.
+    case required(expression: Expression)
 
-    /// The current verification holds at the current node, but requires
-    /// traversing further nodes to evaluate it completely.
-    /// - Parameter expression: The expression to evaluate at the next node.
-    case successor(expression: Expression)
+    /// This successor may fail and the verification still holds. When this expression passes, any associated
+    /// revisits will be evaluated.
+    case skip(expression: Expression)
 
-    /// The current verification holds but contains sub-expressions that need
-    /// to be evaluated at future nodes before the verification can be considered
-    /// complete.
-    /// - Parameters:
-    ///   - expression: The expression to re-evaluate once all successor expressions
-    ///     have been evaluated.
-    ///   - successors: The expressions that need to be evaluated before
-    ///     `expression` can be evaulated.
-    case revisitting(expression: Expression, successors: [Successor])
-
+    /// A print-friendly description of the successor.
     var description: String {
         switch self {
-        case .completed:
-            return "completed"
-        case .successor(let expression):
-            return "successor(" + expression.rawValue + ")"
-        case .revisitting(let expression, let successors):
-            return "revisiting("
-                + expression.rawValue
-                + ", ["
-                + successors.map(\.description).joined(separator: ", ")
-                + "])"
+        case .required(let expression):
+            return ".required(\(expression.rawValue))"
+        case .skip(let expression):
+            return ".skip(\(expression.rawValue))"
         }
     }
 
-    var isSuccessor: Bool {
+    /// The expression associated with this successor.
+    var expression: Expression {
         switch self {
-        case .successor:
-            return true
-        default:
-            return false
+        case .required(let expression):
+            return expression
+        case .skip(let expression):
+            return expression
         }
     }
 
-    var isRevisitting: Bool {
+    /// Whether the successor is required.
+    var isRequired: Bool {
         switch self {
-        case .revisitting:
+        case .required:
             return true
-        default:
+        case .skip:
             return false
         }
     }
