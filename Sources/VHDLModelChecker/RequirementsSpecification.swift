@@ -55,8 +55,10 @@
 
 import TCTLParser
 
+/// A specification containing the requirements for a kripke structure.
 public enum RequirementsSpecification: Equatable, Hashable, Codable, Sendable {
 
+    /// A specification written in `TCTL`.
     case tctl(specification: TCTLParser.Specification)
 
 }
