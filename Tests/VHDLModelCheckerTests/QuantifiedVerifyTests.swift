@@ -60,6 +60,7 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+/// Test class that checks the `verify` function on `GloballyQuantifiedExpression`.
 final class QuantifiedVerifyTests: XCTestCase {
 
     /// The kripke structure to test.
@@ -77,15 +78,19 @@ final class QuantifiedVerifyTests: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    /// An expression that evaluates to `true` for `failureCount2Node`.
     let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 2))
     ))))
 
+    /// An expression that evaluates to `false` for `failureCount2Node`.
     let falseExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 3))
     ))))
+
+    // swiftlint:disable implicitly_unwrapped_optional
 
     /// A node with a failure count of 3.
     var failureCount2Node: KripkeNode! {
@@ -98,6 +103,11 @@ final class QuantifiedVerifyTests: XCTestCase {
         .first
     }
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
+    // swiftlint:disable function_body_length
+
+    /// Test that the `verify` function performs correctly for the `always` quantifier.
     func testAlways() throws {
         let result = try GloballyQuantifiedExpression.always(
             expression: .globally(expression: .language(expression: trueExp))
@@ -189,6 +199,7 @@ final class QuantifiedVerifyTests: XCTestCase {
         )
     }
 
+    /// Test that the `verify` function performs correctly for the `eventually` quantifier.
     func testEventually() throws {
         let result = try GloballyQuantifiedExpression.eventually(
             expression: .globally(expression: .language(expression: trueExp))
@@ -250,6 +261,8 @@ final class QuantifiedVerifyTests: XCTestCase {
             .verify(currentNode: failureCount2Node, inCycle: true)
         )
     }
+
+    // swiftlint:enable function_body_length
 
 }
 
