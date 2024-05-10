@@ -80,7 +80,7 @@ extension PathQuantifiedExpression {
                 return results.filter { $0 != .completed } + [.completed]
             } else {
                 // Need to confirm the successor expression below.
-                return results + [
+                return results.filter { $0 != .completed } + [
                     .successor(expression: .quantified(
                         expression: .init(quantifier: quantifier, expression: self)
                     ))

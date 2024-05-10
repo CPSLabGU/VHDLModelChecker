@@ -108,7 +108,14 @@ final class QuantifiedVerifyTests: XCTestCase {
             expression: .globally(expression: .language(expression: trueExp))
         )
         .verify(currentNode: failureCount2Node, inCycle: false)
-        XCTAssertEqual(result2, [.progressing])
+        XCTAssertEqual(
+            result2,
+            [
+                .successor(expression: .quantified(expression: .always(
+                    expression: .globally(expression: .language(expression: trueExp))
+                )))
+            ]
+        )
         XCTAssertThrowsError(
             try GloballyQuantifiedExpression.always(
                 expression: .globally(expression: .language(expression: falseExp))
@@ -140,7 +147,11 @@ final class QuantifiedVerifyTests: XCTestCase {
                 expression: .finally(expression: .language(expression: falseExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: false),
-            [.progressing]
+            [
+                .successor(expression: .quantified(expression: .always(
+                    expression: .finally(expression: .language(expression: falseExp))
+                )))
+            ]
         )
         XCTAssertThrowsError(
             try GloballyQuantifiedExpression.always(
@@ -153,28 +164,28 @@ final class QuantifiedVerifyTests: XCTestCase {
                 expression: .next(expression: .language(expression: trueExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: false),
-            [.progressing]
+            [.successor(expression: .language(expression: trueExp))]
         )
         XCTAssertEqual(
             try GloballyQuantifiedExpression.always(
                 expression: .next(expression: .language(expression: falseExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: false),
-            [.progressing]
+            [.successor(expression: .language(expression: falseExp))]
         )
         XCTAssertEqual(
             try GloballyQuantifiedExpression.always(
                 expression: .next(expression: .language(expression: trueExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: true),
-            [.progressing]
+            [.successor(expression: .language(expression: trueExp))]
         )
         XCTAssertEqual(
             try GloballyQuantifiedExpression.always(
                 expression: .next(expression: .language(expression: falseExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: true),
-            [.progressing]
+            [.successor(expression: .language(expression: falseExp))]
         )
     }
 
@@ -188,7 +199,14 @@ final class QuantifiedVerifyTests: XCTestCase {
             expression: .globally(expression: .language(expression: trueExp))
         )
         .verify(currentNode: failureCount2Node, inCycle: false)
-        XCTAssertEqual(result2, [.progressing])
+        XCTAssertEqual(
+            result2,
+            [
+                .successor(expression: .quantified(expression: .eventually(
+                    expression: .globally(expression: .language(expression: trueExp))
+                )))
+            ]
+        )
         let result3 = try GloballyQuantifiedExpression.eventually(
             expression: .finally(expression: .language(expression: trueExp))
         )
@@ -216,14 +234,14 @@ final class QuantifiedVerifyTests: XCTestCase {
                 expression: .next(expression: .language(expression: falseExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: true),
-            [.progressing]
+            [.successor(expression: .language(expression: falseExp))]
         )
         XCTAssertEqual(
             try GloballyQuantifiedExpression.eventually(
                 expression: .next(expression: .language(expression: falseExp))
             )
             .verify(currentNode: failureCount2Node, inCycle: false),
-            [.progressing]
+            [.successor(expression: .language(expression: falseExp))]
         )
         XCTAssertThrowsError(
             try GloballyQuantifiedExpression.eventually(
