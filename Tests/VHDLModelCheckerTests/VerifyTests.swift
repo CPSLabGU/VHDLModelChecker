@@ -60,6 +60,10 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+
+/// Class that tests the various `verify` methods on `VHDL` types.
 final class VerifyTests: XCTestCase {
 
     /// The kripke structure to test.
@@ -77,15 +81,19 @@ final class VerifyTests: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    /// An expression that evaluates to `true` for `failureCount2Node`.
     let trueExp = VHDLParsing.Expression.conditional(condition: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 2))
     )))
 
+    /// An expression that evaluates to `false` for `failureCount2Node`.
     let falseExp = VHDLParsing.Expression.conditional(condition: .comparison(value: .equality(
         lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
         rhs: .literal(value: .integer(value: 3))
     )))
+
+    // swiftlint:disable implicitly_unwrapped_optional
 
     /// A node with a failure count of 3.
     var failureCount2Node: KripkeNode! {
@@ -98,6 +106,11 @@ final class VerifyTests: XCTestCase {
         .first
     }
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
+    // swiftlint:disable function_body_length
+
+    /// Test the equality expression.
     func testEquality() {
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
@@ -119,6 +132,7 @@ final class VerifyTests: XCTestCase {
             try VHDLExpression.conditional(expression: .comparison(value: .equality(
                 lhs: .reference(variable: .variable(reference: .variable(name: .nextState))),
                 rhs: .reference(variable: .variable(reference: .variable(
+                    // swiftlint:disable:next force_unwrapping
                     name: failureCount2Node.nextState!
                 )))
             )))
@@ -161,6 +175,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the greater than expression.
     func testGreaterThan() {
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .greaterThan(
@@ -192,6 +207,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the not expression.
     func testNot() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .not(value: .conditional(
@@ -213,6 +229,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the not equals expression.
     func testNotEquals() {
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .notEquals(
@@ -230,6 +247,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the greater than or equal expression.
     func testGreaterOrEqual() {
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
@@ -268,6 +286,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the less than expression.
     func testLessThan() {
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .lessThan(
@@ -299,6 +318,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the less than or equal expression.
     func testLessThanOrEqual() {
         XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
@@ -344,6 +364,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the and expression.
     func testAnd() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: trueExp))
@@ -363,6 +384,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the or expression.
     func testOr() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .or(lhs: trueExp, rhs: trueExp))
@@ -382,6 +404,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the xor expression.
     func testXOR() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .xor(lhs: trueExp, rhs: falseExp))
@@ -401,6 +424,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the nand expression.
     func testNAND() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .nand(lhs: trueExp, rhs: falseExp))
@@ -420,6 +444,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the nor expression.
     func testNOR() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .nor(lhs: falseExp, rhs: falseExp))
@@ -439,6 +464,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the xnor expression.
     func testXNOR() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .xnor(lhs: trueExp, rhs: trueExp))
@@ -458,6 +484,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the literal expression.
     func testLiteral() {
         XCTAssertNoThrow(
             try VHDLExpression.conditional(expression: .literal(value: true)).verify(node: failureCount2Node)
@@ -467,6 +494,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the precedence expression.
     func testPrecedence() {
         XCTAssertNoThrow(
             try VHDLExpression.boolean(expression: .and(lhs: trueExp, rhs: .precedence(value: trueExp)))
@@ -478,6 +506,7 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    /// Test the reference expression.
     func testReference() {
         guard failureCount2Node.executeOnEntry else {
             XCTAssertThrowsError(
@@ -498,4 +527,9 @@ final class VerifyTests: XCTestCase {
         )
     }
 
+    // swiftlint:enable function_body_length
+
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length
