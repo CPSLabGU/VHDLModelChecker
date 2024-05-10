@@ -155,13 +155,17 @@ final class TCTLExpressionVerifyTests: XCTestCase {
     }
 
     func testQuantified() throws {
-        // XCTAssertEqual(
-        //     try TCTLParser.Expression.quantified(
-        //         expression: .always(expression: .globally(expression: .language(expression: trueExp)))
-        //     )
-        //     .verify(currentNode: failureCount2Node, inCycle: false),
-        //     [.progressing]
-        // )
+        XCTAssertEqual(
+            try TCTLParser.Expression.quantified(
+                expression: .always(expression: .globally(expression: .language(expression: trueExp)))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [
+                .successor(expression: .quantified(expression: .always(
+                    expression: .globally(expression: .language(expression: trueExp))
+                )))
+            ]
+        )
         XCTAssertEqual(
             try TCTLParser.Expression.quantified(
                 expression: .always(expression: .finally(expression: .language(expression: trueExp)))
@@ -169,33 +173,37 @@ final class TCTLExpressionVerifyTests: XCTestCase {
             .verify(currentNode: failureCount2Node, inCycle: false),
             [.completed]
         )
-        // XCTAssertEqual(
-        //     try TCTLParser.Expression.quantified(
-        //         expression: .always(expression: .next(expression: .language(expression: trueExp)))
-        //     )
-        //     .verify(currentNode: failureCount2Node, inCycle: false),
-        //     [.progressing]
-        // )
+        XCTAssertEqual(
+            try TCTLParser.Expression.quantified(
+                expression: .always(expression: .next(expression: .language(expression: trueExp)))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.successor(expression: .language(expression: trueExp))]
+        )
         XCTAssertThrowsError(
             try TCTLParser.Expression.quantified(
                 expression: .always(expression: .globally(expression: .language(expression: falseExp)))
             )
             .verify(currentNode: failureCount2Node, inCycle: false)
         )
-        // XCTAssertEqual(
-        //     try TCTLParser.Expression.quantified(
-        //         expression: .always(expression: .finally(expression: .language(expression: falseExp)))
-        //     )
-        //     .verify(currentNode: failureCount2Node, inCycle: false),
-        //     [.progressing]
-        // )
-        // XCTAssertEqual(
-        //     try TCTLParser.Expression.quantified(
-        //         expression: .always(expression: .next(expression: .language(expression: falseExp)))
-        //     )
-        //     .verify(currentNode: failureCount2Node, inCycle: false),
-        //     [.progressing]
-        // )
+        XCTAssertEqual(
+            try TCTLParser.Expression.quantified(
+                expression: .always(expression: .finally(expression: .language(expression: falseExp)))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [
+                .successor(expression: .quantified(expression: .always(
+                    expression: .finally(expression: .language(expression: falseExp))
+                )))
+            ]
+        )
+        XCTAssertEqual(
+            try TCTLParser.Expression.quantified(
+                expression: .always(expression: .next(expression: .language(expression: falseExp)))
+            )
+            .verify(currentNode: failureCount2Node, inCycle: false),
+            [.successor(expression: .language(expression: falseExp))]
+        )
     }
 
     func testImplies() throws {
