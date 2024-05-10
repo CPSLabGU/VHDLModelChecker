@@ -55,12 +55,13 @@
 
 import TCTLParser
 
+/// Errors thrown during verification.
 enum VerificationError: Error {
 
+    /// Something within the specification is not supported.
     case notSupported
 
+    /// A node caused the verification to fail.
     case unsatisfied(node: KripkeNode)
-
-    case invalidRequirement(requirement: GloballyQuantifiedExpression)
 
 }
