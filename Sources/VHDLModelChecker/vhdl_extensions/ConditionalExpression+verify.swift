@@ -1,4 +1,4 @@
-// Expression+helpers.swift
+// ConditionalExpression+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,64 +55,18 @@
 
 import VHDLParsing
 
-extension Expression {
-
-    var variable: VariableName? {
-        guard
-            case .reference(let variable) = self,
-            case .variable(let variable) = variable,
-            case .variable(let variable) = variable
-        else {
-            return nil
-        }
-        return variable
-    }
-
-    var literal: SignalLiteral? {
-        guard case .literal(let literal) = self else {
-            return nil
-        }
-        return literal
-    }
-
-    var conditional: ConditionalExpression? {
-        guard case .conditional(let condition) = self else {
-            return nil
-        }
-        return condition
-    }
-
-    var boolean: BooleanExpression? {
-        guard case .logical(let boolean) = self else {
-            return nil
-        }
-        return boolean
-    }
+extension ConditionalExpression {
 
     func verify(node: KripkeNode) throws {
         switch self {
-        case .conditional(let condition):
-            try condition.verify(node: node)
-        case .logical(let operation):
-            try operation.verify(node: node)
-        case .precedence(let value):
-            try value.verify(node: node)
-        case .reference(let variable):
-            guard case .variable(let reference) = variable, case .variable(let name) = reference else {
-                throw VerificationError.notSupported
+        case .literal(let value):
+            guard value else {
+                throw VerificationError.unsatisfied(node: node)
             }
-            switch name {
-            case .executeOnEntry:
-                guard node.executeOnEntry else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            default:
-                guard let value = node.properties[name]?.boolean, value else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            }
-        default:
+        case .edge:
             throw VerificationError.notSupported
+        case .comparison(let comparison):
+            try comparison.verify(node: node)
         }
     }
 

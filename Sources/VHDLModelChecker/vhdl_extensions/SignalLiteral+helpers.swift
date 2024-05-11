@@ -1,4 +1,4 @@
-// Expression+helpers.swift
+// SignalLiteral+helpers.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,64 +55,23 @@
 
 import VHDLParsing
 
-extension Expression {
+extension SignalLiteral: Comparable {
 
-    var variable: VariableName? {
-        guard
-            case .reference(let variable) = self,
-            case .variable(let variable) = variable,
-            case .variable(let variable) = variable
-        else {
+    var boolean: Bool? {
+        guard case .boolean(let value) = self else {
             return nil
         }
-        return variable
+        return value
     }
 
-    var literal: SignalLiteral? {
-        guard case .literal(let literal) = self else {
-            return nil
-        }
-        return literal
-    }
-
-    var conditional: ConditionalExpression? {
-        guard case .conditional(let condition) = self else {
-            return nil
-        }
-        return condition
-    }
-
-    var boolean: BooleanExpression? {
-        guard case .logical(let boolean) = self else {
-            return nil
-        }
-        return boolean
-    }
-
-    func verify(node: KripkeNode) throws {
-        switch self {
-        case .conditional(let condition):
-            try condition.verify(node: node)
-        case .logical(let operation):
-            try operation.verify(node: node)
-        case .precedence(let value):
-            try value.verify(node: node)
-        case .reference(let variable):
-            guard case .variable(let reference) = variable, case .variable(let name) = reference else {
-                throw VerificationError.notSupported
-            }
-            switch name {
-            case .executeOnEntry:
-                guard node.executeOnEntry else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            default:
-                guard let value = node.properties[name]?.boolean, value else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            }
+    public static func < (lhs: SignalLiteral, rhs: SignalLiteral) -> Bool {
+        switch (lhs, rhs) {
+        case (.decimal(let lhs), .decimal(let rhs)):
+            return lhs < rhs
+        case (.integer(let lhs), .integer(let rhs)):
+            return lhs < rhs
         default:
-            throw VerificationError.notSupported
+            return false
         }
     }
 

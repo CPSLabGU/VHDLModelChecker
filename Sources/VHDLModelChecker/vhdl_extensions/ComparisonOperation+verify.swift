@@ -1,4 +1,4 @@
-// Expression+helpers.swift
+// ComparisonOperation+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,64 +55,73 @@
 
 import VHDLParsing
 
-extension Expression {
-
-    var variable: VariableName? {
-        guard
-            case .reference(let variable) = self,
-            case .variable(let variable) = variable,
-            case .variable(let variable) = variable
-        else {
-            return nil
-        }
-        return variable
-    }
-
-    var literal: SignalLiteral? {
-        guard case .literal(let literal) = self else {
-            return nil
-        }
-        return literal
-    }
-
-    var conditional: ConditionalExpression? {
-        guard case .conditional(let condition) = self else {
-            return nil
-        }
-        return condition
-    }
-
-    var boolean: BooleanExpression? {
-        guard case .logical(let boolean) = self else {
-            return nil
-        }
-        return boolean
-    }
+extension ComparisonOperation {
 
     func verify(node: KripkeNode) throws {
         switch self {
-        case .conditional(let condition):
-            try condition.verify(node: node)
-        case .logical(let operation):
-            try operation.verify(node: node)
-        case .precedence(let value):
-            try value.verify(node: node)
-        case .reference(let variable):
-            guard case .variable(let reference) = variable, case .variable(let name) = reference else {
-                throw VerificationError.notSupported
+        case .equality(let lhs, let rhs):
+            guard let variable = lhs.variable else {
+                throw VerificationError.unsatisfied(node: node)
             }
-            switch name {
-            case .executeOnEntry:
-                guard node.executeOnEntry else {
+            guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
+                switch variable {
+                case .currentState:
+                    guard let rhs = rhs.variable, node.currentState == rhs else {
+                        throw VerificationError.unsatisfied(node: node)
+                    }
+                case .executeOnEntry:
+                    guard let rhs = rhs.literal?.boolean, node.executeOnEntry == rhs else {
+                        throw VerificationError.unsatisfied(node: node)
+                    }
+                case .nextState:
+                    guard let rhs = rhs.variable, node.nextState == rhs else {
+                        throw VerificationError.unsatisfied(node: node)
+                    }
+                default:
                     throw VerificationError.unsatisfied(node: node)
                 }
-            default:
-                guard let value = node.properties[name]?.boolean, value else {
+                return
+            }
+            guard let rhs = rhs.literal, let value = node.properties[variable], value == rhs else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .notEquals(let lhs, let rhs):
+            try BooleanExpression.not(
+                value: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            )
+            .verify(node: node)
+        case .greaterThan(let lhs, let rhs):
+            guard let variable = lhs.variable, let rhs = rhs.literal else {
+                guard
+                    let lhs = lhs.literal,
+                    let rhs = rhs.variable,
+                    let value = node.properties[rhs],
+                    lhs > value
+                else {
                     throw VerificationError.unsatisfied(node: node)
                 }
+                return
             }
-        default:
-            throw VerificationError.notSupported
+            guard let value = node.properties[variable], value > rhs else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .greaterThanOrEqual(let lhs, let rhs):
+            try BooleanExpression.or(
+                lhs: .conditional(condition: .comparison(value: .greaterThan(lhs: lhs, rhs: rhs))),
+                rhs: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            )
+            .verify(node: node)
+        case .lessThan(let lhs, let rhs):
+            try BooleanExpression.not(value: .conditional(condition: .comparison(value: .greaterThanOrEqual(
+                lhs: lhs, rhs: rhs
+            ))))
+            .verify(node: node)
+        case .lessThanOrEqual(let lhs, let rhs):
+            try BooleanExpression.or(
+                lhs: .conditional(condition: .comparison(value: .lessThan(lhs: lhs, rhs: rhs))),
+                rhs: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            )
+            .verify(node: node)
         }
     }
 

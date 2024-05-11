@@ -1,4 +1,4 @@
-// Expression+helpers.swift
+// BooleanExpression+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,64 +55,37 @@
 
 import VHDLParsing
 
-extension Expression {
-
-    var variable: VariableName? {
-        guard
-            case .reference(let variable) = self,
-            case .variable(let variable) = variable,
-            case .variable(let variable) = variable
-        else {
-            return nil
-        }
-        return variable
-    }
-
-    var literal: SignalLiteral? {
-        guard case .literal(let literal) = self else {
-            return nil
-        }
-        return literal
-    }
-
-    var conditional: ConditionalExpression? {
-        guard case .conditional(let condition) = self else {
-            return nil
-        }
-        return condition
-    }
-
-    var boolean: BooleanExpression? {
-        guard case .logical(let boolean) = self else {
-            return nil
-        }
-        return boolean
-    }
+extension BooleanExpression {
 
     func verify(node: KripkeNode) throws {
         switch self {
-        case .conditional(let condition):
-            try condition.verify(node: node)
-        case .logical(let operation):
-            try operation.verify(node: node)
-        case .precedence(let value):
-            try value.verify(node: node)
-        case .reference(let variable):
-            guard case .variable(let reference) = variable, case .variable(let name) = reference else {
-                throw VerificationError.notSupported
+        case .and(let lhs, let rhs):
+            try lhs.verify(node: node)
+            try rhs.verify(node: node)
+        case .or(let lhs, let rhs):
+            do {
+                try lhs.verify(node: node)
+            } catch {
+                try rhs.verify(node: node)
             }
-            switch name {
-            case .executeOnEntry:
-                guard node.executeOnEntry else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
+        case .not(let expression):
+            guard (try? expression.verify(node: node)) != nil else {
+                return
+            }
+            throw VerificationError.unsatisfied(node: node)
+        case .nand(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .and(lhs: lhs, rhs: rhs))).verify(node: node)
+        case .nor(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .or(lhs: lhs, rhs: rhs))).verify(node: node)
+        case .xor(let lhs, let rhs):
+            switch (try? lhs.verify(node: node), try? rhs.verify(node: node)) {
+            case (nil, .some), (.some, nil):
+                return
             default:
-                guard let value = node.properties[name]?.boolean, value else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
+                throw VerificationError.unsatisfied(node: node)
             }
-        default:
-            throw VerificationError.notSupported
+        case .xnor(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .xor(lhs: lhs, rhs: rhs))).verify(node: node)
         }
     }
 
