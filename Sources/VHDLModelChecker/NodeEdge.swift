@@ -59,8 +59,10 @@ import VHDLKripkeStructures
 /// An edge between two `KripkeNode`s.
 class NodeEdge: Equatable, Hashable, Codable {
 
+    /// The time cost to take this edge.
     let time: UInt
 
+    /// The energy cost to take this edge.
     let energy: UInt
 
     /// The UUID of the destination node the machine is in after taking this edge.
