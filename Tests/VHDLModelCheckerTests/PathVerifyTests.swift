@@ -197,6 +197,8 @@ final class PathVerifyTests: XCTestCase {
         )
     }
 
+    // swiftlint:disable function_body_length
+
     /// Test that the `verify` function performs correctly with the `finally` quantifier.
     func testFinally() throws {
         XCTAssertTrue(
@@ -252,5 +254,24 @@ final class PathVerifyTests: XCTestCase {
                 .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually)
         )
     }
+
+    func testFinallyNext() throws {
+        let nextTrue = Expression.quantified(expression: .always(expression: .next(
+            expression: .language(expression: trueExp)
+        )))
+        let finallyNextTrue = Expression.quantified(expression: .always(expression: .finally(
+            expression: nextTrue
+        )))
+        XCTAssertEqual(
+            try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: false),
+            [.successor(expression: .disjunction(lhs: .language(expression: trueExp), rhs: finallyNextTrue))]
+        )
+        XCTAssertEqual(
+            try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: true),
+            [.successor(expression: .language(expression: trueExp))]
+        )
+    }
+
+    // swiftlint:enable function_body_length
 
 }

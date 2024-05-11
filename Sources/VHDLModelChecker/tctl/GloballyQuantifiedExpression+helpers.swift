@@ -83,7 +83,10 @@ extension GloballyQuantifiedExpression {
 
     func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
-        try self.expression.verify(currentNode: node, inCycle: inCycle, quantifier: self.quantifier)
+        guard case .always = self else {
+            throw VerificationError.notSupported
+        }
+        return try self.expression.verify(currentNode: node, inCycle: inCycle, quantifier: self.quantifier)
     }
 
 }

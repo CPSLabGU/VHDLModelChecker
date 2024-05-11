@@ -49,16 +49,31 @@ final class VHDLModelCheckerTests: XCTestCase {
         modelChecker = VHDLModelChecker(structure: kripkeStructure)
     }
 
-    // func testModelChecker() throws {
-    //     let checker = ModelChecker()
-    //     let specRaw = """
-    //     // spec:language VHDL
+    func testModelChecker() throws {
+        let checker = ModelChecker()
+        let failureCount = VariableName.failureCount.rawValue
+        let specRaw = """
+        // spec:language VHDL
 
-    //     A G ((recoveryMode = '1') -> A G recoveryMode = '1')
-    //     """
-    //     let spec = Specification(rawValue: specRaw)!
-    //     try checker.check(structure: modelChecker.iterator, specification: spec)
-    // }
+        A G (currentState = WaitForFailure and \(failureCount) = 3 and bootMode = '0' -> A F recoveryMode = '1')
+
+        A G (currentState = WaitForFailure and \(failureCount) = 3 and bootMode = '1' -> A F \(failureCount) = 0)
+
+        A G (((currentState = WaitForFailure and \(failureCount) = 3 and bootMode = '1') -> (A F \(failureCount) = 0)) -> (A F recoveryMode = '1' or RecoveryModeMachine_recoveryMode = '1'))
+
+        A G (\(failureCount) <= 3 ^ \(failureCount) >= 0)
+
+        A G (recoveryMode /= 'Z' or RecoveryModeMachine_recoveryMode /= 'Z')
+
+        A G (currentState = SetRecovery -> recoveryMode = '1' or RecoveryModeMachine_recoveryMode = '1' or RecoveryModeMachine_recoveryMode = '0')
+
+        A G (currentState = Initial or currentState = WaitForFailure or currentState = WaitForFailureReset or currentState = SetRecovery)
+
+        A G (currentState = WaitForFailure and bootMode = '0' -> A F currentState = WaitForFailureReset -> A F currentState = WaitForFailure)
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: modelChecker.iterator, specification: spec)
+    }
 
     // /// Test a basic verification.
     // func testBasicVerification() throws {
