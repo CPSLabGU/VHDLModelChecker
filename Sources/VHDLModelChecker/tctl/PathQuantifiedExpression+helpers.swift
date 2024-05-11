@@ -81,14 +81,17 @@ extension PathQuantifiedExpression {
                     ))
                 ]
         case .finally(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle)
-                .flatMap { result -> [VerifyStatus] in
+            do {
+                let result = try expression.verify(currentNode: node, inCycle: inCycle)
+                return result.flatMap { result -> [VerifyStatus] in
                     switch result {
                     case .successor(let expression):
                         return [
                             VerifyStatus.successor(expression: .disjunction(
                                 lhs: expression,
-                                rhs: .quantified(expression: .init(quantifier: quantifier, expression: self))
+                                rhs: .quantified(expression: .init(
+                                    quantifier: quantifier, expression: self
+                                ))
                             ))
                         ]
                     case .revisitting(let expression, let successor):
@@ -125,6 +128,16 @@ extension PathQuantifiedExpression {
                             )
                         ]
                     }
+                }
+            } catch {
+                return [
+                    .successor(expression: .disjunction(
+                        lhs: expression,
+                        rhs: .quantified(
+                            expression: .init(quantifier: quantifier, expression: self)
+                        )
+                    ))
+                ]
             }
         default:
             throw VerificationError.notSupported
