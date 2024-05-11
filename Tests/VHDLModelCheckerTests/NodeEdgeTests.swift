@@ -62,15 +62,19 @@ import XCTest
 final class NodeEdgeTests: XCTestCase {
 
     /// Test data.
-    let edge = Edge(time: 100, energy: 250)
+    let time: UInt = 100
+
+    /// Test data.
+    let energy: UInt = 250
 
     /// The id of the edge.
     let id = UUID()
 
     /// Test the init sets the stored properties correctly.
     func testInit() {
-        let nodeEdge = NodeEdge(edge: edge, destination: id)
-        XCTAssertEqual(nodeEdge.edge, edge)
+        let nodeEdge = NodeEdge(time: time, energy: energy, destination: id)
+        XCTAssertEqual(nodeEdge.time, time)
+        XCTAssertEqual(nodeEdge.energy, energy)
         XCTAssertEqual(nodeEdge.destination, id)
     }
 

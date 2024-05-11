@@ -62,21 +62,26 @@ import XCTest
 final class KripkeNodeTests: XCTestCase {
 
     /// A mock read state.
-    let fakeRead = ReadNode(properties: [.failureCount: .integer(value: 3)], executeOnEntry: true)
+    let fakeRead = ReadNode(
+        properties: [.failureCount: .integer(value: 3)], executeOnEntry: true, currentState: .currentState
+    )
 
     /// A mock write state.
     let fakeWrite = WriteNode(
-        properties: [.failureCount: .integer(value: 3)], nextState: .recoveryMode, executeOnEntry: true
+        properties: [.failureCount: .integer(value: 3)],
+        nextState: .recoveryMode,
+        executeOnEntry: true,
+        currentState: .currentState
     )
 
     /// A test `read` node.
     var readNode: KripkeNode {
-        KripkeNode.read(node: fakeRead, currentState: .currentState)
+        KripkeNode.read(node: fakeRead)
     }
 
     /// A test `write` node.
     var writeNode: KripkeNode {
-        KripkeNode.write(node: fakeWrite, currentState: .currentState)
+        KripkeNode.write(node: fakeWrite)
     }
 
     /// Test that the current state is derived from the node.

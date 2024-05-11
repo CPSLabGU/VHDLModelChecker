@@ -97,11 +97,11 @@ final class VerifyTests: XCTestCase {
 
     /// A node with a failure count of 3.
     var failureCount2Node: KripkeNode! {
-        kripkeStructure.ringlets.lazy.compactMap { ringlet -> KripkeNode? in
-            guard ringlet.write.properties[.failureCount] == .integer(value: 2) else {
+        kripkeStructure.nodes.lazy.compactMap { (node: Node) -> KripkeNode? in
+            guard node.properties[.failureCount] == .integer(value: 2) else {
                 return nil
             }
-            return KripkeNode.write(node: ringlet.write, currentState: ringlet.state)
+            return KripkeNode(node: node)
         }
         .first
     }

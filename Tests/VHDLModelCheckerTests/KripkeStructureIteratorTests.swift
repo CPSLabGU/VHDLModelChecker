@@ -101,15 +101,9 @@ final class KripkeStructureIteratorTests: XCTestCase {
 
     /// Test that the dictionaries are created correctly.
     func testDictionaryCreation() {
-        let ringlets = kripkeStructure.ringlets.lazy
-        let allNodes = Set(ringlets.flatMap {
-            [
-                KripkeNode.read(node: $0.read, currentState: $0.state),
-                KripkeNode.write(node: $0.write, currentState: $0.state)
-            ]
-        })
+        let allNodes = Set(kripkeStructure.nodes.map { KripkeNode(node: $0) })
         let initialStates = kripkeStructure.initialStates.map {
-            KripkeNode.read(node: $0, currentState: VariableName(rawValue: "Initial")!)
+            KripkeNode(node: $0)
         }
         .compactMap { node in iterator.nodes.first { $0.value == node }?.key }
         XCTAssertEqual(allNodes.count, iterator.nodes.count)
