@@ -49,6 +49,17 @@ final class VHDLModelCheckerTests: XCTestCase {
         modelChecker = VHDLModelChecker(structure: kripkeStructure)
     }
 
+    func testModelChecker() throws {
+        let checker = ModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G ((recoveryMode = '1') -> A G recoveryMode = '1')
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: modelChecker.iterator, specification: spec)
+    }
+
     // /// Test a basic verification.
     // func testBasicVerification() throws {
     //     let validStates = kripkeStructure.ringlets.flatMap {
