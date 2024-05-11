@@ -55,36 +55,17 @@
 
 import VHDLParsing
 
+/// Add `verify` method.
 extension ComparisonOperation {
 
+    /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
+    /// node fails to verify.
+    /// - Parameter node: The node to verify against.
+    /// - Throws: A ``VerificationError`` if the node violates the expression.
     func verify(node: KripkeNode) throws {
         switch self {
         case .equality(let lhs, let rhs):
-            guard let variable = lhs.variable else {
-                throw VerificationError.unsatisfied(node: node)
-            }
-            guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
-                switch variable {
-                case .currentState:
-                    guard let rhs = rhs.variable, node.currentState == rhs else {
-                        throw VerificationError.unsatisfied(node: node)
-                    }
-                case .executeOnEntry:
-                    guard let rhs = rhs.literal?.boolean, node.executeOnEntry == rhs else {
-                        throw VerificationError.unsatisfied(node: node)
-                    }
-                case .nextState:
-                    guard let rhs = rhs.variable, node.nextState == rhs else {
-                        throw VerificationError.unsatisfied(node: node)
-                    }
-                default:
-                    throw VerificationError.unsatisfied(node: node)
-                }
-                return
-            }
-            guard let rhs = rhs.literal, let value = node.properties[variable], value == rhs else {
-                throw VerificationError.unsatisfied(node: node)
-            }
+            try self.verifyEquality(node: node, lhs: lhs, rhs: rhs)
         case .notEquals(let lhs, let rhs):
             try BooleanExpression.not(
                 value: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
@@ -122,6 +103,40 @@ extension ComparisonOperation {
                 rhs: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
             )
             .verify(node: node)
+        }
+    }
+
+    /// Verify the equality of the `lhs` and `rhs` expressions against the `node`.
+    /// - Parameters:
+    ///   - node: The node to verify the equality expression against.
+    ///   - lhs: The left-hand side of the equality expression.
+    ///   - rhs: The right-hand side of the equality expression.
+    /// - Throws: A ``VerificationError`` if the node violates the equality expression.
+    private func verifyEquality(node: KripkeNode, lhs: Expression, rhs: Expression) throws {
+        guard let variable = lhs.variable else {
+            throw VerificationError.unsatisfied(node: node)
+        }
+        guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
+            switch variable {
+            case .currentState:
+                guard let rhs = rhs.variable, node.currentState == rhs else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            case .executeOnEntry:
+                guard let rhs = rhs.literal?.boolean, node.executeOnEntry == rhs else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            case .nextState:
+                guard let rhs = rhs.variable, node.nextState == rhs else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            default:
+                throw VerificationError.unsatisfied(node: node)
+            }
+            return
+        }
+        guard let rhs = rhs.literal, let value = node.properties[variable], value == rhs else {
+            throw VerificationError.unsatisfied(node: node)
         }
     }
 

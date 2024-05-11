@@ -55,8 +55,13 @@
 
 import VHDLParsing
 
+/// Add `verify` method.
 extension ConditionalExpression {
 
+    /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
+    /// node fails to verify.
+    /// - Parameter node: The node to verify against.
+    /// - Throws: A ``VerificationError`` if the node violates the expression.
     func verify(node: KripkeNode) throws {
         switch self {
         case .literal(let value):
