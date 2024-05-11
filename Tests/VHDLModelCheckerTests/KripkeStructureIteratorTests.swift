@@ -137,8 +137,10 @@ final class KripkeStructureIteratorTests: XCTestCase {
 
 }
 
+/// Add comparable.
 extension NodeEdge: Comparable {
 
+    /// Comparable conformance.
     public static func < (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
         lhs.energy < rhs.energy || lhs.time < rhs.time ||
             lhs.destination.uuidString < rhs.destination.uuidString
