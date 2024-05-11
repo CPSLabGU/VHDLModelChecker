@@ -145,16 +145,3 @@ struct KripkeStructureIterator {
     }
 
 }
-
-extension KripkeNode {
-
-    init(node: Node) {
-        switch node {
-        case .read(let node):
-            self = .read(node: node)
-        case .write(let node):
-            self = .write(node: node)
-        }
-    }
-
-}

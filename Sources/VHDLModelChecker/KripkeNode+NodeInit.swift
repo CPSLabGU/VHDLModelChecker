@@ -1,4 +1,4 @@
-// KripkeNodeTests.swift
+// KripkeNode+NodeInit.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,65 +54,19 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import VHDLKripkeStructures
-@testable import VHDLModelChecker
-import VHDLParsing
-import XCTest
 
-/// Test class for ``KripkeNode``.
-final class KripkeNodeTests: XCTestCase {
+/// Add init from `VHDLKripkeStructures.Node`.
+extension KripkeNode {
 
-    /// A mock read state.
-    let fakeRead = ReadNode(
-        properties: [.failureCount: .integer(value: 3)], executeOnEntry: true, currentState: .currentState
-    )
-
-    /// A mock write state.
-    let fakeWrite = WriteNode(
-        properties: [.failureCount: .integer(value: 3)],
-        nextState: .recoveryMode,
-        executeOnEntry: true,
-        currentState: .currentState
-    )
-
-    /// A test `read` node.
-    var readNode: KripkeNode {
-        KripkeNode.read(node: fakeRead)
-    }
-
-    /// A test `write` node.
-    var writeNode: KripkeNode {
-        KripkeNode.write(node: fakeWrite)
-    }
-
-    /// Test that the current state is derived from the node.
-    func testCurrentState() {
-        XCTAssertEqual(readNode.currentState, .currentState)
-        XCTAssertEqual(writeNode.currentState, .currentState)
-    }
-
-    /// Test that `executeOnEntry` is derived from the node.
-    func testExecuteOnEntry() {
-        XCTAssertTrue(readNode.executeOnEntry)
-        XCTAssertTrue(writeNode.executeOnEntry)
-    }
-
-    /// Test the `nextState` is accessible in write nodes.
-    func testNextState() {
-        XCTAssertNil(readNode.nextState)
-        XCTAssertEqual(writeNode.nextState, .recoveryMode)
-    }
-
-    /// Test the properties getter works correctly.
-    func testProperties() {
-        let properties = [VariableName.failureCount: SignalLiteral.integer(value: 3)]
-        XCTAssertEqual(readNode.properties, properties)
-        XCTAssertEqual(writeNode.properties, properties)
-    }
-
-    /// Test the node init.
-    func testNodeInit() {
-        XCTAssertEqual(KripkeNode(node: Node.read(node: fakeRead)), readNode)
-        XCTAssertEqual(KripkeNode(node: Node.write(node: fakeWrite)), writeNode)
+    /// Initialise the node from it's `VHDLKripkeStructures` representation.
+    /// - Parameter node: The node from the `VHDLKripkeStructures` package.
+    init(node: Node) {
+        switch node {
+        case .read(let node):
+            self = .read(node: node)
+        case .write(let node):
+            self = .write(node: node)
+        }
     }
 
 }
