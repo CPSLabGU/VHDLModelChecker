@@ -102,58 +102,37 @@ final class KripkeStructureIteratorTests: XCTestCase {
     /// Test that the dictionaries are created correctly.
     func testDictionaryCreation() {
         let allNodes = Set(kripkeStructure.nodes.map { KripkeNode(node: $0) })
-        let initialStates = kripkeStructure.initialStates.map {
-            KripkeNode(node: $0)
-        }
-        .compactMap { node in iterator.nodes.first { $0.value == node }?.key }
+        let initialStates = kripkeStructure.initialStates
+            .map { KripkeNode(node: $0) }
+            .compactMap { node in iterator.nodes.first { $0.value == node }?.key }
         XCTAssertEqual(allNodes.count, iterator.nodes.count)
         XCTAssertTrue(allNodes.allSatisfy { iterator.nodes.values.contains($0) })
         XCTAssertTrue(iterator.nodes.keys.allSatisfy { iterator.edges[$0] != nil })
         XCTAssertTrue(initialStates.allSatisfy { iterator.initialStates.contains($0) })
-        let readEdges: [UUID: NodeEdge] = Dictionary(uniqueKeysWithValues: ringlets.map { ringlet in
-            guard
-                let destination = self.iterator.nodes.first(
-                    where: { $0.value == .write(node: ringlet.write, currentState: ringlet.state) }
-                ),
-                let currentState = self.iterator.nodes.first(
-                    where: { $0.value == .read(node: ringlet.read, currentState: ringlet.state) }
-                )
-            else {
-                fatalError("Failed to get node id.")
-            }
-            return (currentState.key, NodeEdge(edge: ringlet.edge, destination: destination.key))
-        })
-        XCTAssertTrue(readEdges.allSatisfy { self.iterator.edges[$0.key] == [$0.value] })
-        var seen: Set<WriteNode> = []
-        let writeEdge: [UUID: [NodeEdge]] = Dictionary(uniqueKeysWithValues: ringlets.compactMap { ringlet in
-            guard !seen.contains(ringlet.write) else {
-                return nil
-            }
-            seen.insert(ringlet.write)
-            let currentState = KripkeNode.write(node: ringlet.write, currentState: ringlet.state)
-            let targetStates = ringlets.filter { ringlet.write.nextState == $0.state }.filter { ringlet2 in
-                let read = ringlet2.read
-                guard read.executeOnEntry == currentState.executeOnEntry else {
-                    return false
+        let edges: [UUID: [NodeEdge]] = Dictionary(
+            uniqueKeysWithValues: kripkeStructure.edges.compactMap { node, edges -> (UUID, [NodeEdge])? in
+                guard let id = iterator.nodes.first(where: { $0.value == KripkeNode(node: node) })?.key else {
+                    XCTFail("Failed to store id's")
+                    return nil
                 }
-                return currentState.properties.allSatisfy { property, value in
-                    read.properties[property] == nil || read.properties[property] == value
+                let nodeEdges = edges.compactMap { edge -> NodeEdge? in
+                    guard
+                        let targetID = iterator.nodes.first(
+                            where: { $0.value == KripkeNode(node: edge.target) }
+                        )?.key
+                    else {
+                        XCTFail("Failed to get target id")
+                        return nil
+                    }
+                    return NodeEdge(time: edge.time, energy: edge.energy, destination: targetID)
                 }
+                return (id, nodeEdges.sorted())
             }
-            let targets: [NodeEdge] = targetStates.map { target in
-                guard let id = self.iterator.nodes.first(
-                    where: { $0.value == KripkeNode.read(node: target.read, currentState: target.state) }
-                )?.key else {
-                    fatalError("Failed to get node id.")
-                }
-                return NodeEdge(edge: Edge(time: 0, energy: 0), destination: id)
-            }
-            guard let id = self.iterator.nodes.first(where: { $0.value == currentState })?.key else {
-                fatalError("Failed to get node id.")
-            }
-            return (id, targets)
-        })
-        XCTAssertTrue(writeEdge.allSatisfy { self.iterator.edges[$0.key]?.sorted() == $0.value.sorted() })
+        )
+        let expectedEdges = Dictionary(
+            uniqueKeysWithValues: iterator.edges.map { ($0.key, $0.value.sorted()) }
+        )
+        XCTAssertEqual(expectedEdges, edges)
     }
 
 }
@@ -161,7 +140,7 @@ final class KripkeStructureIteratorTests: XCTestCase {
 extension NodeEdge: Comparable {
 
     public static func < (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.edge.energy < rhs.edge.energy || lhs.edge.time < rhs.edge.time ||
+        lhs.energy < rhs.energy || lhs.time < rhs.time ||
             lhs.destination.uuidString < rhs.destination.uuidString
     }
 
