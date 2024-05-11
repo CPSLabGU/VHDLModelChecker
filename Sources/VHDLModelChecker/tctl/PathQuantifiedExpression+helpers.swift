@@ -61,35 +61,72 @@ extension PathQuantifiedExpression {
         currentNode node: KripkeNode, inCycle: Bool, quantifier: GlobalQuantifiedType
     ) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
+        if case .next(let expression) = self {
+            return [.successor(expression: expression)]
+        }
+        guard !inCycle else {
+            switch self {
+            case .globally(let expression), .finally(let expression), .next(let expression):
+                return try expression.verify(currentNode: node, inCycle: inCycle)
+            default:
+                throw VerificationError.notSupported
+            }
+        }
         switch self {
         case .globally(let expression):
-            let results = try expression.verify(currentNode: node, inCycle: inCycle)
-            if inCycle {
-                return results.filter { $0 != .completed } + [.completed]
-            } else {
-                // Need to confirm the successor expression below.
-                return results.filter { $0 != .completed } + [
-                    .successor(expression: .quantified(
-                        expression: .init(quantifier: quantifier, expression: self)
-                    ))
-                ]
-            }
-        case .finally(let expression):
-            do {
-                return try expression.verify(currentNode: node, inCycle: inCycle)
-            } catch {
-                if inCycle {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-                return [
+            return try expression.verify(currentNode: node, inCycle: inCycle) +
+                [
                     .successor(expression: Expression.quantified(
-                        expression: .init(quantifier: quantifier, expression: self)
+                        expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
                     ))
                 ]
+        case .finally(let expression):
+            return try expression.verify(currentNode: node, inCycle: inCycle)
+                .flatMap { result -> [VerifyStatus] in
+                    switch result {
+                    case .successor(let expression):
+                        return [
+                            VerifyStatus.successor(expression: .disjunction(
+                                lhs: expression,
+                                rhs: .quantified(expression: .init(quantifier: quantifier, expression: self))
+                            ))
+                        ]
+                    case .revisitting(let expression, let successor):
+                        let newSuccessor: Successor
+                        switch successor {
+                        case .required(let succ):
+                            newSuccessor = .ignored(expression: succ)
+                        default:
+                            newSuccessor = successor
+                        }
+                        return [
+                            VerifyStatus.revisitting(
+                                expression: .disjunction(
+                                    lhs: expression,
+                                    rhs: .quantified(expression: .init(
+                                        quantifier: quantifier,
+                                        expression: .next(
+                                            expression: .quantified(expression: .init(
+                                                quantifier: quantifier, expression: self
+                                            ))
+                                        )
+                                    ))
+                                ),
+                                successor: newSuccessor
+                            ),
+                            .revisitting(
+                                expression: .quantified(expression: .init(
+                                    quantifier: quantifier,
+                                    expression: .next(expression: .quantified(expression: .init(
+                                        quantifier: quantifier, expression: self
+                                    )))
+                                )),
+                                successor: .skip(expression: successor.expression)
+                            )
+                        ]
+                    }
             }
-        case .next(let expression):
-            return [.successor(expression: expression)]
-        case .until, .weak:
+        default:
             throw VerificationError.notSupported
         }
     }

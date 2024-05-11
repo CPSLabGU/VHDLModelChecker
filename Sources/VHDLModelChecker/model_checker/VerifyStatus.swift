@@ -58,9 +58,6 @@ import TCTLParser
 /// The status of an ongoing verification.
 enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertible {
 
-    /// The current verification holds and is complete.
-    case completed
-
     /// The current verification holds at the current node, but requires
     /// traversing further nodes to evaluate it completely.
     /// - Parameter expression: The expression to evaluate at the next node.
@@ -74,21 +71,19 @@ enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertib
     ///     have been evaluated.
     ///   - successors: The expressions that need to be evaluated before
     ///     `expression` can be evaulated.
-    case revisitting(expression: Expression, successors: [Successor])
+    case revisitting(expression: Expression, successor: Successor)
 
     /// A print-friendly string representing this instance.
     var description: String {
         switch self {
-        case .completed:
-            return "completed"
         case .successor(let expression):
             return "successor(" + expression.rawValue + ")"
-        case .revisitting(let expression, let successors):
+        case .revisitting(let expression, let successor):
             return "revisitting("
                 + expression.rawValue
-                + ", ["
-                + successors.map(\.description).joined(separator: ", ")
-                + "])"
+                + ", "
+                + successor.description
+                + ")"
         }
     }
 

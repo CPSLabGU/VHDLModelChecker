@@ -62,20 +62,20 @@ extension Expression {
         switch self {
         case .language(let expression):
             try expression.verify(node: node)
-            return [.completed]
+            return []
         case .precedence(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle)
         case .quantified(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle)
         case .conjunction(let lhs, let rhs):
-            return [.revisitting(expression: rhs, successors: [.required(expression: lhs)])]
+            return [.revisitting(expression: rhs, successor: .required(expression: lhs))]
         case .disjunction(let lhs, let rhs):
-            return [.revisitting(expression: rhs, successors: [.skip(expression: lhs)])]
+            return [.revisitting(expression: rhs, successor: .skip(expression: lhs))]
         case .not(let expression):
             return [
                 .revisitting(
                     expression: .language(expression: .vhdl(expression: .literal(value: false))),
-                    successors: [.ignored(expression: expression)]
+                    successor: .ignored(expression: expression)
                 )
             ]
         case .implies(let lhs, let rhs):
