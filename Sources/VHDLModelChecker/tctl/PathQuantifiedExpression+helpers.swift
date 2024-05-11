@@ -92,7 +92,7 @@ extension PathQuantifiedExpression {
                             ))
                         ]
                     case .revisitting(let expression, let successor):
-                        let newSuccessor: Successor
+                        let newSuccessor: RevisitExpression
                         switch successor {
                         case .required(let succ):
                             newSuccessor = .ignored(expression: succ)
@@ -112,7 +112,7 @@ extension PathQuantifiedExpression {
                                         )
                                     ))
                                 ),
-                                successor: newSuccessor
+                                precondition: newSuccessor
                             ),
                             .revisitting(
                                 expression: .quantified(expression: .init(
@@ -121,7 +121,7 @@ extension PathQuantifiedExpression {
                                         quantifier: quantifier, expression: self
                                     )))
                                 )),
-                                successor: .skip(expression: successor.expression)
+                                precondition: .skip(expression: successor.expression)
                             )
                         ]
                     }

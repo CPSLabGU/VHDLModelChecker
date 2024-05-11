@@ -71,18 +71,18 @@ enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertib
     ///     have been evaluated.
     ///   - successors: The expressions that need to be evaluated before
     ///     `expression` can be evaulated.
-    case revisitting(expression: Expression, successor: Successor)
+    case revisitting(expression: Expression, precondition: RevisitExpression)
 
     /// A print-friendly string representing this instance.
     var description: String {
         switch self {
         case .successor(let expression):
             return "successor(" + expression.rawValue + ")"
-        case .revisitting(let expression, let successor):
+        case .revisitting(let expression, let precondition):
             return "revisitting("
                 + expression.rawValue
                 + ", "
-                + successor.description
+                + precondition.description
                 + ")"
         }
     }

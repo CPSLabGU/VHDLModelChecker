@@ -1,4 +1,4 @@
-// Successor.swift
+// RevisitExpression.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -56,7 +56,7 @@
 import TCTLParser
 
 /// A category of successor expression defining the behaviour of the verification.
-enum Successor: CustomStringConvertible, Equatable, Hashable, Codable, Sendable {
+enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, Sendable {
 
     /// This successor is required to pass for the verification to hold.
     /// 
@@ -99,6 +99,17 @@ enum Successor: CustomStringConvertible, Equatable, Hashable, Codable, Sendable 
             return true
         case .skip, .ignored:
             return false
+        }
+    }
+
+    var type: RevisitType {
+        switch self {
+        case .skip:
+            return .skip
+        case .required:
+            return .required
+        case .ignored:
+            return .ignored
         }
     }
 

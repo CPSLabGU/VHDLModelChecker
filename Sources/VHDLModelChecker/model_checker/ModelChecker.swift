@@ -59,69 +59,74 @@ import VHDLKripkeStructures
 
 final class Job: Equatable, Hashable {
     var nodeId: UUID
-    var node: KripkeNode
     var expression: Expression
-    var ignoreFailure: Bool
     var history: Set<UUID>
-    var revisits: [Revisit]
+    var revisit: Revisit?
 
     init(
         nodeId: UUID,
-        node: KripkeNode,
         expression: Expression,
-        ignoreFailure: Bool,
         history: Set<UUID>,
-        revisits: [Revisit]
+        revisit: Revisit?
     ) {
         self.nodeId = nodeId
-        self.node = node
         self.expression = expression
-        self.ignoreFailure = ignoreFailure
         self.history = history
-        self.revisits = revisits
+        self.revisit = revisit
+    }
+
+    convenience init(revisit: Revisit) {
+        self.init(
+            nodeId: revisit.nodeId,
+            expression: revisit.expression,
+            history: revisit.history,
+            revisit: revisit.revisit
+        )
     }
 
     static func == (lhs: Job, rhs: Job) -> Bool {
         lhs.nodeId == rhs.nodeId
-            && lhs.node == rhs.node
             && lhs.expression == rhs.expression
-            && lhs.ignoreFailure == rhs.ignoreFailure
             && lhs.history == rhs.history
-            && lhs.revisits == rhs.revisits
+            && lhs.revisit == rhs.revisit
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(nodeId)
-        hasher.combine(node)
         hasher.combine(expression)
-        hasher.combine(ignoreFailure)
         hasher.combine(history)
-        hasher.combine(revisits)
+        hasher.combine(revisit)
     }
 
 }
 
 final class Revisit: Equatable, Hashable {
     var nodeId: UUID
-    var node: KripkeNode
     var expression: Expression
+    var type: RevisitType
+    var revisit: Revisit?
+    var history: Set<UUID>
 
-    init(nodeId: UUID, node: KripkeNode, expression: Expression) {
+    init(nodeId: UUID, expression: Expression, type: RevisitType, revisit: Revisit?, history: Set<UUID>) {
         self.nodeId = nodeId
-        self.node = node
         self.expression = expression
+        self.type = type
+        self.revisit = revisit
+        self.history = history
     }
 
     static func == (lhs: Revisit, rhs: Revisit) -> Bool {
         lhs.nodeId == rhs.nodeId
-            && lhs.node == rhs.node
+            && lhs.revisit == rhs.revisit
+            && lhs.type == rhs.type
             && lhs.expression == rhs.expression
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(nodeId)
-        hasher.combine(node)
+        hasher.combine(revisit)
         hasher.combine(expression)
+        hasher.combine(type)
     }
 
 }
@@ -135,18 +140,13 @@ final class ModelChecker {
     init() {}
 
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
-        for (id) in structure.initialStates {
-            guard let initialNode = structure.nodes[id] else {
-                throw VerificationError.notSupported
-            }
+        for id in structure.initialStates {
             for expression in specification.requirements {
                 let job = Job(
                     nodeId: id,
-                    node: initialNode,
                     expression: .quantified(expression: expression),
-                    ignoreFailure: false,
                     history: [],
-                    revisits: []
+                    revisit: nil
                 )
                 try handleJob(job, structure: structure)
             }
@@ -162,65 +162,70 @@ final class ModelChecker {
             return
         }
         cycles.insert(job)
+        guard let node = structure.nodes[job.nodeId] else {
+            throw VerificationError.notSupported
+        }
         let results: [VerifyStatus]
         do {
             results = try job.expression.verify(
-                currentNode: job.node,
+                currentNode: node,
                 inCycle: job.history.contains(job.nodeId)
             )
         } catch let error as VerificationError {
-            if job.ignoreFailure {
+            guard let revisit = job.revisit else {
+                throw error
+            }
+            switch revisit.type {
+            case .required:
+                throw error
+            case .ignored:
+                return
+            case .skip:
+                self.jobs.append(Job(revisit: revisit))
                 return
             }
-            throw error
         } catch let error {
             throw error
         }
-        let successors = structure.edges[job.nodeId]?.compactMap { edge in
-            structure.nodes[edge.destination].map { (edge.destination, $0) }
-        } ?? []
+        guard !results.isEmpty else {
+            guard let revisit = job.revisit else {
+                return
+            }
+            switch revisit.type {
+            case .skip:
+                return
+            case .ignored, .required:
+                self.jobs.append(Job(revisit: revisit))
+                return
+            }
+        }
+        lazy var successors = structure.edges[job.nodeId]?.map { $0.destination } ?? []
         for result in results {
             switch result {
-            case .completed:
-                job.revisits.forEach {
-                    self.jobs.append(Job(
-                        nodeId: $0.nodeId,
-                        node: $0.node,
-                        expression: $0.expression,
-                        ignoreFailure: false,
-                        history: job.history.union([job.nodeId]),
-                        revisits: []
-                    ))
-                }
             case .successor(let expression):
-                self.jobs.append(contentsOf: successors.map { nodeId, node in
+                self.jobs.append(contentsOf: successors.map { nodeId in
                     Job(
                         nodeId: nodeId,
-                        node: node,
                         expression: expression,
-                        ignoreFailure: job.ignoreFailure,
                         history: job.history.union([job.nodeId]),
-                        revisits: job.revisits
+                        revisit: job.revisit
                     )
                 })
-            case .revisitting(let expression, let successorExpressions):
-                self.jobs.append(contentsOf: successors.flatMap { nodeId, node in
-                    successorExpressions.map {
-                        Job(
-                            nodeId: nodeId,
-                            node: node,
-                            expression: $0.expression,
-                            ignoreFailure: !$0.isRequired,
-                            history: job.history.union([job.nodeId]),
-                            revisits: job.revisits + [
-                                Revisit(
-                                    nodeId: nodeId,
-                                    node: node,
-                                    expression: expression
-                                )
-                            ]
-                        )
-                    }
+            case .revisitting(let expression, let revisit):
+                self.jobs.append(contentsOf: successors.map { nodeId in
+                    let newRevisit = Revisit(
+                        nodeId: job.nodeId,
+                        expression: expression,
+                        type: revisit.type,
+                        revisit: job.revisit,
+                        history: job.history
+                    )
+                    return Job(
+                        nodeId: nodeId,
+                        expression: revisit.expression,
+                        history: job.history.union([job.nodeId]),
+                        revisit: newRevisit
+                    )
                 })
             }
         }
