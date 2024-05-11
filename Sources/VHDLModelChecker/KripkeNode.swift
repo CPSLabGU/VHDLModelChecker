@@ -61,25 +61,27 @@ import VHDLParsing
 enum KripkeNode: Equatable, Hashable, Codable, Sendable {
 
     /// A `read` node representing the time immediately before the start of a ringlet.
-    case read(node: ReadNode, currentState: VariableName)
+    case read(node: ReadNode)
 
     /// A `write` node representing the time immediately after the end of a ringlet.
-    case write(node: WriteNode, currentState: VariableName)
+    case write(node: WriteNode)
 
     /// The current state of this node.
     var currentState: VariableName {
         switch self {
-        case .read(_, let currentState), .write(_, let currentState):
-            return currentState
+        case .read(let node):
+            return node.currentState
+        case .write(let node):
+            return node.currentState
         }
     }
 
     /// Whether this mode executed the `onEntry` action.
     var executeOnEntry: Bool {
         switch self {
-        case .read(let node, _):
+        case .read(let node):
             return node.executeOnEntry
-        case .write(let node, _):
+        case .write(let node):
             return node.executeOnEntry
         }
     }
@@ -87,9 +89,9 @@ enum KripkeNode: Equatable, Hashable, Codable, Sendable {
     /// The properties (variables) within the node.
     var properties: [VariableName: SignalLiteral] {
         switch self {
-        case .read(let node, _):
+        case .read(let node):
             return node.properties
-        case .write(let node, _):
+        case .write(let node):
             return node.properties
         }
     }
@@ -100,7 +102,7 @@ enum KripkeNode: Equatable, Hashable, Codable, Sendable {
         switch self {
         case .read:
             return nil
-        case .write(let node, _):
+        case .write(let node):
             return node.nextState
         }
     }

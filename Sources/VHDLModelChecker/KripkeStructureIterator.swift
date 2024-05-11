@@ -65,59 +65,75 @@ struct KripkeStructureIterator {
     let initialStates: Set<UUID>
 
     init(structure: KripkeStructure) {
-        let ringlets = structure.ringlets.lazy
+        let kripkeStructureNodes = structure.nodes.lazy
         var nodes: [UUID: KripkeNode] = [:]
         var edges: [UUID: [NodeEdge]] = [:]
         var ids: [KripkeNode: UUID] = [:]
         var initialStates: Set<UUID> = []
-        ringlets.forEach {
-            let read = KripkeNode.read(node: $0.read, currentState: $0.state)
-            let write = KripkeNode.write(node: $0.write, currentState: $0.state)
-            let writeID: UUID
-            if let id = ids[write] {
-                writeID = id
-            } else {
-                writeID = UUID()
-                ids[write] = writeID
-            }
-            nodes[writeID] = write
-            let nextReads = ringlets.filter { ringlet in
-                let currentWrite = ringlet.write
-                return ringlet.state == currentWrite.nextState &&
-                    ringlet.read.executeOnEntry == currentWrite.executeOnEntry &&
-                    ringlet.read.properties.allSatisfy { key, val -> Bool in
-                        guard let writeVal = currentWrite.properties[key] else {
-                            return true
-                        }
-                        return writeVal == val
-                    }
-            }
-            guard !nextReads.isEmpty else {
-                fatalError("Found accepting state \(write)")
-            }
-            let writeEdges = nextReads.map {
+        kripkeStructureNodes.forEach {
+            switch $0 {
+            case .read(let node):
+                let read = KripkeNode.read(node: node)
                 let readID: UUID
-                if let id = ids[.read(node: $0.read, currentState: $0.state)] {
+                if let id = ids[read] {
                     readID = id
                 } else {
                     readID = UUID()
-                    ids[.read(node: $0.read, currentState: $0.state)] = readID
+                    ids[read] = readID
+                    if structure.initialStates.contains($0) {
+                        initialStates.insert(readID)
+                    }
                 }
-                return NodeEdge(edge: Edge(time: 0, energy: 0), destination: readID)
-            }
-            edges[writeID] = Array(writeEdges)
-            let readID: UUID
-            if let id = ids[read] {
-                readID = id
-            } else {
-                readID = UUID()
-                ids[read] = readID
-                if structure.initialStates.contains($0.read) {
-                    initialStates.insert(readID)
+                nodes[readID] = read
+                guard let edge: [Edge] = structure.edges[$0] else {
+                    fatalError("No edge found for \(read)")
                 }
+                let readEdges = edge.map {
+                    let writeID: UUID
+                    let node = KripkeNode(node: $0.target)
+                    if let id = ids[node] {
+                        writeID = id
+                    } else {
+                        writeID = UUID()
+                        ids[node] = writeID
+                    }
+                    return NodeEdge(time: $0.time, energy: $0.energy, destination: writeID)
+                }
+                guard let currentEdges: [NodeEdge] = edges[readID] else {
+                    edges[readID] = readEdges
+                    return
+                }
+                edges[readID] = currentEdges + readEdges
+            case .write(let node):
+                let write = KripkeNode.write(node: node)
+                let writeID: UUID
+                if let id = ids[write] {
+                    writeID = id
+                } else {
+                    writeID = UUID()
+                    ids[write] = writeID
+                }
+                nodes[writeID] = write
+                guard let edge: [Edge] = structure.edges[$0] else {
+                    fatalError("Found accepting statue \($0)")
+                }
+                let writeEdges: [NodeEdge] = edge.map { (edge: Edge) -> NodeEdge in
+                    let readID: UUID
+                    let node = KripkeNode(node: edge.target)
+                    if let id = ids[node] {
+                        readID = id
+                    } else {
+                        readID = UUID()
+                        ids[node] = readID
+                    }
+                    return NodeEdge(time: edge.time, energy: edge.energy, destination: readID)
+                }
+                guard let currentEdges: [NodeEdge] = edges[writeID] else {
+                    edges[writeID] = writeEdges
+                    return
+                }
+                edges[writeID] = currentEdges + writeEdges
             }
-            nodes[readID] = read
-            edges[readID] = [NodeEdge(edge: $0.edge, destination: writeID)]
         }
         self.init(nodes: nodes, edges: edges, initialStates: initialStates)
     }
@@ -126,6 +142,19 @@ struct KripkeStructureIterator {
         self.nodes = nodes
         self.edges = edges
         self.initialStates = initialStates
+    }
+
+}
+
+extension KripkeNode {
+
+    init(node: Node) {
+        switch node {
+        case .read(let node):
+            self = .read(node: node)
+        case .write(let node):
+            self = .write(node: node)
+        }
     }
 
 }
