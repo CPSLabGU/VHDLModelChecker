@@ -58,21 +58,16 @@ import VHDLParsing
 
 extension VHDLExpression {
 
-    var expression: VHDLParsing.Expression {
-        switch self {
-        case .boolean(let expression):
-            return .logical(operation: expression)
-        case .conditional(let expression):
-            return .conditional(condition: expression)
-        }
-    }
-
     func verify(node: KripkeNode) throws {
         switch self {
         case .boolean(let expression):
             try expression.verify(node: node)
         case .conditional(let expression):
             try expression.verify(node: node)
+        case .literal(let value):
+            if !value {
+                throw VerificationError.unsatisfied(node: node)
+            }
         }
     }
 

@@ -67,37 +67,20 @@ extension Expression {
             return try expression.verify(currentNode: node, inCycle: inCycle)
         case .quantified(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle)
+        case .conjunction(let lhs, let rhs):
+            return [.revisitting(expression: rhs, successors: [.required(expression: lhs)])]
+        case .disjunction(let lhs, let rhs):
+            return [.revisitting(expression: rhs, successors: [.skip(expression: lhs)])]
+        case .not(let expression):
+            return [
+                .revisitting(
+                    expression: .language(expression: .vhdl(expression: .literal(value: false))),
+                    successors: [.ignored(expression: expression)]
+                )
+            ]
         case .implies(let lhs, let rhs):
-            guard let results = try? lhs.verify(currentNode: node, inCycle: inCycle) else {
-                return [.completed]
-            }
-            return try results.flatMap {
-                switch $0 {
-                case .completed:
-                    return try rhs.verify(currentNode: node, inCycle: inCycle)
-                    // let hasRevisitting = nestedResults.contains { $0.isRevisitting }
-                    // guard hasRevisitting else {
-                    //     return nestedResults
-                    // }
-                    // return nestedResults.map {
-                    //     switch $0 {
-                    //     case .completed, .revisitting:
-                    //         return $0
-                    //     case .progressing:
-                    //         return .revisitting(expression: rhs)
-                    //     }
-                    // }
-                case .successor(let expression):
-                    return [.revisitting(expression: rhs, successors: [.skip(expression: expression)])]
-                case .revisitting(let expression, let successors):
-                    return [
-                        .revisitting(
-                            expression: .implies(lhs: expression, rhs: rhs),
-                            successors: successors
-                        )
-                    ]
-                }
-            }
+            return try Expression.disjunction(lhs: .not(expression: lhs), rhs: rhs)
+                .verify(currentNode: node, inCycle: inCycle)
         }
     }
 
