@@ -113,31 +113,52 @@ extension ComparisonOperation {
     ///   - rhs: The right-hand side of the equality expression.
     /// - Throws: A ``VerificationError`` if the node violates the equality expression.
     private func verifyEquality(node: KripkeNode, lhs: Expression, rhs: Expression) throws {
-        guard let variable = lhs.variable else {
-            throw VerificationError.unsatisfied(node: node)
-        }
-        guard variable != .currentState, variable != .executeOnEntry, variable != .nextState else {
-            switch variable {
-            case .currentState:
-                guard let rhs = rhs.variable, node.currentState == rhs else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            case .executeOnEntry:
-                guard let rhs = rhs.literal?.boolean, node.executeOnEntry == rhs else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            case .nextState:
-                guard let rhs = rhs.variable, node.nextState == rhs else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-            default:
-                throw VerificationError.unsatisfied(node: node)
-            }
+        guard let lhsValue = try self.getValue(key: lhs, node: node) else {
             return
         }
-        guard let rhs = rhs.literal, let value = node.properties[variable], value == rhs else {
-            throw VerificationError.unsatisfied(node: node)
+        switch lhsValue {
+        case .name(let name):
+            guard let rhsValue = rhs.variable, name == rhsValue else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .value(let literal):
+            guard let rhsLiteral = rhs.literal, rhsLiteral == literal else {
+                throw VerificationError.unsatisfied(node: node)
+            }
         }
     }
+
+    private func getValue(key variable: Expression, node: KripkeNode) throws -> NameOrValue? {
+        guard let variable = variable.variable else {
+            guard let literal = variable.literal else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+            return .value(literal)
+        }
+        switch variable {
+        case .currentState:
+            return .name(node.currentState)
+        case .executeOnEntry:
+            return .value(.boolean(value: node.executeOnEntry))
+        case .nextState:
+            guard let nextState = node.nextState else {
+                return nil
+            }
+            return .name(nextState)
+        default:
+            guard let literal = node.properties[variable] else {
+                return nil
+            }
+            return .value(literal)
+        }
+    }
+
+}
+
+private enum NameOrValue: Equatable {
+
+    case name(_ name: VariableName)
+
+    case value(_ value: SignalLiteral)
 
 }
