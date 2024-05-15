@@ -54,10 +54,11 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 extension Expression {
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):

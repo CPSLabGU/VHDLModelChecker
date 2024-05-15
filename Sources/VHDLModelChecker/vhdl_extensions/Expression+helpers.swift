@@ -53,6 +53,7 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import VHDLKripkeStructures
 import VHDLParsing
 
 extension Expression {
@@ -89,7 +90,7 @@ extension Expression {
         return boolean
     }
 
-    func verify(node: KripkeNode) throws {
+    func verify(node: Node) throws {
         switch self {
         case .conditional(let condition):
             try condition.verify(node: node)

@@ -54,6 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 /// Add `verify` method.
 extension LanguageExpression {
@@ -62,7 +63,7 @@ extension LanguageExpression {
     /// node fails to verify.
     /// - Parameter node: The node to verify against.
     /// - Throws: A ``VerificationError`` if the node violates the expression.
-    func verify(node: KripkeNode) throws {
+    func verify(node: Node) throws {
         switch self {
         case .vhdl(let expression):
             try expression.verify(node: node)

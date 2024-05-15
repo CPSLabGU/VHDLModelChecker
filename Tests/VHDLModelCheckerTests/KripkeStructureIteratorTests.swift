@@ -101,9 +101,8 @@ final class KripkeStructureIteratorTests: XCTestCase {
 
     /// Test that the dictionaries are created correctly.
     func testDictionaryCreation() {
-        let allNodes = Set(kripkeStructure.nodes.map { KripkeNode(node: $0) })
+        let allNodes = Set(kripkeStructure.nodes)
         let initialStates = kripkeStructure.initialStates
-            .map { KripkeNode(node: $0) }
             .compactMap { node in iterator.nodes.first { $0.value == node }?.key }
         XCTAssertEqual(allNodes.count, iterator.nodes.count)
         XCTAssertTrue(allNodes.allSatisfy { iterator.nodes.values.contains($0) })
@@ -111,14 +110,14 @@ final class KripkeStructureIteratorTests: XCTestCase {
         XCTAssertTrue(initialStates.allSatisfy { iterator.initialStates.contains($0) })
         let edges: [UUID: [NodeEdge]] = Dictionary(
             uniqueKeysWithValues: kripkeStructure.edges.compactMap { node, edges -> (UUID, [NodeEdge])? in
-                guard let id = iterator.nodes.first(where: { $0.value == KripkeNode(node: node) })?.key else {
+                guard let id = iterator.nodes.first(where: { $0.value == node })?.key else {
                     XCTFail("Failed to store id's")
                     return nil
                 }
                 let nodeEdges = edges.compactMap { edge -> NodeEdge? in
                     guard
                         let targetID = iterator.nodes.first(
-                            where: { $0.value == KripkeNode(node: edge.target) }
+                            where: { $0.value == edge.target }
                         )?.key
                     else {
                         XCTFail("Failed to get target id")

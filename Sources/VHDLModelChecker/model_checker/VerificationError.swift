@@ -54,6 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 /// Errors thrown during verification.
 enum VerificationError: Error {
@@ -62,6 +63,6 @@ enum VerificationError: Error {
     case notSupported
 
     /// A node caused the verification to fail.
-    case unsatisfied(node: KripkeNode)
+    case unsatisfied(node: Node)
 
 }

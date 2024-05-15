@@ -54,11 +54,12 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 extension PathQuantifiedExpression {
 
     func verify(
-        currentNode node: KripkeNode, inCycle: Bool, quantifier: GlobalQuantifiedType
+        currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType
     ) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         if case .next(let expression) = self {

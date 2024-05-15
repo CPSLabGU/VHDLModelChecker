@@ -53,6 +53,7 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import VHDLKripkeStructures
 import VHDLParsing
 
 /// Add `verify` method.
@@ -62,7 +63,7 @@ extension ComparisonOperation {
     /// node fails to verify.
     /// - Parameter node: The node to verify against.
     /// - Throws: A ``VerificationError`` if the node violates the expression.
-    func verify(node: KripkeNode) throws {
+    func verify(node: Node) throws {
         switch self {
         case .equality(let lhs, let rhs):
             try self.verifyEquality(node: node, lhs: lhs, rhs: rhs)
@@ -112,7 +113,7 @@ extension ComparisonOperation {
     ///   - lhs: The left-hand side of the equality expression.
     ///   - rhs: The right-hand side of the equality expression.
     /// - Throws: A ``VerificationError`` if the node violates the equality expression.
-    private func verifyEquality(node: KripkeNode, lhs: Expression, rhs: Expression) throws {
+    private func verifyEquality(node: Node, lhs: Expression, rhs: Expression) throws {
         guard let lhsValue = try self.getValue(key: lhs, node: node) else {
             return
         }
@@ -128,7 +129,7 @@ extension ComparisonOperation {
         }
     }
 
-    private func getValue(key variable: Expression, node: KripkeNode) throws -> NameOrValue? {
+    private func getValue(key variable: Expression, node: Node) throws -> NameOrValue? {
         guard let variable = variable.variable else {
             guard let literal = variable.literal else {
                 throw VerificationError.unsatisfied(node: node)
@@ -141,10 +142,7 @@ extension ComparisonOperation {
         case .executeOnEntry:
             return .value(.boolean(value: node.executeOnEntry))
         case .nextState:
-            guard let nextState = node.nextState else {
-                return nil
-            }
-            return .name(nextState)
+            return .name(node.nextState)
         default:
             guard let literal = node.properties[variable] else {
                 return nil

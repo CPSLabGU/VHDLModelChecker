@@ -93,14 +93,10 @@ final class PathVerifyTests: XCTestCase {
     // swiftlint:disable implicitly_unwrapped_optional
 
     /// A node with a failure count of 3.
-    var failureCount2Node: KripkeNode! {
-        kripkeStructure.nodes.lazy.compactMap { (node: Node) -> KripkeNode? in
-            guard node.properties[.failureCount] == .integer(value: 2) else {
-                return nil
-            }
-            return KripkeNode(node: node)
+    var failureCount2Node: Node! {
+        kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
+            node.properties[.failureCount] == .integer(value: 2)
         }
-        .first
     }
 
     // swiftlint:enable implicitly_unwrapped_optional

@@ -53,6 +53,7 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import VHDLKripkeStructures
 import VHDLParsing
 
 /// Add `verify` method.
@@ -62,7 +63,7 @@ extension ConditionalExpression {
     /// node fails to verify.
     /// - Parameter node: The node to verify against.
     /// - Throws: A ``VerificationError`` if the node violates the expression.
-    func verify(node: KripkeNode) throws {
+    func verify(node: Node) throws {
         switch self {
         case .literal(let value):
             guard value else {

@@ -61,7 +61,7 @@ import VHDLKripkeStructures
 struct KripkeStructureIterator {
 
     /// The nodes in the Kripke structure.
-    let nodes: [UUID: KripkeNode]
+    let nodes: [UUID: Node]
 
     /// The edges in the Kripke structure.
     let edges: [UUID: [NodeEdge]]
@@ -73,22 +73,19 @@ struct KripkeStructureIterator {
     /// - Parameter structure: The kripke structure to store.
     init(structure: KripkeStructure) {
         let kripkeStructureNodes = structure.nodes.lazy
-        var nodes: [UUID: KripkeNode] = [:]
+        var nodes: [UUID: Node] = [:]
         var edges: [UUID: [NodeEdge]] = [:]
-        var ids: [KripkeNode: UUID] = [:]
+        var ids: [Node: UUID] = [:]
         var initialStates: Set<UUID> = []
         kripkeStructureNodes.forEach {
-            let currentNode = KripkeNode(node: $0)
-            let myID = ids.value(currentNode)
-            if case .read = $0, structure.initialStates.contains($0) { initialStates.insert(myID) }
-            nodes[myID] = currentNode
+            let myID = ids.value($0)
+            if case .read = $0.type, structure.initialStates.contains($0) { initialStates.insert(myID) }
+            nodes[myID] = $0
             guard let edge: [Edge] = structure.edges[$0] else {
-                fatalError("No edge found for \(currentNode)")
+                fatalError("No edge found for \($0)")
             }
             let newEdges = edge.map {
-                let node = KripkeNode(node: $0.target)
-                let otherID = ids.value(node)
-                return NodeEdge(time: $0.time, energy: $0.energy, destination: otherID)
+                NodeEdge(time: $0.time, energy: $0.energy, destination: ids.value($0.target))
             }
             guard let currentEdges: [NodeEdge] = edges[myID] else {
                 edges[myID] = newEdges
@@ -104,7 +101,7 @@ struct KripkeStructureIterator {
     ///     - nodes: The nodes in the Kripke structure.
     ///     - edges: The edges in the Kripke structure.
     ///     - initialStates: The initial states in the Kripke structure.
-    init(nodes: [UUID: KripkeNode], edges: [UUID: [NodeEdge]], initialStates: Set<UUID>) {
+    init(nodes: [UUID: Node], edges: [UUID: [NodeEdge]], initialStates: Set<UUID>) {
         self.nodes = nodes
         self.edges = edges
         self.initialStates = initialStates

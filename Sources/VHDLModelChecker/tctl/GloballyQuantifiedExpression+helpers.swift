@@ -54,6 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 /// Add verify methods to expression.
 extension GloballyQuantifiedExpression {
@@ -81,7 +82,7 @@ extension GloballyQuantifiedExpression {
         }
     }
 
-    func verify(currentNode node: KripkeNode, inCycle: Bool) throws -> [VerifyStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         guard case .always = self else {
             throw VerificationError.notSupported

@@ -54,11 +54,12 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 import VHDLParsing
 
 extension VHDLExpression {
 
-    func verify(node: KripkeNode) throws {
+    func verify(node: Node) throws {
         switch self {
         case .boolean(let expression):
             try expression.verify(node: node)
