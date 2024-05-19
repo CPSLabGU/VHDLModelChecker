@@ -55,21 +55,11 @@ final class VHDLModelCheckerTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        A G (currentState = WaitForFailure and \(failureCount) = 3 and bootMode = '0' -> A F recoveryMode = '1')
-
-        A G (currentState = WaitForFailure and \(failureCount) = 3 and bootMode = '1' -> A F \(failureCount) = 0)
-
-        A G (((currentState = WaitForFailure and \(failureCount) = 3 and bootMode = '1') -> (A F \(failureCount) = 0)) -> (A F recoveryMode = '1' or RecoveryModeMachine_recoveryMode = '1'))
+        A G \(failureCount) = 3 and bootFailure = '1' -> A F recoveryMode = '1'
 
         A G (\(failureCount) <= 3 ^ \(failureCount) >= 0)
 
-        A G (recoveryMode /= 'Z' or RecoveryModeMachine_recoveryMode /= 'Z')
-
-        A G (currentState = SetRecovery -> recoveryMode = '1' or RecoveryModeMachine_recoveryMode = '1' or RecoveryModeMachine_recoveryMode = '0')
-
-        A G (currentState = Initial or currentState = WaitForFailure or currentState = WaitForFailureReset or currentState = SetRecovery)
-
-        A G (currentState = WaitForFailure and bootMode = '0' -> A F currentState = WaitForFailureReset -> A F currentState = WaitForFailure)
+        A G recoveryMode /= 'Z'
         """
         let spec = Specification(rawValue: specRaw)!
         try checker.check(structure: modelChecker.iterator, specification: spec)

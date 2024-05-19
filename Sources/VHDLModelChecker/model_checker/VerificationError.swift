@@ -66,3 +66,18 @@ enum VerificationError: Error {
     case unsatisfied(node: Node)
 
 }
+
+extension Node: CustomStringConvertible {
+
+    public var description: String {
+        """
+        Node(
+            currentState: \(self.currentState.rawValue),
+            executeOnEntry: \(self.executeOnEntry),
+            nextState: \(self.nextState.rawValue),
+            properties: \(self.properties.sorted { $0.key < $1.key }.map { "\($0.rawValue): \($1)" }.joined(separator: ",\n"))
+        )
+        """
+    }
+
+}
