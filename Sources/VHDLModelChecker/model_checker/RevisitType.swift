@@ -1,4 +1,4 @@
-// PathQuantifiedExpression+helpers.swift
+// RevisitType.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,18 +53,12 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+enum RevisitType: Equatable, Hashable, Codable, Sendable, CaseIterable {
 
-extension PathQuantifiedExpression {
+    case skip
 
-    var allVariables: [Variable] {
-        guard let expression = self.expression else {
-            guard let lhs = self.lhs, let rhs = self.rhs else {
-                fatalError("Impossible!")
-            }
-            return Array(Set(lhs.allVariables).union(Set(rhs.allVariables)))
-        }
-        return expression.allVariables
-    }
+    case ignored
+
+    case required
 
 }

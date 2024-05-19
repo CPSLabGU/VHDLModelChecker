@@ -1,4 +1,4 @@
-// PropertyRequirement+tctlInits.swift
+// VHDLExpression+allVariables.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,57 +54,21 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
+import VHDLParsing
 
-extension PropertyRequirement {
+extension VHDLExpression {
 
-    init?(constraint: Expression) {
-        switch constraint {
-        case .language(let expression):
-            self.init(constraint: expression)
-        case .precedence(let expression):
-            guard let subExpression = PropertyRequirement(constraint: expression) else {
-                return nil
+    func verify(node: Node) throws {
+        switch self {
+        case .boolean(let expression):
+            try expression.verify(node: node)
+        case .conditional(let expression):
+            try expression.verify(node: node)
+        case .literal(let value):
+            if !value {
+                throw VerificationError.unsatisfied(node: node)
             }
-            self.init { (subExpression.requirement($0)) }
-        case .implies(let lhs, let rhs):
-            guard
-                let lhsReq = PropertyRequirement(constraint: lhs),
-                let rhsReq = PropertyRequirement(constraint: rhs)
-            else {
-                return nil
-            }
-            self.init { lhsReq.requirement($0) ? rhsReq.requirement($0) : true }
-        case .quantified(let expression):
-            self.init(constraint: expression)
-        }
-    }
-
-    init?(constraint: LanguageExpression) {
-        switch constraint {
-        case .vhdl(let expression):
-            self.init(constraint: expression)
-        }
-    }
-
-    init?(constraint: GloballyQuantifiedExpression) {
-        switch constraint {
-        case .always(let expression), .eventually(let expression):
-            guard let requirement = PropertyRequirement(constraint: expression) else {
-                return nil
-            }
-            self.init { requirement.requirement($0) }
-        }
-    }
-
-    init?(constraint: PathQuantifiedExpression) {
-        switch constraint {
-        case .finally(let expression), .globally(let expression):
-            guard let req = PropertyRequirement(constraint: expression) else {
-                return nil
-            }
-            self.init { req.requirement($0) }
-        default:
-            return nil
         }
     }
 

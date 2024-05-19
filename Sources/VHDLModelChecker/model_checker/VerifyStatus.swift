@@ -1,4 +1,4 @@
-// KripkeStructureIterator.swift
+// VerifyStatus.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,72 +53,58 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import VHDLKripkeStructures
+import TCTLParser
 
-struct KripkeStructureIterator {
+/// The status of an ongoing verification.
+enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertible {
 
-    let nodes: [UUID: KripkeNode]
+    /// The current verification holds at the current node, but requires
+    /// traversing further nodes to evaluate it completely.
+    /// - Parameter expression: The expression to evaluate at the next node.
+    case successor(expression: Expression)
 
-    let edges: [UUID: [NodeEdge]]
+    /// The current verification holds but contains sub-expressions that need
+    /// to be evaluated at future nodes before the verification can be considered
+    /// complete.
+    /// - Parameters:
+    ///   - expression: The expression to re-evaluate once all successor expressions
+    ///     have been evaluated.
+    ///   - successors: The expressions that need to be evaluated before
+    ///     `expression` can be evaulated.
+    case revisitting(expression: Expression, precondition: RevisitExpression)
 
-    init(structure: KripkeStructure) {
-        let ringlets = structure.ringlets.lazy
-        var nodes: [UUID: KripkeNode] = [:]
-        var edges: [UUID: [NodeEdge]] = [:]
-        var ids: [KripkeNode: UUID] = [:]
-        ringlets.forEach {
-            let read = KripkeNode.read(node: $0.read, currentState: $0.state)
-            let write = KripkeNode.write(node: $0.write, currentState: $0.state)
-            let writeID: UUID
-            if let id = ids[write] {
-                writeID = id
-            } else {
-                writeID = UUID()
-                ids[write] = writeID
-            }
-            nodes[writeID] = write
-            let nextReads = ringlets.filter { ringlet in
-                let currentWrite = ringlet.write
-                return ringlet.state == currentWrite.nextState &&
-                    ringlet.read.executeOnEntry == currentWrite.executeOnEntry &&
-                    ringlet.read.properties.allSatisfy { key, val -> Bool in
-                        guard let writeVal = currentWrite.properties[key] else {
-                            return true
-                        }
-                        return writeVal == val
-                    }
-            }
-            guard !nextReads.isEmpty else {
-                fatalError("Found accepting state \(write)")
-            }
-            let writeEdges = nextReads.map {
-                let readID: UUID
-                if let id = ids[.read(node: $0.read, currentState: $0.state)] {
-                    readID = id
-                } else {
-                    readID = UUID()
-                    ids[.read(node: $0.read, currentState: $0.state)] = readID
-                }
-                return NodeEdge(edge: Edge(time: 0, energy: 0), destination: readID)
-            }
-            edges[writeID] = Array(writeEdges)
-            let readID: UUID
-            if let id = ids[read] {
-                readID = id
-            } else {
-                readID = UUID()
-                ids[read] = readID
-            }
-            nodes[readID] = read
-            edges[readID] = [NodeEdge(edge: $0.edge, destination: writeID)]
+    /// A print-friendly string representing this instance.
+    var description: String {
+        switch self {
+        case .successor(let expression):
+            return "successor(" + expression.rawValue + ")"
+        case .revisitting(let expression, let precondition):
+            return "revisitting("
+                + expression.rawValue
+                + ", "
+                + precondition.description
+                + ")"
         }
-        self.init(nodes: nodes, edges: edges)
     }
 
-    init(nodes: [UUID: KripkeNode], edges: [UUID: [NodeEdge]]) {
-        self.nodes = nodes
-        self.edges = edges
+    /// Whether the current status is a successor.
+    var isSuccessor: Bool {
+        switch self {
+        case .successor:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Whether the current status is a revisitting status.
+    var isRevisitting: Bool {
+        switch self {
+        case .revisitting:
+            return true
+        default:
+            return false
+        }
     }
 
 }

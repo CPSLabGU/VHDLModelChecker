@@ -1,4 +1,4 @@
-// VerificationState.swift
+// NodeEdge.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,17 +53,41 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-enum VerificationState {
+import Foundation
+import VHDLKripkeStructures
 
-    case success(constraint: Constraint)
+/// An edge between two `KripkeNode`s.
+class NodeEdge: Equatable, Hashable, Codable {
 
-    case failure(constraint: Constraint)
+    /// The time cost to take this edge.
+    let time: UInt
 
-    var constraint: Constraint {
-        switch self {
-        case .success(let constraint), .failure(let constraint):
-            return constraint
-        }
+    /// The energy cost to take this edge.
+    let energy: UInt
+
+    /// The UUID of the destination node the machine is in after taking this edge.
+    let destination: UUID
+
+    /// Create an edge from it's stored properties.
+    /// - Parameters:
+    ///   - edge: The cost of the edge.
+    ///   - destination: The desination node.
+    init(time: UInt, energy: UInt, destination: UUID) {
+        self.time = time
+        self.energy = energy
+        self.destination = destination
+    }
+
+    /// Equality conformance.
+    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
+        lhs.time == rhs.time && lhs.energy == rhs.energy && lhs.destination == rhs.destination
+    }
+
+    /// Hashable conformance.
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(time)
+        hasher.combine(energy)
+        hasher.combine(destination)
     }
 
 }

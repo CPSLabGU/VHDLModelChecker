@@ -1,4 +1,4 @@
-// GloballyQuantifiedExpression+helpers.swift
+// GloballyQuantifiedType.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,12 +53,12 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+/// A type representing the quantifier within a `TCTLParser.GloballyQuantifiedExpression``.
+enum GlobalQuantifiedType: Hashable, Codable, Sendable, CaseIterable {
 
-extension GloballyQuantifiedExpression {
+    /// The `always` quantifier (A).
+    case always
 
-    var allVariables: [Variable] {
-        self.expression.allVariables
-    }
-
+    /// The `eventually` quantifier (E).
+    case eventually
 }

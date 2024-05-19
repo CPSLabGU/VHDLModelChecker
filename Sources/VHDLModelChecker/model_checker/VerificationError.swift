@@ -1,4 +1,4 @@
-// TCTLExpression+helpers.swift
+// VerificationError.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,20 +54,30 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
-extension Expression {
+/// Errors thrown during verification.
+enum VerificationError: Error {
 
-    var allVariables: [Variable] {
-        switch self {
-        case .implies(let lhs, let rhs):
-            return Array(Set(lhs.allVariables).union(Set(rhs.allVariables)))
-        case .language(let expression):
-            return expression.allVariables
-        case .precedence(let expression):
-            return expression.allVariables
-        case .quantified(let expression):
-            return expression.allVariables
-        }
+    /// Something within the specification is not supported.
+    case notSupported
+
+    /// A node caused the verification to fail.
+    case unsatisfied(node: Node)
+
+}
+
+extension Node: CustomStringConvertible {
+
+    public var description: String {
+        """
+        Node(
+            currentState: \(self.currentState.rawValue),
+            executeOnEntry: \(self.executeOnEntry),
+            nextState: \(self.nextState.rawValue),
+            properties: \(self.properties.sorted { $0.key < $1.key }.map { "\($0.rawValue): \($1)" }.joined(separator: ",\n"))
+        )
+        """
     }
 
 }

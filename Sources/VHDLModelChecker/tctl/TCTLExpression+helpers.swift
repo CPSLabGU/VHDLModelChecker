@@ -1,4 +1,4 @@
-// KripkeNode.swift
+// TCTLExpression+helpers.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,47 +53,35 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
+import TCTLParser
 import VHDLKripkeStructures
-import VHDLParsing
 
-enum KripkeNode: Equatable, Hashable, Codable, Sendable {
+extension Expression {
 
-    case read(node: ReadNode, currentState: VariableName)
-
-    case write(node: WriteNode, currentState: VariableName)
-
-    var currentState: VariableName {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
+        // Verifies a node but does not take into consideration successor nodes.
         switch self {
-        case .read(_, let currentState), .write(_, let currentState):
-            return currentState
-        }
-    }
-
-    var executeOnEntry: Bool {
-        switch self {
-        case .read(let node, _):
-            return node.executeOnEntry
-        case .write(let node, _):
-            return node.executeOnEntry
-        }
-    }
-
-    var properties: [VariableName: SignalLiteral] {
-        switch self {
-        case .read(let node, _):
-            return node.properties
-        case .write(let node, _):
-            return node.properties
-        }
-    }
-
-    var nextState: VariableName? {
-        switch self {
-        case .read:
-            return nil
-        case .write(let node, _):
-            return node.nextState
+        case .language(let expression):
+            try expression.verify(node: node)
+            return []
+        case .precedence(let expression):
+            return try expression.verify(currentNode: node, inCycle: inCycle)
+        case .quantified(let expression):
+            return try expression.verify(currentNode: node, inCycle: inCycle)
+        case .conjunction(let lhs, let rhs):
+            return [.revisitting(expression: rhs, precondition: .required(expression: lhs))]
+        case .disjunction(let lhs, let rhs):
+            return [.revisitting(expression: rhs, precondition: .skip(expression: lhs))]
+        case .not(let expression):
+            return [
+                .revisitting(
+                    expression: .language(expression: .vhdl(expression: .literal(value: false))),
+                    precondition: .ignored(expression: expression)
+                )
+            ]
+        case .implies(let lhs, let rhs):
+            return try Expression.disjunction(lhs: .not(expression: lhs), rhs: rhs)
+                .verify(currentNode: node, inCycle: inCycle)
         }
     }
 

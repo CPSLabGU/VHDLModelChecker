@@ -1,4 +1,4 @@
-// Expression+evaluate.swift
+// Expression+helpers.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,77 +53,68 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import VHDLKripkeStructures
 import VHDLParsing
 
 extension Expression {
 
-    var allVariables: [VariableName] {
-        switch self {
-        case .binary(let operation):
-            switch operation {
-            case .addition(let lhs, let rhs), .concatenate(let lhs, let rhs), .division(let lhs, let rhs),
-                .multiplication(let lhs, let rhs), .subtraction(let lhs, let rhs):
-                return lhs.allVariables + rhs.allVariables
-            }
-        case .cast(let operation):
-            return operation.expression.allVariables
-        case .conditional(let condition):
-            switch condition {
-            case .comparison(let operation):
-                switch operation {
-                case .equality(let lhs, let rhs), .greaterThan(let lhs, let rhs),
-                    .greaterThanOrEqual(let lhs, let rhs), .lessThan(let lhs, let rhs),
-                    .lessThanOrEqual(let lhs, let rhs), .notEquals(let lhs, let rhs):
-                        return lhs.allVariables + rhs.allVariables
-                }
-            case .edge(let condition):
-                switch condition {
-                case .rising(let expression), .falling(let expression):
-                    return expression.allVariables
-                }
-            case .literal:
-                return []
-            }
-        case .functionCall(let call):
-            switch call {
-            case .custom(let function):
-                return function.parameters.map(\.argument).flatMap(\.allVariables)
-            case .mathReal(let function):
-                switch function {
-                case .ceil(let expression), .floor(let expression), .round(let expression),
-                    .sign(let expression), .sqrt(let expression):
-                    return expression.allVariables
-                case .fmax(let arg0, let arg1), .fmin(let arg0, let arg1):
-                    return arg0.allVariables + arg1.allVariables
-                }
-            }
-        case .literal:
-            return []
-        case .logical(let operation):
-            switch operation {
-            case .and(let lhs, let rhs), .nand(let lhs, let rhs), .nor(let lhs, let rhs),
-                .or(let lhs, let rhs), .xnor(let lhs, let rhs), .xor(let lhs, let rhs):
-                return lhs.allVariables + rhs.allVariables
-            case .not(let expression):
-                return expression.allVariables
-            }
-        case .precedence(let expression):
-            return expression.allVariables
-        case .reference(let variable):
-            switch variable {
-            case .indexed(let name, _):
-                return name.allVariables
-            case .variable(let reference):
-                return reference.allVariables
-            }
+    var variable: VariableName? {
+        guard
+            case .reference(let variable) = self,
+            case .variable(let variable) = variable,
+            case .variable(let variable) = variable
+        else {
+            return nil
         }
+        return variable
     }
 
-    func evaluate(node: KripkeNode) -> Bool {
-        guard let requirement = PropertyRequirement(constraint: self) else {
-            return false
+    var literal: SignalLiteral? {
+        guard case .literal(let literal) = self else {
+            return nil
         }
-        return requirement.requirement(node)
+        return literal
+    }
+
+    var conditional: ConditionalExpression? {
+        guard case .conditional(let condition) = self else {
+            return nil
+        }
+        return condition
+    }
+
+    var boolean: BooleanExpression? {
+        guard case .logical(let boolean) = self else {
+            return nil
+        }
+        return boolean
+    }
+
+    func verify(node: Node) throws {
+        switch self {
+        case .conditional(let condition):
+            try condition.verify(node: node)
+        case .logical(let operation):
+            try operation.verify(node: node)
+        case .precedence(let value):
+            try value.verify(node: node)
+        case .reference(let variable):
+            guard case .variable(let reference) = variable, case .variable(let name) = reference else {
+                throw VerificationError.notSupported
+            }
+            switch name {
+            case .executeOnEntry:
+                guard node.executeOnEntry else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            default:
+                guard let value = node.properties[name]?.boolean, value else {
+                    throw VerificationError.unsatisfied(node: node)
+                }
+            }
+        default:
+            throw VerificationError.notSupported
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-// IterativePropertyRequirement.swift
+// VHDLModelChecker.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -55,60 +55,30 @@
 
 import Foundation
 import TCTLParser
+import VHDLKripkeStructures
+import VHDLParsing
 
-struct IterativePropertyRequirement {
+public struct VHDLModelChecker {
 
-    let requirement: PropertyRequirement
+    let iterator: KripkeStructureIterator
 
-    let nextExpression: (UUID) throws -> [ConstrainedPath]
-
-    init(requirement: PropertyRequirement, _ nextExpression: @escaping (UUID) throws -> [ConstrainedPath]) {
-        self.requirement = requirement
-        self.nextExpression = nextExpression
+    public init(structure: KripkeStructure) {
+        self.init(iterator: KripkeStructureIterator(structure: structure))
     }
 
-    init(quantified: GloballyQuantifiedExpression, edges: [UUID: [NodeEdge]]) throws {
-        let createPath: ([Constraint]) throws -> ConstrainedPath
-        let createConstraints: (UUID, Expression) throws -> [Constraint]
-        switch quantified {
-        case .always:
-            createPath = { .all(paths: $0) }
-        case .eventually:
-            createPath = { .any(paths: $0) }
-        }
-        switch quantified.expression {
-        case .globally:
-            createConstraints = { [Constraint(constraint: .now(constraint: $1), node: $0)] }
-        case .finally:
-            createConstraints = { [Constraint(constraint: .future(constraint: $1), node: $0)] }
-        case .next:
-            createConstraints = { id, expression in
-                guard let edges = edges[id] else {
-                    throw VerificationError.notSupported
-                }
-                return edges.map {
-                    Constraint(constraint: .now(constraint: expression), node: $0.destination)
-                }
-            }
-        default:
-            throw VerificationError.notSupported
-        }
-        guard let expression = quantified.expression.expression else {
-            throw VerificationError.notSupported
-        }
-        self.init(requirement: PropertyRequirement { _ in true }) {
-            [try createPath(try createConstraints($0, expression))]
+    init(iterator: KripkeStructureIterator) {
+        self.iterator = iterator
+    }
+
+    public func verify(against specification: RequirementsSpecification) throws {
+        switch specification {
+        case .tctl(let spec):
+            try self.verify(tctl: spec)
         }
     }
 
-    init(constraint: LanguageExpression) throws {
-        switch constraint {
-        case .vhdl(let expression):
-            guard let requirement = PropertyRequirement(constraint: expression) else {
-                throw VerificationError.notSupported
-            }
-            self.init(requirement: requirement) { _ in [] }
-        }
+    func verify(tctl: Specification) throws {
+        throw VerificationError.notSupported
     }
 
 }

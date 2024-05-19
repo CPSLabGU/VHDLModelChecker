@@ -1,4 +1,4 @@
-// ConstrainedExpression.swift
+// ConditionalExpression+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,14 +53,27 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import VHDLKripkeStructures
+import VHDLParsing
 
-enum ConstrainedExpression: Equatable, Hashable, Codable, Sendable {
+/// Add `verify` method.
+extension ConditionalExpression {
 
-    case now(constraint: Expression)
-
-    case future(constraint: Expression)
-
-    case until(now: Expression, unless: Expression)
+    /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
+    /// node fails to verify.
+    /// - Parameter node: The node to verify against.
+    /// - Throws: A ``VerificationError`` if the node violates the expression.
+    func verify(node: Node) throws {
+        switch self {
+        case .literal(let value):
+            guard value else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .edge:
+            throw VerificationError.notSupported
+        case .comparison(let comparison):
+            try comparison.verify(node: node)
+        }
+    }
 
 }

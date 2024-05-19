@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// RequirementsSpecification.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,27 +53,12 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import VHDLKripkeStructures
-import VHDLParsing
+import TCTLParser
 
-public struct VHDLModelChecker {
+/// A specification containing the requirements for a kripke structure.
+public enum RequirementsSpecification: Equatable, Hashable, Codable, Sendable {
 
-    let iterator: KripkeStructureIterator
-
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
-    }
-
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
-    }
-
-    public func verify(against specification: RequirementsSpecification) throws {
-        switch specification {
-        case .tctl(let spec):
-            try self.verify(tctl: spec)
-        }
-    }
+    /// A specification written in `TCTL`.
+    case tctl(specification: TCTLParser.Specification)
 
 }

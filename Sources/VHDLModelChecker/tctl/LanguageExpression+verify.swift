@@ -1,4 +1,4 @@
-// Variable.swift
+// LanguageExpression+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,41 +53,20 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import VHDLParsing
+import TCTLParser
+import VHDLKripkeStructures
 
-enum Variable: RawRepresentable, Equatable, Hashable, Codable, Sendable {
+/// Add `verify` method.
+extension LanguageExpression {
 
-    case currentState
-
-    case executeOnEntry
-
-    case nextState
-
-    case property(name: VariableName)
-
-    var rawValue: VariableName {
+    /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
+    /// node fails to verify.
+    /// - Parameter node: The node to verify against.
+    /// - Throws: A ``VerificationError`` if the node violates the expression.
+    func verify(node: Node) throws {
         switch self {
-        case .currentState:
-            return .currentState
-        case .executeOnEntry:
-            return .executeOnEntry
-        case .nextState:
-            return .nextState
-        case .property(let name):
-            return name
-        }
-    }
-
-    init(rawValue: VariableName) {
-        switch rawValue {
-        case .currentState:
-            self = .currentState
-        case .executeOnEntry:
-            self = .executeOnEntry
-        case .nextState:
-            self = .nextState
-        default:
-            self = .property(name: rawValue)
+        case .vhdl(let expression):
+            try expression.verify(node: node)
         }
     }
 

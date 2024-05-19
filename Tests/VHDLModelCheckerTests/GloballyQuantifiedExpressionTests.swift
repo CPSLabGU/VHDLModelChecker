@@ -1,4 +1,4 @@
-// LanguageExpression+helpers.swift
+// GloballyQuantifiedExpressionTests.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,14 +54,48 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+@testable import VHDLModelChecker
+import XCTest
 
-extension LanguageExpression {
+/// Test class for `GloballyQuantifiedExpression` extensions.
+final class GloballyQuantifiedExpressionTests: XCTestCase {
 
-    var allVariables: [Variable] {
-        switch self {
-        case .vhdl(let expression):
-            return expression.allVariables
-        }
+    /// A test expression.
+    let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
+        lhs: .reference(variable: .variable(reference: .variable(name: .failureCount))),
+        rhs: .literal(value: .integer(value: 2))
+    ))))
+
+    /// An `always` expression.
+    var always: GloballyQuantifiedExpression {
+        .always(expression: .globally(expression: .language(expression: trueExp)))
+    }
+
+    /// An `eventually` expression.
+    var eventually: GloballyQuantifiedExpression {
+        .eventually(expression: .globally(expression: .language(expression: trueExp)))
+    }
+
+    /// Test the quantifier is derived correctly.
+    func testQuantifier() {
+        XCTAssertEqual(always.quantifier, .always)
+        XCTAssertEqual(eventually.quantifier, .eventually)
+    }
+
+    /// Test the quantifier init constructs the expression correctly.
+    func testQuantifierInit() {
+        XCTAssertEqual(
+            GloballyQuantifiedExpression(
+                quantifier: .always, expression: .globally(expression: .language(expression: trueExp))
+            ),
+            always
+        )
+        XCTAssertEqual(
+            GloballyQuantifiedExpression(
+                quantifier: .eventually, expression: .globally(expression: .language(expression: trueExp))
+            ),
+            eventually
+        )
     }
 
 }

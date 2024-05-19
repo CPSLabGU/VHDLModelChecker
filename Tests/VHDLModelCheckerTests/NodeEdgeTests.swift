@@ -1,4 +1,4 @@
-// Constraint.swift
+// NodeEdgeTests.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,26 +54,28 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
-import TCTLParser
+import VHDLKripkeStructures
+@testable import VHDLModelChecker
+import XCTest
 
-class Constraint: Equatable, Hashable, Codable {
+/// Test class for ``NodeEdge``.
+final class NodeEdgeTests: XCTestCase {
 
-    let constraint: ConstrainedExpression
+    /// Test data.
+    let time: UInt = 100
 
-    let node: UUID
+    /// Test data.
+    let energy: UInt = 250
 
-    init(constraint: ConstrainedExpression, node: UUID) {
-        self.constraint = constraint
-        self.node = node
-    }
+    /// The id of the edge.
+    let id = UUID()
 
-    static func == (lhs: Constraint, rhs: Constraint) -> Bool {
-        lhs.node == rhs.node && lhs.constraint == rhs.constraint
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(node)
-        hasher.combine(constraint)
+    /// Test the init sets the stored properties correctly.
+    func testInit() {
+        let nodeEdge = NodeEdge(time: time, energy: energy, destination: id)
+        XCTAssertEqual(nodeEdge.time, time)
+        XCTAssertEqual(nodeEdge.energy, energy)
+        XCTAssertEqual(nodeEdge.destination, id)
     }
 
 }

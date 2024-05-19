@@ -1,4 +1,4 @@
-// VerificationError.swift
+// GloballyQuantifiedExpression+helpers.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,15 +54,40 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
-enum VerificationError: Error {
+/// Add verify methods to expression.
+extension GloballyQuantifiedExpression {
 
-    case notSupported
+    /// The current quantifier of this expression.
+    var quantifier: GlobalQuantifiedType {
+        switch self {
+        case .always:
+            return .always
+        case .eventually:
+            return .eventually
+        }
+    }
 
-    case missingNode(constraint: Constraint)
+    /// Create an expression from it's quantifier and path quantified expression.
+    /// - Parameters:
+    ///   - quantifier: The quantifier to apply to the `expression`.
+    ///   - expression: The expression constrained by this expression.
+    init(quantifier: GlobalQuantifiedType, expression: PathQuantifiedExpression) {
+        switch quantifier {
+        case .always:
+            self = .always(expression: expression)
+        case .eventually:
+            self = .eventually(expression: expression)
+        }
+    }
 
-    case unsatisfied(constraint: Constraint, node: KripkeNode)
-
-    case invalidRequirement(requirement: GloballyQuantifiedExpression)
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
+        // Verifies a node but does not take into consideration successor nodes.
+        guard case .always = self else {
+            throw VerificationError.notSupported
+        }
+        return try self.expression.verify(currentNode: node, inCycle: inCycle, quantifier: self.quantifier)
+    }
 
 }

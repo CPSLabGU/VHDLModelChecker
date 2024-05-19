@@ -55,12 +55,20 @@
 
 import VHDLParsing
 
+// swiftlint:disable force_unwrapping
+
+/// Add constants used by model checker.
 extension VariableName {
 
+    /// The current state of a kripke node.
     static let currentState = VariableName(rawValue: "currentState")!
 
+    /// Whether `onEntry` is executed in the current node.
     static let executeOnEntry = VariableName(rawValue: "executeOnEntry")!
 
+    /// The next state property present in `write` ``KripkeNode``s.
     static let nextState = VariableName(rawValue: "nextState")!
 
 }
+
+// swiftlint:enable force_unwrapping

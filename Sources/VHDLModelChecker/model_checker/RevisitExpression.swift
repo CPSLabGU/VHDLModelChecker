@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// RevisitExpression.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,18 +53,64 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import VHDLKripkeStructures
+import TCTLParser
 
-class NodeEdge {
+/// A category of successor expression defining the behaviour of the verification.
+enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, Sendable {
 
-    let edge: Edge
+    /// This successor is required to pass for the verification to hold.
+    /// 
+    /// Expression e :: e ? revisit(e') : F
+    case required(expression: Expression)
 
-    let destination: UUID
+    /// This successor may fail and the verification still holds. When this expression passes, any associated
+    /// revisits will be evaluated.
+    /// 
+    /// Expression e :: !e ? revisit(e') : T
+    case skip(expression: Expression)
 
-    init(edge: Edge, destination: UUID) {
-        self.edge = edge
-        self.destination = destination
+    /// Expression e :: e ? revisit(e') : T
+    case ignored(expression: Expression)
+
+    /// A print-friendly description of the successor.
+    var description: String {
+        switch self {
+        case .required(let expression):
+            return ".required(\(expression.rawValue))"
+        case .skip(let expression):
+            return ".skip(\(expression.rawValue))"
+        case .ignored(let expression):
+            return ".ignore(\(expression.rawValue))"
+        }
+    }
+
+    /// The expression associated with this successor.
+    var expression: Expression {
+        switch self {
+        case .required(let expression), .skip(let expression), .ignored(let expression):
+            return expression
+        }
+    }
+
+    /// Whether the successor is required.
+    var isRequired: Bool {
+        switch self {
+        case .required:
+            return true
+        case .skip, .ignored:
+            return false
+        }
+    }
+
+    var type: RevisitType {
+        switch self {
+        case .skip:
+            return .skip
+        case .required:
+            return .required
+        case .ignored:
+            return .ignored
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-// ConstrainedPath.swift
+// KripkeStructureIterator.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,16 +53,76 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-enum ConstrainedPath: Equatable, Hashable, Codable {
+import Foundation
+import VHDLKripkeStructures
 
-    case all(paths: [Constraint])
+/// An object storing the kripke structure in-memory and providing easy access to the underlying nodes and
+/// edges through identifiers.
+struct KripkeStructureIterator {
 
-    case any(paths: [Constraint])
+    /// The nodes in the Kripke structure.
+    let nodes: [UUID: Node]
 
-    var paths: [Constraint] {
-        switch self {
-        case .all(let paths), .any(let paths):
-            return paths
+    /// The edges in the Kripke structure.
+    let edges: [UUID: [NodeEdge]]
+
+    /// The initial states in the Kripke structure.
+    let initialStates: Set<UUID>
+
+    /// Create the iterator from the `VHDLKripkeStructures` format.
+    /// - Parameter structure: The kripke structure to store.
+    init(structure: KripkeStructure) {
+        let kripkeStructureNodes = structure.nodes.lazy
+        var nodes: [UUID: Node] = [:]
+        var edges: [UUID: [NodeEdge]] = [:]
+        var ids: [Node: UUID] = [:]
+        var initialStates: Set<UUID> = []
+        kripkeStructureNodes.forEach {
+            let myID = ids.value($0)
+            if case .read = $0.type, structure.initialStates.contains($0) { initialStates.insert(myID) }
+            nodes[myID] = $0
+            guard let edge: [Edge] = structure.edges[$0] else {
+                fatalError("No edge found for \($0)")
+            }
+            let newEdges = edge.map {
+                NodeEdge(time: $0.time, energy: $0.energy, destination: ids.value($0.target))
+            }
+            guard let currentEdges: [NodeEdge] = edges[myID] else {
+                edges[myID] = newEdges
+                return
+            }
+            edges[myID] = currentEdges + newEdges
+        }
+        self.init(nodes: nodes, edges: edges, initialStates: initialStates)
+    }
+
+    /// Initialise the iterator from it's stored properties.
+    /// - Parameters:
+    ///     - nodes: The nodes in the Kripke structure.
+    ///     - edges: The edges in the Kripke structure.
+    ///     - initialStates: The initial states in the Kripke structure.
+    init(nodes: [UUID: Node], edges: [UUID: [NodeEdge]], initialStates: Set<UUID>) {
+        self.nodes = nodes
+        self.edges = edges
+        self.initialStates = initialStates
+    }
+
+}
+
+/// Add `value` function.
+extension Dictionary where Value == UUID {
+
+    /// Access a value at `key` if it exists. If it doesn't, first create the entry in the dictionary before
+    /// returning the new result.
+    /// - Parameter key: The key to access.
+    /// - Returns: The value at `key` or the newly created value at `key`.
+    fileprivate mutating func value(_ key: Key) -> UUID {
+        if let id = self[key] {
+            return id
+        } else {
+            let id = UUID()
+            self[key] = id
+            return id
         }
     }
 

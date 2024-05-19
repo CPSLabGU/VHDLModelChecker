@@ -1,4 +1,4 @@
-// VHDLExpression+allVariables.swift
+// BooleanExpression+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,30 +53,45 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import VHDLKripkeStructures
 import VHDLParsing
 
-extension VHDLExpression {
+/// Add `verify` method.
+extension BooleanExpression {
 
-    var allVariables: [Variable] {
+    /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
+    /// node fails to verify.
+    /// - Parameter node: The node to verify against.
+    /// - Throws: A ``VerificationError`` if the node violates the expression.
+    func verify(node: Node) throws {
         switch self {
-        case .boolean(let expression):
-            return VHDLParsing.Expression.logical(operation: expression).allVariables.map {
-                Variable(rawValue: $0)
+        case .and(let lhs, let rhs):
+            try lhs.verify(node: node)
+            try rhs.verify(node: node)
+        case .or(let lhs, let rhs):
+            do {
+                try lhs.verify(node: node)
+            } catch {
+                try rhs.verify(node: node)
             }
-        case .conditional(let expression):
-            return VHDLParsing.Expression.conditional(condition: expression).allVariables.map {
-                Variable(rawValue: $0)
+        case .not(let expression):
+            guard (try? expression.verify(node: node)) != nil else {
+                return
             }
-        }
-    }
-
-    var expression: VHDLParsing.Expression {
-        switch self {
-        case .boolean(let expression):
-            return .logical(operation: expression)
-        case .conditional(let expression):
-            return .conditional(condition: expression)
+            throw VerificationError.unsatisfied(node: node)
+        case .nand(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .and(lhs: lhs, rhs: rhs))).verify(node: node)
+        case .nor(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .or(lhs: lhs, rhs: rhs))).verify(node: node)
+        case .xor(let lhs, let rhs):
+            switch (try? lhs.verify(node: node), try? rhs.verify(node: node)) {
+            case (nil, .some), (.some, nil):
+                return
+            default:
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .xnor(let lhs, let rhs):
+            try BooleanExpression.not(value: .logical(operation: .xor(lhs: lhs, rhs: rhs))).verify(node: node)
         }
     }
 
