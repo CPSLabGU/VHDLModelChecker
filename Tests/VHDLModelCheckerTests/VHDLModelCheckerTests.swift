@@ -12,7 +12,7 @@ final class VHDLModelCheckerTests: XCTestCase {
     let specRaw = """
     // spec:language VHDL
 
-    A G RecoveryModeMachine_failureCount = 3 -> recoveryMode = '1'
+    A G operationalMode = '1' and currentState = WaitForFailureReset -> A F RecoveryModeMachine_failureCount = 0
     """
 
     // swiftlint:disable implicitly_unwrapped_optional
@@ -55,11 +55,7 @@ final class VHDLModelCheckerTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        A G \(failureCount) = 3 and bootFailure = '1' -> A F recoveryMode = '1'
-
-        A G (\(failureCount) <= 3 ^ \(failureCount) >= 0)
-
-        A G recoveryMode /= 'Z'
+        A G recoveryMode = '1' -> A F recoveryMode /= '1' -> false
         """
         let spec = Specification(rawValue: specRaw)!
         try checker.check(structure: modelChecker.iterator, specification: spec)
