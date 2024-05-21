@@ -1,4 +1,4 @@
-// ModelChecker.swift
+// TCTLModelChecker.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -57,7 +57,7 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class ModelChecker {
+final class TCTLModelChecker {
 
     var jobs: [Job] = []
 

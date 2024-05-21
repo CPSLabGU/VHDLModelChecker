@@ -60,25 +60,19 @@ import VHDLParsing
 
 public struct VHDLModelChecker {
 
-    let iterator: KripkeStructureIterator
+    public init() {}
 
-    public init(structure: KripkeStructure) {
-        self.init(iterator: KripkeStructureIterator(structure: structure))
-    }
-
-    init(iterator: KripkeStructureIterator) {
-        self.iterator = iterator
-    }
-
-    public func verify(against specification: RequirementsSpecification) throws {
-        switch specification {
-        case .tctl(let spec):
-            try self.verify(tctl: spec)
+    public func verify(
+        structure: KripkeStructure, against specification: [RequirementsSpecification]
+    ) throws {
+        let tctlChecker = TCTLModelChecker()
+        let iterator = KripkeStructureIterator(structure: structure)
+        try specification.forEach {
+            switch $0 {
+            case .tctl(let specification):
+                try tctlChecker.check(structure: iterator, specification: specification)
+            }
         }
-    }
-
-    func verify(tctl: Specification) throws {
-        throw VerificationError.notSupported
     }
 
 }

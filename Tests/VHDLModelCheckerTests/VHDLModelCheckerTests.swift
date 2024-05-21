@@ -28,8 +28,10 @@ final class VHDLModelCheckerTests: XCTestCase {
 
     // swiftlint:enable implicitly_unwrapped_optional
 
+    lazy var iterator = KripkeStructureIterator(structure: kripkeStructure)
+
     /// The model checker to use when verifying the specification.
-    lazy var modelChecker = VHDLModelChecker(structure: kripkeStructure)
+    let modelChecker = VHDLModelChecker()
 
     /// Initialise the test data before every test.
     override func setUp() {
@@ -46,11 +48,11 @@ final class VHDLModelCheckerTests: XCTestCase {
             fatalError("Failed to parse kripke structure!")
         }
         self.kripkeStructure = kripkeStructureParsed
-        modelChecker = VHDLModelChecker(structure: kripkeStructure)
+        iterator = KripkeStructureIterator(structure: kripkeStructureParsed)
     }
 
     func testModelChecker() throws {
-        let checker = ModelChecker()
+        let checker = TCTLModelChecker()
         let failureCount = VariableName.failureCount.rawValue
         let specRaw = """
         // spec:language VHDL
@@ -58,7 +60,7 @@ final class VHDLModelCheckerTests: XCTestCase {
         A G recoveryMode = '1' -> A F recoveryMode /= '1' -> false
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: modelChecker.iterator, specification: spec)
+        try checker.check(structure: iterator, specification: spec)
     }
 
     // /// Test a basic verification.
