@@ -65,10 +65,6 @@ extension VHDLExpression {
             try expression.verify(node: node)
         case .conditional(let expression):
             try expression.verify(node: node)
-        case .literal(let value):
-            if !value {
-                throw VerificationError.unsatisfied(node: node)
-            }
         }
     }
 
