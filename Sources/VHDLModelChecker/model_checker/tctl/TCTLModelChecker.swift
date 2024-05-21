@@ -70,7 +70,7 @@ final class TCTLModelChecker {
             for expression in specification.requirements {
                 let job = Job(
                     nodeId: id,
-                    expression: .quantified(expression: expression),
+                    expression: expression,
                     history: [],
                     revisit: nil
                 )
