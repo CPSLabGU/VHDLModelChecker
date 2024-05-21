@@ -57,80 +57,6 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class Job: Equatable, Hashable {
-    var nodeId: UUID
-    var expression: Expression
-    var history: Set<UUID>
-    var revisit: Revisit?
-
-    init(
-        nodeId: UUID,
-        expression: Expression,
-        history: Set<UUID>,
-        revisit: Revisit?
-    ) {
-        self.nodeId = nodeId
-        self.expression = expression
-        self.history = history
-        self.revisit = revisit
-    }
-
-    convenience init(revisit: Revisit) {
-        self.init(
-            nodeId: revisit.nodeId,
-            expression: revisit.expression,
-            history: revisit.history,
-            revisit: revisit.revisit
-        )
-    }
-
-    static func == (lhs: Job, rhs: Job) -> Bool {
-        lhs.nodeId == rhs.nodeId
-            && lhs.expression == rhs.expression
-            && lhs.history == rhs.history
-            && lhs.revisit == rhs.revisit
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(nodeId)
-        hasher.combine(expression)
-        hasher.combine(history)
-        hasher.combine(revisit)
-    }
-
-}
-
-final class Revisit: Equatable, Hashable {
-    var nodeId: UUID
-    var expression: Expression
-    var type: RevisitType
-    var revisit: Revisit?
-    var history: Set<UUID>
-
-    init(nodeId: UUID, expression: Expression, type: RevisitType, revisit: Revisit?, history: Set<UUID>) {
-        self.nodeId = nodeId
-        self.expression = expression
-        self.type = type
-        self.revisit = revisit
-        self.history = history
-    }
-
-    static func == (lhs: Revisit, rhs: Revisit) -> Bool {
-        lhs.nodeId == rhs.nodeId
-            && lhs.revisit == rhs.revisit
-            && lhs.type == rhs.type
-            && lhs.expression == rhs.expression
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(nodeId)
-        hasher.combine(revisit)
-        hasher.combine(expression)
-        hasher.combine(type)
-    }
-
-}
-
 final class ModelChecker {
 
     var jobs: [Job] = []
@@ -232,6 +158,3 @@ final class ModelChecker {
     }
 
 }
-
-
-
