@@ -65,6 +65,9 @@ enum VerificationError: Error {
     /// A node caused the verification to fail.
     case unsatisfied(node: Node)
 
+    /// Something within the model checker caused an internal error.
+    case internalError
+
 }
 
 extension Node: CustomStringConvertible {
