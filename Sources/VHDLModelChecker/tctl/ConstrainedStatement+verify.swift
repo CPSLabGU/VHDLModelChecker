@@ -89,27 +89,27 @@ extension ConstrainedStatement {
         switch self {
         case .equal:
             guard value.quantity == other.quantity else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
             }
         case .notEqual:
             guard value.quantity != other.quantity else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
             }
         case .greaterThan:
             guard value.quantity > other.quantity else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
             }
         case .greaterThanOrEqual:
             guard value.quantity >= other.quantity else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
             }
         case .lessThan:
             guard value.quantity < other.quantity else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
             }
         case .lessThanOrEqual:
             guard value.quantity <= other.quantity else {
-                throw VerificationError.unsatisfied(node: node)
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
             }
         }
     }

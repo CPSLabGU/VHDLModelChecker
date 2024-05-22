@@ -51,17 +51,17 @@ final class VHDLModelCheckerTests: XCTestCase {
         iterator = KripkeStructureIterator(structure: kripkeStructureParsed)
     }
 
-    // func testModelChecker() throws {
-    //     let checker = TCTLModelChecker()
-    //     let failureCount = VariableName.failureCount.rawValue
-    //     let specRaw = """
-    //     // spec:language VHDL
+    func testModelChecker() throws {
+        let checker = TCTLModelChecker()
+        let failureCount = VariableName.failureCount.rawValue
+        let specRaw = """
+        // spec:language VHDL
 
-    //     A G recoveryMode = '1' -> A F recoveryMode /= '1' -> false
-    //     """
-    //     let spec = Specification(rawValue: specRaw)!
-    //     try checker.check(structure: iterator, specification: spec)
-    // }
+        A G recoveryMode = '1' -> {A X recoveryMode /= '1'}_{t < 2 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
 
     // /// Test a basic verification.
     // func testBasicVerification() throws {
