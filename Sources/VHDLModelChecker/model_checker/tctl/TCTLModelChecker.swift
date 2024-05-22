@@ -72,6 +72,7 @@ final class TCTLModelChecker {
                     nodeId: id,
                     expression: expression,
                     history: [],
+                    cost: Cost(time: .zero, energy: .zero),
                     revisit: nil
                 )
                 try handleJob(job, structure: structure)
@@ -95,7 +96,8 @@ final class TCTLModelChecker {
         do {
             results = try job.expression.verify(
                 currentNode: node,
-                inCycle: job.history.contains(job.nodeId)
+                inCycle: job.history.contains(job.nodeId),
+                cost: job.cost
             )
         } catch let error as VerificationError {
             guard let revisit = job.revisit else {
@@ -125,24 +127,28 @@ final class TCTLModelChecker {
                 return
             }
         }
-        lazy var successors = structure.edges[job.nodeId]?.map { $0.destination } ?? []
+        lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
             switch result {
-            case .successor(let expression):
-                self.jobs.append(contentsOf: successors.map { nodeId in
-                    Job(
+            case .successor(let expression, let newCost):
+                self.jobs.append(contentsOf: successors.map {
+                    let nodeId = $0.destination
+                    return Job(
                         nodeId: nodeId,
                         expression: expression,
                         history: job.history.union([job.nodeId]),
+                        cost: newCost + $0.cost,
                         revisit: job.revisit
                     )
                 })
-            case .revisitting(let expression, let revisit):
-                self.jobs.append(contentsOf: successors.map { nodeId in
+            case .revisitting(let expression, let newCost, let revisit):
+                self.jobs.append(contentsOf: successors.map {
+                    let nodeId = $0.destination
                     let newRevisit = Revisit(
                         nodeId: job.nodeId,
                         expression: expression,
                         type: revisit.type,
+                        cost: newCost + $0.cost,
                         revisit: job.revisit,
                         history: job.history
                     )
@@ -150,6 +156,7 @@ final class TCTLModelChecker {
                         nodeId: nodeId,
                         expression: revisit.expression,
                         history: job.history.union([job.nodeId]),
+                        cost: revisit.cost,
                         revisit: newRevisit
                     )
                 })

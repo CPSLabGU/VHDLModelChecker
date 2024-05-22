@@ -54,6 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 /// The status of an ongoing verification.
 enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertible {
@@ -61,7 +62,7 @@ enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertib
     /// The current verification holds at the current node, but requires
     /// traversing further nodes to evaluate it completely.
     /// - Parameter expression: The expression to evaluate at the next node.
-    case successor(expression: Expression)
+    case successor(expression: Expression, cost: Cost)
 
     /// The current verification holds but contains sub-expressions that need
     /// to be evaluated at future nodes before the verification can be considered
@@ -71,17 +72,19 @@ enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertib
     ///     have been evaluated.
     ///   - successors: The expressions that need to be evaluated before
     ///     `expression` can be evaulated.
-    case revisitting(expression: Expression, precondition: RevisitExpression)
+    case revisitting(expression: Expression, cost: Cost, precondition: RevisitExpression)
 
     /// A print-friendly string representing this instance.
     var description: String {
         switch self {
-        case .successor(let expression):
-            return "successor(" + expression.rawValue + ")"
-        case .revisitting(let expression, let precondition):
+        case .successor(let expression, let cost):
+            return "successor(" + expression.rawValue + ", {\(cost.time.quantity), \(cost.energy.quantity)})"
+        case .revisitting(let expression, let cost, let precondition):
             return "revisitting("
                 + expression.rawValue
                 + ", "
+                + "{\(cost.time.quantity), \(cost.energy.quantity)}"
+                + ","
                 + precondition.description
                 + ")"
         }

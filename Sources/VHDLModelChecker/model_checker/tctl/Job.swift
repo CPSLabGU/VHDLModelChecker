@@ -55,22 +55,26 @@
 
 import Foundation
 import TCTLParser
+import VHDLKripkeStructures
 
 final class Job: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var history: Set<UUID>
+    var cost: Cost
     var revisit: Revisit?
 
     init(
         nodeId: UUID,
         expression: Expression,
         history: Set<UUID>,
+        cost: Cost,
         revisit: Revisit?
     ) {
         self.nodeId = nodeId
         self.expression = expression
         self.history = history
+        self.cost = cost
         self.revisit = revisit
     }
 
@@ -79,6 +83,7 @@ final class Job: Equatable, Hashable {
             nodeId: revisit.nodeId,
             expression: revisit.expression,
             history: revisit.history,
+            cost: revisit.cost,
             revisit: revisit.revisit
         )
     }
@@ -87,6 +92,7 @@ final class Job: Equatable, Hashable {
         lhs.nodeId == rhs.nodeId
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
+            && lhs.cost == rhs.cost
             && lhs.revisit == rhs.revisit
     }
 
@@ -94,6 +100,7 @@ final class Job: Equatable, Hashable {
         hasher.combine(nodeId)
         hasher.combine(expression)
         hasher.combine(history)
+        hasher.combine(cost)
         hasher.combine(revisit)
     }
 
