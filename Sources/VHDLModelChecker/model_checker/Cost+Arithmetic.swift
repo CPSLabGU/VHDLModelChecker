@@ -82,11 +82,11 @@ extension ScientificQuantity {
         let rhsAmount: UInt
         let exponent: Int
         if lhsDiff > rhsDiff {
-            exponent = rhs.exponent
+            exponent = lhs.exponent + lhsDiff
             lhsAmount = lhs.coefficient * UInt(pow(10.0, Double(lhsDiff)))
             rhsAmount = rhs.coefficient
         } else {
-            exponent = lhs.exponent
+            exponent = rhs.exponent + rhsDiff
             lhsAmount = lhs.coefficient
             rhsAmount = rhs.coefficient * UInt(pow(10.0, Double(rhsDiff)))
         }
