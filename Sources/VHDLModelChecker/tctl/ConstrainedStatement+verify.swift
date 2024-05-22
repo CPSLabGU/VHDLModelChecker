@@ -57,8 +57,10 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Add verification support to constrained statements.
 extension ConstrainedStatement {
 
+    /// The constraint within the statement.
     var constraint: Constraint {
         switch self {
         case .equal(let constraint), .greaterThan(let constraint), .lessThan(let constraint),
@@ -67,6 +69,11 @@ extension ConstrainedStatement {
         }
     }
 
+    /// Verify that a node satisfies the cost constraint.
+    /// - Parameters:
+    ///   - node: The node to verify.
+    ///   - cost: The current elapsed cost of the entire branch.
+    /// - Throws: A `VerificationError` if the node does not satisfy the constraint.
     func verify(node: Node, cost: Cost) throws {
         let value: ScientificQuantity
         let other: ScientificQuantity
