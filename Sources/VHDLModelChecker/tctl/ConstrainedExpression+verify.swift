@@ -58,8 +58,12 @@ import VHDLKripkeStructures
 
 extension ConstrainedExpression {
 
-    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
-        throw VerificationError.notSupported
+    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [VerifyStatus] {
+        let result = try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+        try self.constraints.forEach {
+            try $0.verify(node: node, cost: cost)
+        }
+        return result
     }
 
 }

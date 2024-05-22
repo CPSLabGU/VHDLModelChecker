@@ -1,4 +1,4 @@
-// ScientificQuantity+TCTLUnits.swift
+// ConstrainedStatement+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,19 +53,58 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-extension ScientificQuantity {
+extension ConstrainedStatement {
 
-    static let zero = ScientificQuantity(coefficient: 0, exponent: 0)
-
-    init(amount: UInt, unit: TimeUnit) {
-        self.init(coefficient: amount, exponent: unit.exponent)
+    var constraint: Constraint {
+        switch self {
+        case .equal(let constraint), .greaterThan(let constraint), .lessThan(let constraint),
+            .greaterThanOrEqual(let constraint), .lessThanOrEqual(let constraint), .notEqual(let constraint):
+            return constraint
+        }
     }
 
-    init(amount: UInt, unit: EnergyUnit) {
-        self.init(coefficient: amount, exponent: unit.exponent)
+    func verify(node: Node, cost: Cost) throws {
+        let value: ScientificQuantity
+        let other: ScientificQuantity
+        let constraint = self.constraint
+        switch constraint {
+        case .time(let amount, let unit):
+            value = cost.time
+            other = ScientificQuantity(amount: amount, unit: unit)
+        case .energy(let amount, let unit):
+            value = cost.energy
+            other = ScientificQuantity(amount: amount, unit: unit)
+        }
+        switch self {
+        case .equal:
+            guard value.quantity == other.quantity else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .notEqual:
+            guard value.quantity != other.quantity else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .greaterThan:
+            guard value.quantity > other.quantity else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .greaterThanOrEqual:
+            guard value.quantity >= other.quantity else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .lessThan:
+            guard value.quantity < other.quantity else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        case .lessThanOrEqual:
+            guard value.quantity <= other.quantity else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+        }
     }
 
 }

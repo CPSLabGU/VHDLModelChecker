@@ -1,4 +1,4 @@
-// ScientificQuantity+TCTLUnits.swift
+// Cost+Arithmetic.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,19 +53,44 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import Foundation
 import VHDLKripkeStructures
+
+extension Cost {
+
+    static let zero = Cost(time: .zero, energy: .zero)
+
+    static func + (lhs: Cost, rhs: Cost) -> Cost {
+        Cost(
+            time: lhs.time + rhs.time,
+            energy: lhs.energy + rhs.energy
+        )
+    }
+
+}
 
 extension ScientificQuantity {
 
-    static let zero = ScientificQuantity(coefficient: 0, exponent: 0)
-
-    init(amount: UInt, unit: TimeUnit) {
-        self.init(coefficient: amount, exponent: unit.exponent)
-    }
-
-    init(amount: UInt, unit: EnergyUnit) {
-        self.init(coefficient: amount, exponent: unit.exponent)
+    static func + (lhs: ScientificQuantity, rhs: ScientificQuantity) -> ScientificQuantity {
+        guard lhs.exponent != rhs.exponent else {
+            return ScientificQuantity(coefficient: lhs.coefficient + rhs.coefficient, exponent: lhs.exponent)
+        }
+        let minExponent = min(lhs.exponent, rhs.exponent)
+        let lhsDiff = lhs.exponent - minExponent
+        let rhsDiff = rhs.exponent - minExponent
+        let lhsAmount: UInt
+        let rhsAmount: UInt
+        let exponent: Int
+        if lhsDiff > rhsDiff {
+            exponent = lhs.exponent + lhsDiff
+            lhsAmount = lhs.coefficient * UInt(pow(10.0, Double(lhsDiff)))
+            rhsAmount = rhs.coefficient
+        } else {
+            exponent = rhs.exponent + rhsDiff
+            lhsAmount = lhs.coefficient
+            rhsAmount = rhs.coefficient * UInt(pow(10.0, Double(rhsDiff)))
+        }
+        return ScientificQuantity(coefficient: lhsAmount + rhsAmount, exponent: exponent)
     }
 
 }
