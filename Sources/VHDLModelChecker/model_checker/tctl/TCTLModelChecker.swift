@@ -90,7 +90,7 @@ final class TCTLModelChecker {
         }
         cycles.insert(job)
         guard let node = structure.nodes[job.nodeId] else {
-            throw VerificationError.notSupported
+            throw VerificationError.internalError
         }
         let results: [VerifyStatus]
         do {
@@ -109,7 +109,7 @@ final class TCTLModelChecker {
             case .ignored:
                 return
             case .skip:
-                self.jobs.append(Job(revisit: revisit, cost: job.cost))
+                self.jobs.append(Job(revisit: revisit))
                 return
             }
         } catch let error {
@@ -123,7 +123,7 @@ final class TCTLModelChecker {
             case .skip:
                 return
             case .ignored, .required:
-                self.jobs.append(Job(revisit: revisit, cost: job.cost))
+                self.jobs.append(Job(revisit: revisit))
                 return
             }
         }
@@ -148,6 +148,7 @@ final class TCTLModelChecker {
                         nodeId: job.nodeId,
                         expression: expression,
                         type: revisit.type,
+                        cost: job.cost,
                         revisit: job.revisit,
                         history: job.history
                     )

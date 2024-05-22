@@ -61,6 +61,7 @@ final class Revisit: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var type: RevisitType
+    var cost: Cost
     var revisit: Revisit?
     var history: Set<UUID>
 
@@ -68,12 +69,14 @@ final class Revisit: Equatable, Hashable {
         nodeId: UUID,
         expression: Expression,
         type: RevisitType,
+        cost: Cost,
         revisit: Revisit?,
         history: Set<UUID>
     ) {
         self.nodeId = nodeId
         self.expression = expression
         self.type = type
+        self.cost = cost
         self.revisit = revisit
         self.history = history
     }
@@ -82,6 +85,7 @@ final class Revisit: Equatable, Hashable {
         lhs.nodeId == rhs.nodeId
             && lhs.revisit == rhs.revisit
             && lhs.type == rhs.type
+            && lhs.cost == rhs.cost
             && lhs.expression == rhs.expression
     }
 
@@ -90,6 +94,7 @@ final class Revisit: Equatable, Hashable {
         hasher.combine(revisit)
         hasher.combine(expression)
         hasher.combine(type)
+        hasher.combine(cost)
     }
 
 }
