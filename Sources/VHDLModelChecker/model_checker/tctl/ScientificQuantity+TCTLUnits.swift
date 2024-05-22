@@ -58,8 +58,6 @@ import VHDLKripkeStructures
 
 extension ScientificQuantity {
 
-    static let zero = ScientificQuantity(coefficient: 0, exponent: 0)
-
     init(amount: UInt, unit: TimeUnit) {
         self.init(coefficient: amount, exponent: unit.exponent)
     }

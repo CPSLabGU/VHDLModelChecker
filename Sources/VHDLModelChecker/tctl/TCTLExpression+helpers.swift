@@ -58,41 +58,34 @@ import VHDLKripkeStructures
 
 extension Expression {
 
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [VerifyStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):
             try expression.verify(node: node)
             return []
         case .precedence(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         case .quantified(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         case .conjunction(let lhs, let rhs):
-            return [
-                .revisitting(
-                    expression: rhs, cost: cost, precondition: .required(expression: lhs, cost: cost)
-                )
-            ]
+            return [.revisitting(expression: rhs, precondition: .required(expression: lhs))]
         case .disjunction(let lhs, let rhs):
-            return [
-                .revisitting(expression: rhs, cost: cost, precondition: .skip(expression: lhs, cost: cost))
-            ]
+            return [.revisitting(expression: rhs, precondition: .skip(expression: lhs))]
         case .not(let expression):
             return [
                 .revisitting(
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: false)
                     ))),
-                    cost: cost,
-                    precondition: .ignored(expression: expression, cost: cost)
+                    precondition: .ignored(expression: expression)
                 )
             ]
         case .implies(let lhs, let rhs):
             return try Expression.disjunction(lhs: .not(expression: lhs), rhs: rhs)
-                .verify(currentNode: node, inCycle: inCycle, cost: cost)
+                .verify(currentNode: node, inCycle: inCycle)
         case .constrained(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         }
     }
 

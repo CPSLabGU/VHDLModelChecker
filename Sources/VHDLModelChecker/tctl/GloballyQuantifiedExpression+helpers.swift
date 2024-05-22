@@ -82,14 +82,12 @@ extension GloballyQuantifiedExpression {
         }
     }
 
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [VerifyStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         guard case .always = self else {
             throw VerificationError.notSupported
         }
-        return try self.expression.verify(
-            currentNode: node, inCycle: inCycle, quantifier: self.quantifier, cost: cost
-        )
+        return try self.expression.verify(currentNode: node, inCycle: inCycle, quantifier: self.quantifier)
     }
 
 }
