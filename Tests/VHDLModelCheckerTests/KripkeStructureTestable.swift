@@ -53,7 +53,9 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import TCTLParser
 import VHDLKripkeStructures
+@testable import VHDLModelChecker
 import XCTest
 
 /// A test class that tests the kripke structure.
@@ -75,6 +77,29 @@ class KripkeStructureTestable: XCTestCase {
     }()
 
     // swiftlint:disable implicitly_unwrapped_optional
+
+    /// A `10 us` constraint.
+    let constraint10us = Constraint.time(amount: 10, unit: .us)
+
+    /// A `100 us` constraint.
+    let constraint100us = Constraint.time(amount: 100, unit: .us)
+
+    /// A `200 us` constraint.
+    let constraint200us = Constraint.time(amount: 200, unit: .us)
+
+    /// A `10 mJ` constraint.
+    let constraint10mJ = Constraint.energy(amount: 10, unit: .mJ)
+
+    /// A `20 mJ` constraint.
+    let constraint20mJ = Constraint.energy(amount: 20, unit: .mJ)
+
+    /// A `200 mJ` constraint.
+    let constraint200mJ = Constraint.energy(amount: 200, unit: .mJ)
+
+    /// The current cost.
+    let cost = Cost(
+        time: ScientificQuantity(amount: 100, unit: .us), energy: ScientificQuantity(amount: 20, unit: .mJ)
+    )
 
     /// A node with a failure count of 2.
     lazy var failureCount2Node: Node! = Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in

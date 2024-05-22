@@ -61,29 +61,6 @@ import XCTest
 /// Test class for `verify` function in `ConstrainedStatement` extensions.
 final class ConstrainedStatementVerifyTests: KripkeStructureTestable {
 
-    /// The current cost.
-    let cost = Cost(
-        time: ScientificQuantity(amount: 100, unit: .us), energy: ScientificQuantity(amount: 20, unit: .mJ)
-    )
-
-    /// A `10 us` constraint.
-    let constraint10us = Constraint.time(amount: 10, unit: .us)
-
-    /// A `100 us` constraint.
-    let constraint100us = Constraint.time(amount: 100, unit: .us)
-
-    /// A `200 us` constraint.
-    let constraint200us = Constraint.time(amount: 200, unit: .us)
-
-    /// A `10 mJ` constraint.
-    let constraint10mJ = Constraint.energy(amount: 10, unit: .mJ)
-
-    /// A `20 mJ` constraint.
-    let constraint20mJ = Constraint.energy(amount: 20, unit: .mJ)
-
-    /// A `200 mJ` constraint.
-    let constraint200mJ = Constraint.energy(amount: 200, unit: .mJ)
-
     /// Test the `constraint` computed property.
     func testConstraint() {
         XCTAssertEqual(ConstrainedStatement.equal(constraint: constraint10us).constraint, constraint10us)

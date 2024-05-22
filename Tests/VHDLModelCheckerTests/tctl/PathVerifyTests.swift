@@ -75,9 +75,6 @@ final class PathVerifyTests: KripkeStructureTestable {
         rhs: .literal(value: .integer(value: 3))
     ))))
 
-    /// A test cost.
-    let cost = Cost(time: .zero, energy: .zero)
-
     /// Test that the `verify` function performs correctly with the `next` quantifier.
     func testNext() throws {
         XCTAssertEqual(
