@@ -60,7 +60,7 @@ import XCTest
 class KripkeStructureTestable: XCTestCase {
 
     /// The kripke structure to test.
-    let kripkeStructure = {
+    static let kripkeStructure = {
         let path = FileManager.default.currentDirectoryPath.appending(
             "/Tests/VHDLModelCheckerTests/output.json"
         )
@@ -78,7 +78,7 @@ class KripkeStructureTestable: XCTestCase {
 
     /// A node with a failure count of 2.
     var failureCount2Node: Node! {
-        kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
+        Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
             node.properties[.failureCount] == .integer(value: 2)
         }
     }
