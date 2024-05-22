@@ -109,7 +109,7 @@ final class TCTLModelChecker {
             case .ignored:
                 return
             case .skip:
-                self.jobs.append(Job(revisit: revisit))
+                self.jobs.append(Job(revisit: revisit, cost: job.cost))
                 return
             }
         } catch let error {
@@ -123,32 +123,31 @@ final class TCTLModelChecker {
             case .skip:
                 return
             case .ignored, .required:
-                self.jobs.append(Job(revisit: revisit))
+                self.jobs.append(Job(revisit: revisit, cost: job.cost))
                 return
             }
         }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
             switch result {
-            case .successor(let expression, let newCost):
+            case .successor(let expression):
                 self.jobs.append(contentsOf: successors.map {
                     let nodeId = $0.destination
                     return Job(
                         nodeId: nodeId,
                         expression: expression,
                         history: job.history.union([job.nodeId]),
-                        cost: newCost + $0.cost,
+                        cost: job.cost + $0.cost,
                         revisit: job.revisit
                     )
                 })
-            case .revisitting(let expression, let newCost, let revisit):
+            case .revisitting(let expression, let revisit):
                 self.jobs.append(contentsOf: successors.map {
                     let nodeId = $0.destination
                     let newRevisit = Revisit(
                         nodeId: job.nodeId,
                         expression: expression,
                         type: revisit.type,
-                        cost: newCost + $0.cost,
                         revisit: job.revisit,
                         history: job.history
                     )
@@ -156,7 +155,7 @@ final class TCTLModelChecker {
                         nodeId: nodeId,
                         expression: revisit.expression,
                         history: job.history.union([job.nodeId]),
-                        cost: revisit.cost,
+                        cost: job.cost + $0.cost,
                         revisit: newRevisit
                     )
                 })

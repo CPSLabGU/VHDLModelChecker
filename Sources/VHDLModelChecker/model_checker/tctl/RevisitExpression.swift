@@ -54,7 +54,6 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
-import VHDLKripkeStructures
 
 /// A category of successor expression defining the behaviour of the verification.
 enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, Sendable {
@@ -62,41 +61,34 @@ enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, S
     /// This successor is required to pass for the verification to hold.
     /// 
     /// Expression e :: e ? revisit(e') : F
-    case required(expression: Expression, cost: Cost)
+    case required(expression: Expression)
 
     /// This successor may fail and the verification still holds. When this expression passes, any associated
     /// revisits will be evaluated.
     /// 
     /// Expression e :: !e ? revisit(e') : T
-    case skip(expression: Expression, cost: Cost)
+    case skip(expression: Expression)
 
     /// Expression e :: e ? revisit(e') : T
-    case ignored(expression: Expression, cost: Cost)
+    case ignored(expression: Expression)
 
     /// A print-friendly description of the successor.
     var description: String {
         switch self {
-        case .required(let expression, let cost):
-            return ".required(\(expression.rawValue), {\(cost.time.quantity), \(cost.energy.quantity)})"
-        case .skip(let expression, let cost):
-            return ".skip(\(expression.rawValue), {\(cost.time.quantity), \(cost.energy.quantity)})"
-        case .ignored(let expression, let cost):
-            return ".ignore(\(expression.rawValue), {\(cost.time.quantity), \(cost.energy.quantity)})"
+        case .required(let expression):
+            return ".required(\(expression.rawValue))"
+        case .skip(let expression):
+            return ".skip(\(expression.rawValue))"
+        case .ignored(let expression):
+            return ".ignore(\(expression.rawValue))"
         }
     }
 
     /// The expression associated with this successor.
     var expression: Expression {
         switch self {
-        case .required(let expression, _), .skip(let expression, _), .ignored(let expression, _):
+        case .required(let expression), .skip(let expression), .ignored(let expression):
             return expression
-        }
-    }
-
-    var cost: Cost {
-        switch self {
-        case .required(_, let cost), .skip(_, let cost), .ignored(_, let cost):
-            return cost
         }
     }
 

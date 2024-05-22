@@ -63,7 +63,7 @@ extension PathQuantifiedExpression {
     ) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         if case .next(let expression) = self {
-            return [.successor(expression: expression, cost: cost)]
+            return [.successor(expression: expression)]
         }
         guard !inCycle else {
             switch self {
@@ -77,19 +77,16 @@ extension PathQuantifiedExpression {
         case .globally(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost) +
                 [
-                    .successor(
-                        expression: Expression.quantified(
-                            expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
-                        ),
-                        cost: cost
-                    )
+                    .successor(expression: Expression.quantified(
+                        expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
+                    ))
                 ]
         case .finally(let expression):
             do {
                 let result = try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
                 return result.flatMap { result -> [VerifyStatus] in
                     switch result {
-                    case .successor(let expression, let newCost):
+                    case .successor(let expression):
                         return [
                             VerifyStatus.successor(
                                 expression: .disjunction(
@@ -97,15 +94,14 @@ extension PathQuantifiedExpression {
                                     rhs: .quantified(expression: .init(
                                         quantifier: quantifier, expression: self
                                     ))
-                                ),
-                                cost: newCost
+                                )
                             )
                         ]
-                    case .revisitting(let expression, let newCost, let successor):
+                    case .revisitting(let expression, let successor):
                         let newSuccessor: RevisitExpression
                         switch successor {
-                        case .required(let succ, let cost2):
-                            newSuccessor = .ignored(expression: succ, cost: cost2)
+                        case .required(let succ):
+                            newSuccessor = .ignored(expression: succ)
                         default:
                             newSuccessor = successor
                         }
@@ -122,7 +118,6 @@ extension PathQuantifiedExpression {
                                         )
                                     ))
                                 ),
-                                cost: newCost,
                                 precondition: newSuccessor
                             ),
                             .revisitting(
@@ -132,8 +127,7 @@ extension PathQuantifiedExpression {
                                         quantifier: quantifier, expression: self
                                     )))
                                 )),
-                                cost: newCost,
-                                precondition: .skip(expression: successor.expression, cost: newCost)
+                                precondition: .skip(expression: successor.expression)
                             )
                         ]
                     }
@@ -146,8 +140,7 @@ extension PathQuantifiedExpression {
                             rhs: .quantified(
                                 expression: .init(quantifier: quantifier, expression: self)
                             )
-                        ),
-                        cost: cost
+                        )
                     )
                 ]
             }

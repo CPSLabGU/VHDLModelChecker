@@ -78,12 +78,12 @@ final class Job: Equatable, Hashable {
         self.revisit = revisit
     }
 
-    convenience init(revisit: Revisit) {
+    convenience init(revisit: Revisit, cost: Cost) {
         self.init(
             nodeId: revisit.nodeId,
             expression: revisit.expression,
             history: revisit.history,
-            cost: revisit.cost,
+            cost: cost,
             revisit: revisit.revisit
         )
     }
