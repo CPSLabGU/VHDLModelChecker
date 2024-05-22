@@ -61,22 +61,7 @@ import VHDLParsing
 import XCTest
 
 /// Class that tests the `verify` function on `PathQuantifiedExpression`.
-final class PathVerifyTests: XCTestCase {
-
-    /// The kripke structure to test.
-    let kripkeStructure = {
-        let path = FileManager.default.currentDirectoryPath.appending(
-            "/Tests/VHDLModelCheckerTests/output.json"
-        )
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
-            fatalError("No data!")
-        }
-        let decoder = JSONDecoder()
-        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
-            fatalError("Failed to parse kripke structure!")
-        }
-        return kripkeStructureParsed
-    }()
+final class PathVerifyTests: KripkeStructureTestable {
 
     /// An expression that evaluates to `true` for `failureCount2Node`.
     let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
@@ -92,17 +77,6 @@ final class PathVerifyTests: XCTestCase {
 
     /// A test cost.
     let cost = Cost(time: .zero, energy: .zero)
-
-    // swiftlint:disable implicitly_unwrapped_optional
-
-    /// A node with a failure count of 3.
-    var failureCount2Node: Node! {
-        kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
-            node.properties[.failureCount] == .integer(value: 2)
-        }
-    }
-
-    // swiftlint:enable implicitly_unwrapped_optional
 
     /// Test that the `verify` function performs correctly with the `next` quantifier.
     func testNext() throws {
