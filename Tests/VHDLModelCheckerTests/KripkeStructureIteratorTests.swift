@@ -123,7 +123,7 @@ final class KripkeStructureIteratorTests: XCTestCase {
                         XCTFail("Failed to get target id")
                         return nil
                     }
-                    return NodeEdge(time: edge.time, energy: edge.energy, destination: targetID)
+                    return NodeEdge(cost: edge.cost, destination: targetID)
                 }
                 return (id, nodeEdges.sorted())
             }
@@ -141,8 +141,9 @@ extension NodeEdge: Comparable {
 
     /// Comparable conformance.
     public static func < (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.energy < rhs.energy || lhs.time < rhs.time ||
-            lhs.destination.uuidString < rhs.destination.uuidString
+        lhs.cost.energy.quantity < rhs.cost.energy.quantity
+            || lhs.cost.time.quantity < rhs.cost.time.quantity
+            || lhs.destination.uuidString < rhs.destination.uuidString
     }
 
 }

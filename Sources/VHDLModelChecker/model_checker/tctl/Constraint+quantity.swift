@@ -54,10 +54,15 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
+import VHDLKripkeStructures
 
 extension Constraint: SIRepresentable {
 
-    var exponent: Int {
+    public var coefficient: UInt {
+        self.amount
+    }
+
+    public var exponent: Int {
         switch self {
         case .time(_, let unit):
             return unit.exponent
@@ -66,8 +71,8 @@ extension Constraint: SIRepresentable {
         }
     }
 
-    var quantity: SIQuantity {
-        SIQuantity(SIValue: self)
+    var quantity: ScientificQuantity {
+        ScientificQuantity(SIValue: self)
     }
 
 }

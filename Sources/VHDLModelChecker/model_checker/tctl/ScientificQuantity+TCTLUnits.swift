@@ -1,4 +1,4 @@
-// Cost.swift
+// ScientificQuantity+TCTLUnits.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,10 +53,17 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-struct Cost {
+import TCTLParser
+import VHDLKripkeStructures
 
-    let time: any Quantifiable
+extension ScientificQuantity {
 
-    let energy: any Quantifiable
+    init(amount: UInt, unit: TimeUnit) {
+        self.init(coefficient: amount, exponent: unit.exponent)
+    }
+
+    init(amount: UInt, unit: EnergyUnit) {
+        self.init(coefficient: amount, exponent: unit.exponent)
+    }
 
 }

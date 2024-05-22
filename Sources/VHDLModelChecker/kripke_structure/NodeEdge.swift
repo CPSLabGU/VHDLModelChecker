@@ -59,11 +59,8 @@ import VHDLKripkeStructures
 /// An edge between two `KripkeNode`s.
 class NodeEdge: Equatable, Hashable, Codable {
 
-    /// The time cost to take this edge.
-    let time: UInt
-
-    /// The energy cost to take this edge.
-    let energy: UInt
+    /// The cost of taking this edge.
+    let cost: Cost
 
     /// The UUID of the destination node the machine is in after taking this edge.
     let destination: UUID
@@ -72,21 +69,19 @@ class NodeEdge: Equatable, Hashable, Codable {
     /// - Parameters:
     ///   - edge: The cost of the edge.
     ///   - destination: The desination node.
-    init(time: UInt, energy: UInt, destination: UUID) {
-        self.time = time
-        self.energy = energy
+    init(cost: Cost, destination: UUID) {
+        self.cost = cost
         self.destination = destination
     }
 
     /// Equality conformance.
     static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.time == rhs.time && lhs.energy == rhs.energy && lhs.destination == rhs.destination
+        lhs.cost == rhs.cost && lhs.destination == rhs.destination
     }
 
     /// Hashable conformance.
     func hash(into hasher: inout Hasher) {
-        hasher.combine(time)
-        hasher.combine(energy)
+        hasher.combine(cost)
         hasher.combine(destination)
     }
 
