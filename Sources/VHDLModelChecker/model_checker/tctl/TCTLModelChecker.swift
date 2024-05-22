@@ -72,7 +72,7 @@ final class TCTLModelChecker {
                     nodeId: id,
                     expression: expression,
                     history: [],
-                    cost: Cost(time: .zero, energy: .zero),
+                    cost: .zero,
                     revisit: nil
                 )
                 try handleJob(job, structure: structure)
