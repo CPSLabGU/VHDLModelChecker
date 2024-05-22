@@ -77,12 +77,17 @@ class KripkeStructureTestable: XCTestCase {
     // swiftlint:disable implicitly_unwrapped_optional
 
     /// A node with a failure count of 2.
-    var failureCount2Node: Node! {
-        Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
-            node.properties[.failureCount] == .integer(value: 2)
-        }
+    lazy var failureCount2Node: Node! = Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
+        node.properties[.failureCount] == .integer(value: 2)
     }
 
     // swiftlint:enable implicitly_unwrapped_optional
+
+    /// Initialise the failure count node before every test.
+    override func setUp() {
+        failureCount2Node = Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
+            node.properties[.failureCount] == .integer(value: 2)
+        }
+    }
 
 }
