@@ -66,11 +66,10 @@ extension ConstrainedExpression {
     ///   - cost: The current cost of the verification.
     /// - Returns: An array of statuses for the verification.
     func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [VerifyStatus] {
-        let result = try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
         try self.constraints.forEach {
             try $0.verify(node: node, cost: cost)
         }
-        return result
+        return try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
     }
 
 }
