@@ -56,8 +56,15 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Add verification support.
 extension ConstrainedExpression {
 
+    /// Verify that `node` satisfies the constraints.
+    /// - Parameters:
+    ///   - node: The node to verify.
+    ///   - inCycle: Whether this node has been visited before.
+    ///   - cost: The current cost of the verification.
+    /// - Returns: An array of statuses for the verification.
     func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [VerifyStatus] {
         let result = try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
         try self.constraints.forEach {
