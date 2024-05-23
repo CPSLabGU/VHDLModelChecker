@@ -6,7 +6,7 @@ import VHDLParsing
 import XCTest
 
 /// Test class for ``VHDLModelChecker``.
-final class VHDLModelCheckerTests: XCTestCase {
+final class VHDLModelCheckerTests: KripkeStructureTestable {
 
     /// A raw specification to test again.
     let specRaw = """
@@ -23,32 +23,19 @@ final class VHDLModelCheckerTests: XCTestCase {
         specification: Specification(rawValue: specRaw)!
     )
 
-    /// The kripke structure to test.
-    var kripkeStructure: KripkeStructure! = nil
-
     // swiftlint:enable implicitly_unwrapped_optional
 
-    lazy var iterator = KripkeStructureIterator(structure: kripkeStructure)
+    lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.
     let modelChecker = VHDLModelChecker()
 
     /// Initialise the test data before every test.
     override func setUp() {
+        super.setUp()
         // swiftlint:disable:next force_unwrapping
         specification = .tctl(specification: Specification(rawValue: specRaw)!)
-        let path = FileManager.default.currentDirectoryPath.appending(
-            "/Tests/VHDLModelCheckerTests/output.json"
-        )
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
-            fatalError("No data!")
-        }
-        let decoder = JSONDecoder()
-        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
-            fatalError("Failed to parse kripke structure!")
-        }
-        self.kripkeStructure = kripkeStructureParsed
-        iterator = KripkeStructureIterator(structure: kripkeStructureParsed)
+        iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
     }
 
     func testModelCheckerFails() throws {
