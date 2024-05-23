@@ -77,9 +77,9 @@ final class VHDLModelCheckerTests: KripkeStructureTestable {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
             print("Failed constraint: \(constraint.rawValue)")
             print("Current cost: \(cost)")
             print("Branch nodes: \(branches.count)")
