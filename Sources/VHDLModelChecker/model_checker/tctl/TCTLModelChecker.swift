@@ -57,11 +57,22 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
+// 1. Create initial jobs.
+// 2. For current job, check if not in session ID and return if not there, otherwise forward.
+// 3. Call verify.
+// 4. Check results for 2 cases:
+//    - Case 1: No new session ID. Handle as normal.
+//    - Case 2: New Session ID. Create new session ID and assign to new jobs. Store new session ID in pending
+//              sessions.
+// 5. If no jobs left and no pending sessions, return, otherwise throw error.
+
 final class TCTLModelChecker {
 
     var jobs: [Job] = []
 
     var cycles: Set<Job> = []
+
+    var pendingSessions: [UUID: Job] = [:]
 
     init() {}
 
@@ -75,6 +86,7 @@ final class TCTLModelChecker {
                     currentBranch: [],
                     cost: .zero,
                     constraints: [],
+                    session: nil,
                     revisit: nil
                 )
                 try handleJob(job, structure: structure)
@@ -91,6 +103,9 @@ final class TCTLModelChecker {
             return
         }
         cycles.insert(job)
+        if let session = job.session, pendingSessions[session] == nil {
+            return
+        }
         guard let node = structure.nodes[job.nodeId] else {
             throw VerificationError.internalError
         }
@@ -163,6 +178,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch + [job.nodeId],
                         cost: job.cost + $0.cost,
                         constraints: job.constraints,
+                        session: job.session,
                         revisit: job.revisit
                     )
                 })
@@ -173,6 +189,7 @@ final class TCTLModelChecker {
                     type: revisit.type,
                     cost: job.cost,
                     constraints: job.constraints,
+                    session: job.session,
                     revisit: job.revisit,
                     history: job.history,
                     currentBranch: job.currentBranch
@@ -185,6 +202,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch,
                         cost: job.cost,
                         constraints: job.constraints,
+                        session: job.session,
                         revisit: newRevisit
                     ))
                 } else {
@@ -195,6 +213,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch,
                         cost: .zero,
                         constraints: revisit.constraints,
+                        session: job.session,
                         revisit: newRevisit
                     ))
                 }

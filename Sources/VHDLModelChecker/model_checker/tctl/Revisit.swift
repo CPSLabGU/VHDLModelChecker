@@ -63,6 +63,7 @@ final class Revisit: Equatable, Hashable {
     var type: RevisitType
     var cost: Cost
     var constraints: [ConstrainedStatement]
+    var session: UUID?
     var revisit: Revisit?
     var history: Set<UUID>
     var currentBranch: [UUID]
@@ -73,6 +74,7 @@ final class Revisit: Equatable, Hashable {
         type: RevisitType,
         cost: Cost,
         constraints: [ConstrainedStatement],
+        session: UUID?,
         revisit: Revisit?,
         history: Set<UUID>,
         currentBranch: [UUID]
@@ -82,6 +84,7 @@ final class Revisit: Equatable, Hashable {
         self.type = type
         self.cost = cost
         self.constraints = constraints
+        self.session = session
         self.revisit = revisit
         self.history = history
         self.currentBranch = currentBranch
@@ -96,6 +99,7 @@ final class Revisit: Equatable, Hashable {
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
+            && lhs.session == rhs.session
     }
 
     func hash(into hasher: inout Hasher) {
@@ -107,6 +111,7 @@ final class Revisit: Equatable, Hashable {
         hasher.combine(constraints)
         hasher.combine(history)
         hasher.combine(currentBranch)
+        hasher.combine(session)
     }
 
 }

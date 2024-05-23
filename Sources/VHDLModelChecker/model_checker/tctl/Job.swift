@@ -64,6 +64,7 @@ final class Job: Equatable, Hashable {
     var currentBranch: [UUID]
     var cost: Cost
     var constraints: [ConstrainedStatement]
+    var session: UUID?
     var revisit: Revisit?
 
     init(
@@ -73,6 +74,7 @@ final class Job: Equatable, Hashable {
         currentBranch: [UUID],
         cost: Cost,
         constraints: [ConstrainedStatement],
+        session: UUID?,
         revisit: Revisit?
     ) {
         self.nodeId = nodeId
@@ -81,6 +83,7 @@ final class Job: Equatable, Hashable {
         self.currentBranch = currentBranch
         self.cost = cost
         self.constraints = constraints
+        self.session = session
         self.revisit = revisit
     }
 
@@ -92,6 +95,7 @@ final class Job: Equatable, Hashable {
             currentBranch: revisit.currentBranch,
             cost: revisit.cost,
             constraints: revisit.constraints,
+            session: revisit.session,
             revisit: revisit.revisit
         )
     }
@@ -103,6 +107,7 @@ final class Job: Equatable, Hashable {
             && lhs.currentBranch == rhs.currentBranch
             && lhs.cost == rhs.cost
             && lhs.constraints == rhs.constraints
+            && lhs.session == rhs.session
             && lhs.revisit == rhs.revisit
     }
 
@@ -113,6 +118,7 @@ final class Job: Equatable, Hashable {
         hasher.combine(currentBranch)
         hasher.combine(cost)
         hasher.combine(constraints)
+        hasher.combine(session)
         hasher.combine(revisit)
     }
 
