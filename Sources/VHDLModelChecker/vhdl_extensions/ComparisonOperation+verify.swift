@@ -129,6 +129,7 @@ extension ComparisonOperation {
         }
     }
 
+    /// Get the name or value from the expression in node.
     private func getValue(key variable: Expression, node: Node) throws -> NameOrValue? {
         guard let variable = variable.variable else {
             guard let literal = variable.literal else {
@@ -153,10 +154,13 @@ extension ComparisonOperation {
 
 }
 
+/// A name or value.
 private enum NameOrValue: Equatable {
 
+    /// A name.
     case name(_ name: VariableName)
 
+    /// A value.
     case value(_ value: SignalLiteral)
 
 }
