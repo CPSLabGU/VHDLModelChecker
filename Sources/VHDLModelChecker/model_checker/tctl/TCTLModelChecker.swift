@@ -72,6 +72,7 @@ final class TCTLModelChecker {
                     nodeId: id,
                     expression: expression,
                     history: [],
+                    currentBranch: [],
                     cost: .zero,
                     constraints: [],
                     revisit: nil
@@ -102,11 +103,19 @@ final class TCTLModelChecker {
             )
         } catch let error as VerificationError {
             guard let revisit = job.revisit else {
-                throw error
+                let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
+                guard currentNodes.count == job.currentBranch.count else {
+                    throw ModelCheckerError.internalError
+                }
+                throw ModelCheckerError(error: error, currentBranch: currentNodes, expression: job.expression)
             }
             switch revisit.type {
             case .required:
-                throw error
+                let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
+                guard currentNodes.count == job.currentBranch.count else {
+                    throw ModelCheckerError.internalError
+                }
+                throw ModelCheckerError(error: error, currentBranch: currentNodes, expression: job.expression)
             case .ignored:
                 return
             case .skip:
@@ -120,8 +129,12 @@ final class TCTLModelChecker {
             if job.revisit?.type != .ignored, let failingConstraint = job.constraints.first(where: {
                     (try? $0.verify(node: node, cost: job.cost)) == nil
             }) {
-                throw VerificationError.costViolation(
-                    node: node,
+                let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
+                guard currentNodes.count == job.currentBranch.count else {
+                    throw ModelCheckerError.internalError
+                }
+                throw ModelCheckerError.constraintViolation(
+                    branch: currentNodes + [node],
                     cost: job.cost,
                     constraint: failingConstraint
                 )
@@ -147,6 +160,7 @@ final class TCTLModelChecker {
                         nodeId: nodeId,
                         expression: expression,
                         history: job.history.union([job.nodeId]),
+                        currentBranch: job.currentBranch + [job.nodeId],
                         cost: job.cost + $0.cost,
                         constraints: job.constraints,
                         revisit: job.revisit
@@ -160,13 +174,15 @@ final class TCTLModelChecker {
                     cost: job.cost,
                     constraints: job.constraints,
                     revisit: job.revisit,
-                    history: job.history
+                    history: job.history,
+                    currentBranch: job.currentBranch
                 )
                 if revisit.constraints.isEmpty {
                     self.jobs.append(Job(
                         nodeId: job.nodeId,
                         expression: expression,
                         history: job.history,
+                        currentBranch: job.currentBranch,
                         cost: job.cost,
                         constraints: job.constraints,
                         revisit: newRevisit
@@ -176,6 +192,7 @@ final class TCTLModelChecker {
                         nodeId: job.nodeId,
                         expression: expression,
                         history: job.history,
+                        currentBranch: job.currentBranch,
                         cost: .zero,
                         constraints: revisit.constraints,
                         revisit: newRevisit
@@ -186,5 +203,3 @@ final class TCTLModelChecker {
     }
 
 }
-
-// {A F y = '1'}_{t <- (2 us, 5 us), t > 2 us}

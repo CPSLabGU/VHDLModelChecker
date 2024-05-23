@@ -1,4 +1,4 @@
-// Revisit.swift
+// ModelCheckerError.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,60 +53,30 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class Revisit: Equatable, Hashable {
-    var nodeId: UUID
-    var expression: Expression
-    var type: RevisitType
-    var cost: Cost
-    var constraints: [ConstrainedStatement]
-    var revisit: Revisit?
-    var history: Set<UUID>
-    var currentBranch: [UUID]
+public enum ModelCheckerError: Error {
 
-    init(
-        nodeId: UUID,
-        expression: Expression,
-        type: RevisitType,
-        cost: Cost,
-        constraints: [ConstrainedStatement],
-        revisit: Revisit?,
-        history: Set<UUID>,
-        currentBranch: [UUID]
-    ) {
-        self.nodeId = nodeId
-        self.expression = expression
-        self.type = type
-        self.cost = cost
-        self.constraints = constraints
-        self.revisit = revisit
-        self.history = history
-        self.currentBranch = currentBranch
-    }
+    case unsatisfied(branch: [Node], expression: Expression)
 
-    static func == (lhs: Revisit, rhs: Revisit) -> Bool {
-        lhs.nodeId == rhs.nodeId
-            && lhs.revisit == rhs.revisit
-            && lhs.type == rhs.type
-            && lhs.cost == rhs.cost
-            && lhs.constraints == rhs.constraints
-            && lhs.expression == rhs.expression
-            && lhs.history == rhs.history
-            && lhs.currentBranch == rhs.currentBranch
-    }
+    case constraintViolation(branch: [Node], cost: Cost, constraint: ConstrainedStatement)
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(nodeId)
-        hasher.combine(revisit)
-        hasher.combine(expression)
-        hasher.combine(type)
-        hasher.combine(cost)
-        hasher.combine(constraints)
-        hasher.combine(history)
-        hasher.combine(currentBranch)
+    case internalError
+
+    case notSupported
+
+    init(error: VerificationError, currentBranch: [Node], expression: Expression) {
+        switch error {
+        case .notSupported:
+            self = .notSupported
+        case .internalError:
+            self = .internalError
+        case .unsatisfied(let node):
+            self = .unsatisfied(branch: currentBranch + [node], expression: expression)
+        case .costViolation(let node, let cost, let constraint):
+            self = .constraintViolation(branch: currentBranch + [node], cost: cost, constraint: constraint)
+        }
     }
 
 }
