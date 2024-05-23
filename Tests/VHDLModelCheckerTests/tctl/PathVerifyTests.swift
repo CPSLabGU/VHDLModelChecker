@@ -80,42 +80,42 @@ final class PathVerifyTests: KripkeStructureTestable {
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
-            [.successor(expression: .language(expression: trueExp))]
+            [.runningSession(status: .successor(expression: .language(expression: trueExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
-            [.successor(expression: .language(expression: falseExp))]
+            [.runningSession(status: .successor(expression: .language(expression: falseExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost),
-            [.successor(expression: .language(expression: trueExp))]
+            [.runningSession(status: .successor(expression: .language(expression: trueExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
                 .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost),
-            [.successor(expression: .language(expression: falseExp))]
+            [.runningSession(status: .successor(expression: .language(expression: falseExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
-            [.successor(expression: .language(expression: trueExp))]
+            [.runningSession(status: .successor(expression: .language(expression: trueExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
-            [.successor(expression: .language(expression: falseExp))]
+            [.runningSession(status: .successor(expression: .language(expression: falseExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost),
-            [.successor(expression: .language(expression: trueExp))]
+            [.runningSession(status: .successor(expression: .language(expression: trueExp)))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
                 .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost),
-            [.successor(expression: .language(expression: falseExp))]
+            [.runningSession(status: .successor(expression: .language(expression: falseExp)))]
         )
     }
 
@@ -125,9 +125,9 @@ final class PathVerifyTests: KripkeStructureTestable {
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
             [
-                .successor(expression: .quantified(expression: .always(
+                .runningSession(status: .successor(expression: .quantified(expression: .always(
                     expression: .globally(expression: .language(expression: trueExp))
-                )))
+                ))))
             ]
         )
         XCTAssertThrowsError(
@@ -147,9 +147,9 @@ final class PathVerifyTests: KripkeStructureTestable {
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
             [
-                .successor(expression: .quantified(expression: .eventually(
+                .runningSession(status: .successor(expression: .quantified(expression: .eventually(
                     expression: .globally(expression: .language(expression: trueExp))
-                )))
+                ))))
             ]
         )
         XCTAssertThrowsError(
@@ -180,12 +180,12 @@ final class PathVerifyTests: KripkeStructureTestable {
             try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
             [
-                .successor(expression: .disjunction(
+                .runningSession(status: .successor(expression: .disjunction(
                     lhs: .language(expression: falseExp),
                     rhs: .quantified(expression: .always(
                         expression: .finally(expression: .language(expression: falseExp))
                     ))
-                ))
+                )))
             ]
         )
         XCTAssertTrue(
@@ -206,12 +206,12 @@ final class PathVerifyTests: KripkeStructureTestable {
             try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
                 .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
             [
-                .successor(expression: .disjunction(
+                .runningSession(status: .successor(expression: .disjunction(
                     lhs: .language(expression: falseExp),
                     rhs: .quantified(expression: .eventually(
                         expression: .finally(expression: .language(expression: falseExp))
                     ))
-                ))
+                )))
             ]
         )
         XCTAssertTrue(
@@ -234,11 +234,15 @@ final class PathVerifyTests: KripkeStructureTestable {
         )))
         XCTAssertEqual(
             try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: false, cost: cost),
-            [.successor(expression: .disjunction(lhs: .language(expression: trueExp), rhs: finallyNextTrue))]
+            [
+                .runningSession(status: .successor(expression: .disjunction(
+                    lhs: .language(expression: trueExp), rhs: finallyNextTrue
+                )))
+            ]
         )
         XCTAssertEqual(
             try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: true, cost: cost),
-            [.successor(expression: .language(expression: trueExp))]
+            [.runningSession(status: .successor(expression: .language(expression: trueExp)))]
         )
     }
 

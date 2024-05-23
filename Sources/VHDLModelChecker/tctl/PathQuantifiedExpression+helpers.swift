@@ -60,10 +60,10 @@ extension PathQuantifiedExpression {
 
     func verify(
         currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType, cost: Cost
-    ) throws -> [VerifyStatus] {
+    ) throws -> [SessionStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         if case .next(let expression) = self {
-            return [.successor(expression: expression)]
+            return [.runningSession(status: .successor(expression: expression))]
         }
         guard !inCycle else {
             switch self {
@@ -76,25 +76,28 @@ extension PathQuantifiedExpression {
         switch self {
         case .globally(let expression):
             return [
-                .successor(expression: Expression.quantified(
+                .runningSession(status: .successor(expression: Expression.quantified(
                     expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
-                ))
+                )))
             ] + (try expression.verify(currentNode: node, inCycle: inCycle, cost: cost))
         case .finally(let expression):
             do {
                 let result = try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
-                return result.flatMap { result -> [VerifyStatus] in
-                    switch result {
+                return result.flatMap { result -> [SessionStatus] in
+                    let f: (VerifyStatus) -> SessionStatus = result.isNewSession
+                        ? { .newSession(status: $0) }
+                        : { .runningSession(status: $0) }
+                    switch result.status {
                     case .successor(let expression):
                         return [
-                            VerifyStatus.successor(
+                            f(.successor(
                                 expression: .disjunction(
                                     lhs: expression,
                                     rhs: .quantified(expression: .init(
                                         quantifier: quantifier, expression: self
                                     ))
                                 )
-                            )
+                            ))
                         ]
                     case .revisitting(let expression, let successor):
                         let newSuccessor: RevisitExpression
@@ -105,7 +108,7 @@ extension PathQuantifiedExpression {
                             newSuccessor = successor
                         }
                         return [
-                            VerifyStatus.revisitting(
+                            f(.revisitting(
                                 expression: .disjunction(
                                     lhs: expression,
                                     rhs: .quantified(expression: .init(
@@ -118,8 +121,8 @@ extension PathQuantifiedExpression {
                                     ))
                                 ),
                                 precondition: newSuccessor
-                            ),
-                            .revisitting(
+                            )),
+                            f(.revisitting(
                                 expression: .quantified(expression: .init(
                                     quantifier: quantifier,
                                     expression: .next(expression: .quantified(expression: .init(
@@ -127,20 +130,20 @@ extension PathQuantifiedExpression {
                                     )))
                                 )),
                                 precondition: .skip(expression: successor.expression, constraints: [])
-                            )
+                            ))
                         ]
                     }
                 }
             } catch {
                 return [
-                    .successor(
+                    .runningSession(status: .successor(
                         expression: .disjunction(
                             lhs: expression,
                             rhs: .quantified(
                                 expression: .init(quantifier: quantifier, expression: self)
                             )
                         )
-                    )
+                    ))
                 ]
             }
         default:

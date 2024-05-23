@@ -1,4 +1,4 @@
-// ConstrainedExpression+verify.swift
+// SessionStatus.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,23 +53,26 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
-import VHDLKripkeStructures
+enum SessionStatus: Equatable, Hashable, Codable, Sendable {
 
-/// Add verification support.
-extension ConstrainedExpression {
+    case newSession(status: VerifyStatus)
 
-    /// Verify that `node` satisfies the constraints.
-    /// - Parameters:
-    ///   - node: The node to verify.
-    ///   - inCycle: Whether this node has been visited before.
-    ///   - cost: The current cost of the verification.
-    /// - Returns: An array of statuses for the verification.
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
-        try self.constraints.forEach {
-            try $0.verify(node: node, cost: cost)
+    case runningSession(status: VerifyStatus)
+
+    var isNewSession: Bool {
+        switch self {
+        case .newSession:
+            return true
+        case .runningSession:
+            return false
         }
-        return try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+    }
+
+    var status: VerifyStatus {
+        switch self {
+        case .newSession(let status), .runningSession(let status):
+            return status
+        }
     }
 
 }

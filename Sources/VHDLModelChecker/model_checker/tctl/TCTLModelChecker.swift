@@ -109,7 +109,7 @@ final class TCTLModelChecker {
         guard let node = structure.nodes[job.nodeId] else {
             throw VerificationError.internalError
         }
-        let results: [VerifyStatus]
+        let results: [SessionStatus]
         do {
             results = try job.expression.verify(
                 currentNode: node,
@@ -167,7 +167,8 @@ final class TCTLModelChecker {
         }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
-            switch result {
+            let session = result.isNewSession ? UUID() : job.session
+            switch result.status {
             case .successor(let expression):
                 self.jobs.append(contentsOf: successors.map {
                     let nodeId = $0.destination
@@ -178,7 +179,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch + [job.nodeId],
                         cost: job.cost + $0.cost,
                         constraints: job.constraints,
-                        session: job.session,
+                        session: session,
                         revisit: job.revisit
                     )
                 })
@@ -202,7 +203,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch,
                         cost: job.cost,
                         constraints: job.constraints,
-                        session: job.session,
+                        session: session,
                         revisit: newRevisit
                     ))
                 } else {
@@ -213,7 +214,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch,
                         cost: .zero,
                         constraints: revisit.constraints,
-                        session: job.session,
+                        session: session,
                         revisit: newRevisit
                     ))
                 }
