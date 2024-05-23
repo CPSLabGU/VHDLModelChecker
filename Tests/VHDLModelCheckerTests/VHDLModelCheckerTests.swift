@@ -38,6 +38,68 @@ final class VHDLModelCheckerTests: KripkeStructureTestable {
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
     }
 
+    func testSimpleAlwaysNext() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A X (currentState /= Initial)
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testSimpleAlwaysGlobal() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G failureCount < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard let error = $0 as? ModelCheckerError, case .internalError = error else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+        }
+    }
+
+    func testSimpleAlwaysGlobalFailure() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G \(VariableName.failureCount.rawValue) < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
     func testModelCheckerFails() throws {
         let checker = TCTLModelChecker()
         let specRaw = """
@@ -53,9 +115,9 @@ final class VHDLModelCheckerTests: KripkeStructureTestable {
                 XCTFail("Got incorrect error!")
                 return
             }
-            // branches.forEach {
-            //     print($0.description)
-            // }
+            branches.forEach {
+                print($0.description)
+            }
             print("Failed expression: \(expression.rawValue)")
             print("Branch nodes: \(branches.count)")
         }

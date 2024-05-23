@@ -115,7 +115,7 @@ final class TCTLModelChecker {
             return
         }
         guard let node = structure.nodes[job.nodeId] else {
-            throw VerificationError.internalError
+            throw ModelCheckerError.internalError
         }
         let results: [SessionStatus]
         do {
@@ -145,6 +145,8 @@ final class TCTLModelChecker {
                 self.jobs.append(Job(revisit: revisit))
                 return
             }
+        } catch let error as UnrecoverableError {
+            throw ModelCheckerError(error: error, expression: job.expression)
         } catch let error {
             throw error
         }
@@ -178,10 +180,19 @@ final class TCTLModelChecker {
         }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
-            let session = result.isNewSession ? UUID() : job.session
+            let session: UUID?
+            switch result {
+            case .newSession:
+                session = UUID()
+            case .runningSession:
+                session = job.session
+            case .noSession:
+                session = nil
+            }
+            let jobs: [Job]
             switch result.status {
             case .successor(let expression):
-                self.jobs.append(contentsOf: successors.map {
+                jobs = successors.map {
                     let nodeId = $0.destination
                     return Job(
                         nodeId: nodeId,
@@ -193,7 +204,7 @@ final class TCTLModelChecker {
                         session: session,
                         revisit: job.revisit
                     )
-                })
+                }
             case .revisitting(let expression, let revisit):
                 let newRevisit = Revisit(
                     nodeId: job.nodeId,
@@ -201,34 +212,42 @@ final class TCTLModelChecker {
                     type: revisit.type,
                     cost: job.cost,
                     constraints: job.constraints,
-                    session: session,
+                    session: job.session,
                     revisit: job.revisit,
                     history: job.history,
                     currentBranch: job.currentBranch
                 )
                 if revisit.constraints.isEmpty {
-                    self.jobs.append(Job(
-                        nodeId: job.nodeId,
-                        expression: revisit.expression,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        cost: job.cost,
-                        constraints: job.constraints,
-                        session: nil,
-                        revisit: newRevisit
-                    ))
+                    jobs = [
+                        Job(
+                            nodeId: job.nodeId,
+                            expression: revisit.expression,
+                            history: job.history,
+                            currentBranch: job.currentBranch,
+                            cost: job.cost,
+                            constraints: job.constraints,
+                            session: session,
+                            revisit: newRevisit
+                        )
+                    ]
                 } else {
-                    self.jobs.append(Job(
-                        nodeId: job.nodeId,
-                        expression: revisit.expression,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        cost: .zero,
-                        constraints: revisit.constraints,
-                        session: nil,
-                        revisit: newRevisit
-                    ))
+                    jobs = [
+                        Job(
+                            nodeId: job.nodeId,
+                            expression: revisit.expression,
+                            history: job.history,
+                            currentBranch: job.currentBranch,
+                            cost: .zero,
+                            constraints: revisit.constraints,
+                            session: session,
+                            revisit: newRevisit
+                        )
+                    ]
                 }
+            }
+            self.jobs.append(contentsOf: jobs)
+            if let session, let job = jobs.first {
+                pendingSessions[session] = job
             }
         }
     }

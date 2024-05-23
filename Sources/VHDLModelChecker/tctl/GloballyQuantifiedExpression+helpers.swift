@@ -83,13 +83,25 @@ extension GloballyQuantifiedExpression {
     }
 
     func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
-        // Verifies a node but does not take into consideration successor nodes.
-        guard case .always = self else {
-            throw VerificationError.notSupported
-        }
-        return try self.expression.verify(
+        let results = try self.expression.verify(
             currentNode: node, inCycle: inCycle, quantifier: self.quantifier, cost: cost
         )
+        switch self {
+        case .always:
+            // A G e :: .noSession(.revisit(A X A G E, .required(e)))
+            // A F e :: .noSession(.revisit(A X A F e, .skip(e)))
+            // A X e :: .noSession(.succ(e))
+            return results.map {
+                .noSession(status: $0)
+            }
+        case .eventually:
+            // E X e :: .newSession(.succ(e))
+            // E G e :: .newSession(.revisit(E X E G e, .required(e)))
+            // E F e :: .newSession(.revisit(E X E F e, .skip(e)))
+            return results.map {
+                .newSession(status: $0)
+            }
+        }
     }
 
 }

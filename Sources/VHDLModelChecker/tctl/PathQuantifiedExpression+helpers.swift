@@ -60,94 +60,54 @@ extension PathQuantifiedExpression {
 
     func verify(
         currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType, cost: Cost
-    ) throws -> [SessionStatus] {
-        // Verifies a node but does not take into consideration successor nodes.
-        if case .next(let expression) = self {
-            return [.runningSession(status: .successor(expression: expression))]
-        }
+    ) throws -> [VerifyStatus] {
         guard !inCycle else {
             switch self {
-            case .globally(let expression), .finally(let expression), .next(let expression):
-                return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
-            default:
-                throw VerificationError.notSupported
+            case .next(let expression):
+                return [.successor(expression: expression)]
+            case .globally(let expression), .finally(let expression):
+                return [
+                    .revisitting(
+                        expression: .language(expression: .vhdl(expression: .true)),
+                        precondition: .required(expression: expression, constraints: [])
+                    )
+                ]
+            case .until, .weak:
+                throw UnrecoverableError.notSupported
             }
         }
+        // Q G e :: .revisit(Q X Q G E, .required(e))
+        // Q F e :: .revisit(Q X Q F e, .skip(e))
+        // Q X e :: .succ(e)
         switch self {
+        case .next(let expression):
+            return [.successor(expression: expression)]
         case .globally(let expression):
             return [
-                .runningSession(status: .successor(expression: Expression.quantified(
-                    expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
-                )))
-            ] + (try expression.verify(currentNode: node, inCycle: inCycle, cost: cost))
+                .revisitting(
+                    expression: .quantified(expression: GloballyQuantifiedExpression(
+                        quantifier: quantifier,
+                        expression: .next(expression: .quantified(expression: GloballyQuantifiedExpression(
+                            quantifier: quantifier, expression: self
+                        )))
+                    )),
+                    precondition: .required(expression: expression, constraints: [])
+                )
+            ]
         case .finally(let expression):
-            do {
-                let result = try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
-                return result.flatMap { result -> [SessionStatus] in
-                    let f: (VerifyStatus) -> SessionStatus = result.isNewSession
-                        ? { .newSession(status: $0) }
-                        : { .runningSession(status: $0) }
-                    switch result.status {
-                    case .successor(let expression):
-                        return [
-                            f(.successor(
-                                expression: .disjunction(
-                                    lhs: expression,
-                                    rhs: .quantified(expression: .init(
-                                        quantifier: quantifier, expression: self
-                                    ))
-                                )
-                            ))
-                        ]
-                    case .revisitting(let expression, let successor):
-                        let newSuccessor: RevisitExpression
-                        switch successor {
-                        case .required(let succ, let statements):
-                            newSuccessor = .ignored(expression: succ, constraints: statements)
-                        default:
-                            newSuccessor = successor
-                        }
-                        return [
-                            f(.revisitting(
-                                expression: .disjunction(
-                                    lhs: expression,
-                                    rhs: .quantified(expression: .init(
-                                        quantifier: quantifier,
-                                        expression: .next(
-                                            expression: .quantified(expression: .init(
-                                                quantifier: quantifier, expression: self
-                                            ))
-                                        )
-                                    ))
-                                ),
-                                precondition: newSuccessor
-                            )),
-                            f(.revisitting(
-                                expression: .quantified(expression: .init(
-                                    quantifier: quantifier,
-                                    expression: .next(expression: .quantified(expression: .init(
-                                        quantifier: quantifier, expression: self
-                                    )))
-                                )),
-                                precondition: .skip(expression: successor.expression, constraints: [])
-                            ))
-                        ]
-                    }
-                }
-            } catch {
-                return [
-                    .runningSession(status: .successor(
-                        expression: .disjunction(
-                            lhs: expression,
-                            rhs: .quantified(
-                                expression: .init(quantifier: quantifier, expression: self)
-                            )
-                        )
-                    ))
-                ]
-            }
-        default:
-            throw VerificationError.notSupported
+            return [
+                .revisitting(
+                    expression: .quantified(expression: GloballyQuantifiedExpression(
+                        quantifier: quantifier,
+                        expression: .next(expression: .quantified(expression: GloballyQuantifiedExpression(
+                            quantifier: quantifier, expression: self
+                        )))
+                    )),
+                    precondition: .skip(expression: expression, constraints: [])
+                )
+            ]
+        case .until, .weak:
+            throw UnrecoverableError.notSupported
         }
     }
 
