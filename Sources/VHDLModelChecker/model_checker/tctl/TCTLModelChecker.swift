@@ -126,6 +126,9 @@ final class TCTLModelChecker {
             )
         } catch let error as VerificationError {
             guard let revisit = job.revisit else {
+                guard job.session == nil else {
+                    return
+                }
                 let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
                 guard currentNodes.count == job.currentBranch.count else {
                     throw ModelCheckerError.internalError
@@ -134,6 +137,9 @@ final class TCTLModelChecker {
             }
             switch revisit.type {
             case .required:
+                guard job.session == nil else {
+                    return
+                }
                 let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
                 guard currentNodes.count == job.currentBranch.count else {
                     throw ModelCheckerError.internalError
@@ -157,6 +163,9 @@ final class TCTLModelChecker {
             if job.revisit?.type != .ignored, let failingConstraint = job.constraints.first(where: {
                     (try? $0.verify(node: node, cost: job.cost)) == nil
             }) {
+                guard job.session == nil else {
+                    return
+                }
                 let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
                 guard currentNodes.count == job.currentBranch.count else {
                     throw ModelCheckerError.internalError
