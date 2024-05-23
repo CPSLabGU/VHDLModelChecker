@@ -112,11 +112,235 @@ final class TCTLModelCheckerTests: XCTestCase {
         }
     }
 
-    func testSimpleAlwaysGlobalFailure() throws {
+    func testIncorrectFailureCountAlwaysGlobal() throws {
         let specRaw = """
         // spec:language VHDL
 
         A G \(VariableName.failureCount.rawValue) < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testSimpleAlwaysFinally() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A F failureCount < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard let error = $0 as? ModelCheckerError, case .internalError = error else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+        }
+    }
+
+    func testSimpleAlwaysGlobalTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G failureCount >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard let error = $0 as? ModelCheckerError, case .internalError = error else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+        }
+    }
+
+    func testSimpleAlwaysFinallyTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A F failureCount >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard let error = $0 as? ModelCheckerError, case .internalError = error else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+        }
+    }
+
+    func testSimpleAlwaysFinallyFailure() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A F \(VariableName.failureCount.rawValue) < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testSimpleAlwaysNextFailure() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A X \(VariableName.failureCount.rawValue) < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testSimpleAlwaysGlobalSuccess() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G \(VariableName.failureCount.rawValue) >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
+
+    func testSimpleAlwaysFinallySuccess() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A F \(VariableName.failureCount.rawValue) >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
+
+    func testSimpleAlwaysNextSuccess() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A X \(VariableName.failureCount.rawValue) >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
+
+    func testSimpleExistsGlobalSuccess() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E G \(VariableName.failureCount.rawValue) >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        do {
+            try checker.check(structure: iterator, specification: spec)
+        } catch let error as ModelCheckerError {
+            guard case .unsatisfied(let branches, let expression) = error else {
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+            XCTFail("Failed to verify!")
+        }
+    }
+
+    func testSimpleExistsFinallySuccess() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E F \(VariableName.failureCount.rawValue) >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
+
+    func testSimpleExistsNextSuccess() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E X \(VariableName.failureCount.rawValue) >= 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
+
+    func testSimpleExistsGlobalFailure() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E G \(VariableName.failureCount.rawValue) < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testSimpleExistsFinallyFailure() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E F \(VariableName.failureCount.rawValue) < 0
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testSimpleExistsNextFailure() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E X \(VariableName.failureCount.rawValue) < 0
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
