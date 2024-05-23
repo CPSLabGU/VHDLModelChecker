@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// ScientificQuantity+TCTLUnits.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,36 +53,19 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
+import TCTLParser
 import VHDLKripkeStructures
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge: Equatable, Hashable, Codable {
+extension ScientificQuantity {
 
-    /// The cost of taking this edge.
-    let cost: Cost
+    static let zero = ScientificQuantity(coefficient: 0, exponent: 0)
 
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
-
-    /// Create an edge from it's stored properties.
-    /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(cost: Cost, destination: UUID) {
-        self.cost = cost
-        self.destination = destination
+    init(amount: UInt, unit: TimeUnit) {
+        self.init(coefficient: amount, exponent: unit.exponent)
     }
 
-    /// Equality conformance.
-    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.cost == rhs.cost && lhs.destination == rhs.destination
-    }
-
-    /// Hashable conformance.
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(cost)
-        hasher.combine(destination)
+    init(amount: UInt, unit: EnergyUnit) {
+        self.init(coefficient: amount, exponent: unit.exponent)
     }
 
 }

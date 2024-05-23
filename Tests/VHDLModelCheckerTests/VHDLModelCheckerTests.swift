@@ -6,7 +6,7 @@ import VHDLParsing
 import XCTest
 
 /// Test class for ``VHDLModelChecker``.
-final class VHDLModelCheckerTests: XCTestCase {
+final class VHDLModelCheckerTests: KripkeStructureTestable {
 
     /// A raw specification to test again.
     let specRaw = """
@@ -23,41 +23,100 @@ final class VHDLModelCheckerTests: XCTestCase {
         specification: Specification(rawValue: specRaw)!
     )
 
-    /// The kripke structure to test.
-    var kripkeStructure: KripkeStructure! = nil
-
     // swiftlint:enable implicitly_unwrapped_optional
 
-    lazy var iterator = KripkeStructureIterator(structure: kripkeStructure)
+    lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.
     let modelChecker = VHDLModelChecker()
 
     /// Initialise the test data before every test.
     override func setUp() {
+        super.setUp()
         // swiftlint:disable:next force_unwrapping
         specification = .tctl(specification: Specification(rawValue: specRaw)!)
-        let path = FileManager.default.currentDirectoryPath.appending(
-            "/Tests/VHDLModelCheckerTests/output.json"
-        )
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
-            fatalError("No data!")
-        }
-        let decoder = JSONDecoder()
-        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
-            fatalError("Failed to parse kripke structure!")
-        }
-        self.kripkeStructure = kripkeStructureParsed
-        iterator = KripkeStructureIterator(structure: kripkeStructureParsed)
+        iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
     }
 
-    func testModelChecker() throws {
+    func testModelCheckerFails() throws {
         let checker = TCTLModelChecker()
-        let failureCount = VariableName.failureCount.rawValue
         let specRaw = """
         // spec:language VHDL
 
-        A G recoveryMode = '1' -> A F recoveryMode /= '1' -> false
+        A G recoveryMode = '1' -> {A X recoveryMode /= '1'}_{t < 2 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            print("Failed expression: \(expression.rawValue)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testModelCheckerFailsForTimeConstraint() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        {A X recoveryMode /= '1'}_{t < 100 ns}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError,
+                case .constraintViolation(let branches, let cost, let constraint) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            print("Failed constraint: \(constraint.rawValue)")
+            print("Current cost: \(cost)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testModelCheckerFailsForImpliesTimeConstraint() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t < 100 ns})
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError,
+                case .constraintViolation(let branches, let cost, let constraint) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            print("Failed constraint: \(constraint.rawValue)")
+            print("Current cost: \(cost)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testModelCheckerSucceedsWithTimeConstraint() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t == 1 us})
         """
         let spec = Specification(rawValue: specRaw)!
         try checker.check(structure: iterator, specification: spec)

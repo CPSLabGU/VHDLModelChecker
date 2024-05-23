@@ -55,22 +55,32 @@
 
 import Foundation
 import TCTLParser
+import VHDLKripkeStructures
 
 final class Job: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var history: Set<UUID>
+    var currentBranch: [UUID]
+    var cost: Cost
+    var constraints: [ConstrainedStatement]
     var revisit: Revisit?
 
     init(
         nodeId: UUID,
         expression: Expression,
         history: Set<UUID>,
+        currentBranch: [UUID],
+        cost: Cost,
+        constraints: [ConstrainedStatement],
         revisit: Revisit?
     ) {
         self.nodeId = nodeId
         self.expression = expression
         self.history = history
+        self.currentBranch = currentBranch
+        self.cost = cost
+        self.constraints = constraints
         self.revisit = revisit
     }
 
@@ -79,6 +89,9 @@ final class Job: Equatable, Hashable {
             nodeId: revisit.nodeId,
             expression: revisit.expression,
             history: revisit.history,
+            currentBranch: revisit.currentBranch,
+            cost: revisit.cost,
+            constraints: revisit.constraints,
             revisit: revisit.revisit
         )
     }
@@ -87,6 +100,9 @@ final class Job: Equatable, Hashable {
         lhs.nodeId == rhs.nodeId
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
+            && lhs.currentBranch == rhs.currentBranch
+            && lhs.cost == rhs.cost
+            && lhs.constraints == rhs.constraints
             && lhs.revisit == rhs.revisit
     }
 
@@ -94,6 +110,9 @@ final class Job: Equatable, Hashable {
         hasher.combine(nodeId)
         hasher.combine(expression)
         hasher.combine(history)
+        hasher.combine(currentBranch)
+        hasher.combine(cost)
+        hasher.combine(constraints)
         hasher.combine(revisit)
     }
 

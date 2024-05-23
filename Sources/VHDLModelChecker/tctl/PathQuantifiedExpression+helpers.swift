@@ -59,7 +59,7 @@ import VHDLKripkeStructures
 extension PathQuantifiedExpression {
 
     func verify(
-        currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType
+        currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType, cost: Cost
     ) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         if case .next(let expression) = self {
@@ -68,38 +68,39 @@ extension PathQuantifiedExpression {
         guard !inCycle else {
             switch self {
             case .globally(let expression), .finally(let expression), .next(let expression):
-                return try expression.verify(currentNode: node, inCycle: inCycle)
+                return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
             default:
                 throw VerificationError.notSupported
             }
         }
         switch self {
         case .globally(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle) +
-                [
-                    .successor(expression: Expression.quantified(
-                        expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
-                    ))
-                ]
+            return [
+                .successor(expression: Expression.quantified(
+                    expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
+                ))
+            ] + (try expression.verify(currentNode: node, inCycle: inCycle, cost: cost))
         case .finally(let expression):
             do {
-                let result = try expression.verify(currentNode: node, inCycle: inCycle)
+                let result = try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
                 return result.flatMap { result -> [VerifyStatus] in
                     switch result {
                     case .successor(let expression):
                         return [
-                            VerifyStatus.successor(expression: .disjunction(
-                                lhs: expression,
-                                rhs: .quantified(expression: .init(
-                                    quantifier: quantifier, expression: self
-                                ))
-                            ))
+                            VerifyStatus.successor(
+                                expression: .disjunction(
+                                    lhs: expression,
+                                    rhs: .quantified(expression: .init(
+                                        quantifier: quantifier, expression: self
+                                    ))
+                                )
+                            )
                         ]
                     case .revisitting(let expression, let successor):
                         let newSuccessor: RevisitExpression
                         switch successor {
-                        case .required(let succ):
-                            newSuccessor = .ignored(expression: succ)
+                        case .required(let succ, let statements):
+                            newSuccessor = .ignored(expression: succ, constraints: statements)
                         default:
                             newSuccessor = successor
                         }
@@ -125,19 +126,21 @@ extension PathQuantifiedExpression {
                                         quantifier: quantifier, expression: self
                                     )))
                                 )),
-                                precondition: .skip(expression: successor.expression)
+                                precondition: .skip(expression: successor.expression, constraints: [])
                             )
                         ]
                     }
                 }
             } catch {
                 return [
-                    .successor(expression: .disjunction(
-                        lhs: expression,
-                        rhs: .quantified(
-                            expression: .init(quantifier: quantifier, expression: self)
+                    .successor(
+                        expression: .disjunction(
+                            lhs: expression,
+                            rhs: .quantified(
+                                expression: .init(quantifier: quantifier, expression: self)
+                            )
                         )
-                    ))
+                    )
                 ]
             }
         default:

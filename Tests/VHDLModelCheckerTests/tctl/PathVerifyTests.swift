@@ -61,22 +61,7 @@ import VHDLParsing
 import XCTest
 
 /// Class that tests the `verify` function on `PathQuantifiedExpression`.
-final class PathVerifyTests: XCTestCase {
-
-    /// The kripke structure to test.
-    let kripkeStructure = {
-        let path = FileManager.default.currentDirectoryPath.appending(
-            "/Tests/VHDLModelCheckerTests/output.json"
-        )
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
-            fatalError("No data!")
-        }
-        let decoder = JSONDecoder()
-        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
-            fatalError("Failed to parse kripke structure!")
-        }
-        return kripkeStructureParsed
-    }()
+final class PathVerifyTests: KripkeStructureTestable {
 
     /// An expression that evaluates to `true` for `failureCount2Node`.
     let trueExp = LanguageExpression.vhdl(expression: .conditional(expression: .comparison(value: .equality(
@@ -90,57 +75,46 @@ final class PathVerifyTests: XCTestCase {
         rhs: .literal(value: .integer(value: 3))
     ))))
 
-    // swiftlint:disable implicitly_unwrapped_optional
-
-    /// A node with a failure count of 3.
-    var failureCount2Node: Node! {
-        kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
-            node.properties[.failureCount] == .integer(value: 2)
-        }
-    }
-
-    // swiftlint:enable implicitly_unwrapped_optional
-
     /// Test that the `verify` function performs correctly with the `next` quantifier.
     func testNext() throws {
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
             [.successor(expression: .language(expression: trueExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
             [.successor(expression: .language(expression: falseExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always),
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost),
             [.successor(expression: .language(expression: trueExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always),
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost),
             [.successor(expression: .language(expression: falseExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
             [.successor(expression: .language(expression: trueExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
             [.successor(expression: .language(expression: falseExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually),
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost),
             [.successor(expression: .language(expression: trueExp))]
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.next(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually),
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost),
             [.successor(expression: .language(expression: falseExp))]
         )
     }
@@ -149,7 +123,7 @@ final class PathVerifyTests: XCTestCase {
     func testGlobally() throws {
         XCTAssertEqual(
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
             [
                 .successor(expression: .quantified(expression: .always(
                     expression: .globally(expression: .language(expression: trueExp))
@@ -158,20 +132,20 @@ final class PathVerifyTests: XCTestCase {
         )
         XCTAssertThrowsError(
             try PathQuantifiedExpression.globally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always)
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost)
         )
         XCTAssertTrue(
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost)
                 .isEmpty
         )
         XCTAssertThrowsError(
             try PathQuantifiedExpression.globally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost)
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
             [
                 .successor(expression: .quantified(expression: .eventually(
                     expression: .globally(expression: .language(expression: trueExp))
@@ -180,16 +154,16 @@ final class PathVerifyTests: XCTestCase {
         )
         XCTAssertThrowsError(
             try PathQuantifiedExpression.globally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually)
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost)
         )
         XCTAssertTrue(
             try PathQuantifiedExpression.globally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost)
                 .isEmpty
         )
         XCTAssertThrowsError(
             try PathQuantifiedExpression.globally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost)
         )
     }
 
@@ -199,12 +173,12 @@ final class PathVerifyTests: XCTestCase {
     func testFinally() throws {
         XCTAssertTrue(
             try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always)
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost)
                 .isEmpty
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .always, cost: cost),
             [
                 .successor(expression: .disjunction(
                     lhs: .language(expression: falseExp),
@@ -216,21 +190,21 @@ final class PathVerifyTests: XCTestCase {
         )
         XCTAssertTrue(
             try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost)
                 .isEmpty
         )
         XCTAssertThrowsError(
             try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .always, cost: cost)
         )
         XCTAssertTrue(
             try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually)
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost)
                 .isEmpty
         )
         XCTAssertEqual(
             try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually),
+                .verify(currentNode: failureCount2Node, inCycle: false, quantifier: .eventually, cost: cost),
             [
                 .successor(expression: .disjunction(
                     lhs: .language(expression: falseExp),
@@ -242,12 +216,12 @@ final class PathVerifyTests: XCTestCase {
         )
         XCTAssertTrue(
             try PathQuantifiedExpression.finally(expression: .language(expression: trueExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost)
                 .isEmpty
         )
         XCTAssertThrowsError(
             try PathQuantifiedExpression.finally(expression: .language(expression: falseExp))
-                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually)
+                .verify(currentNode: failureCount2Node, inCycle: true, quantifier: .eventually, cost: cost)
         )
     }
 
@@ -259,11 +233,11 @@ final class PathVerifyTests: XCTestCase {
             expression: nextTrue
         )))
         XCTAssertEqual(
-            try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: false),
+            try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: false, cost: cost),
             [.successor(expression: .disjunction(lhs: .language(expression: trueExp), rhs: finallyNextTrue))]
         )
         XCTAssertEqual(
-            try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: true),
+            try finallyNextTrue.verify(currentNode: failureCount2Node, inCycle: true, cost: cost),
             [.successor(expression: .language(expression: trueExp))]
         )
     }

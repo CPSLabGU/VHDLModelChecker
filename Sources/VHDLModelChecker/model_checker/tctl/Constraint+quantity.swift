@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// Constraint+quantity.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,36 +53,68 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
+import TCTLParser
 import VHDLKripkeStructures
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge: Equatable, Hashable, Codable {
+extension Constraint: SIRepresentable {
 
-    /// The cost of taking this edge.
-    let cost: Cost
-
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
-
-    /// Create an edge from it's stored properties.
-    /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(cost: Cost, destination: UUID) {
-        self.cost = cost
-        self.destination = destination
+    public var coefficient: UInt {
+        self.amount
     }
 
-    /// Equality conformance.
-    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.cost == rhs.cost && lhs.destination == rhs.destination
+    public var exponent: Int {
+        switch self {
+        case .time(_, let unit):
+            return unit.exponent
+        case .energy(_, let unit):
+            return unit.exponent
+        }
     }
 
-    /// Hashable conformance.
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(cost)
-        hasher.combine(destination)
+    var quantity: ScientificQuantity {
+        ScientificQuantity(SIValue: self)
+    }
+
+}
+
+extension TimeUnit {
+
+    var exponent: Int {
+        switch self {
+        case .s:
+            return 0
+        case .ms:
+            return -3
+        case .us:
+            return -6
+        case .ns:
+            return -9
+        case .ps:
+            return -12
+        case .fs:
+            return -15
+        }
+    }
+
+}
+
+extension EnergyUnit {
+
+    var exponent: Int {
+        switch self {
+        case .J:
+            return 0
+        case .mJ:
+            return -3
+        case .uJ:
+            return -6
+        case .nJ:
+            return -9
+        case .pJ:
+            return -12
+        case .fJ:
+            return -15
+        }
     }
 
 }

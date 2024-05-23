@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// KripkeStructureTestable.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,36 +53,66 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
+import TCTLParser
 import VHDLKripkeStructures
+@testable import VHDLModelChecker
+import XCTest
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge: Equatable, Hashable, Codable {
+/// A test class that tests the kripke structure.
+class KripkeStructureTestable: XCTestCase {
 
-    /// The cost of taking this edge.
-    let cost: Cost
+    /// The kripke structure to test.
+    static let kripkeStructure = {
+        let path = FileManager.default.currentDirectoryPath.appending(
+            "/Tests/VHDLModelCheckerTests/output.json"
+        )
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
+            fatalError("No data!")
+        }
+        let decoder = JSONDecoder()
+        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
+            fatalError("Failed to parse kripke structure!")
+        }
+        return kripkeStructureParsed
+    }()
 
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
+    // swiftlint:disable implicitly_unwrapped_optional
 
-    /// Create an edge from it's stored properties.
-    /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(cost: Cost, destination: UUID) {
-        self.cost = cost
-        self.destination = destination
+    /// A `10 us` constraint.
+    let constraint10us = Constraint.time(amount: 10, unit: .us)
+
+    /// A `100 us` constraint.
+    let constraint100us = Constraint.time(amount: 100, unit: .us)
+
+    /// A `200 us` constraint.
+    let constraint200us = Constraint.time(amount: 200, unit: .us)
+
+    /// A `10 mJ` constraint.
+    let constraint10mJ = Constraint.energy(amount: 10, unit: .mJ)
+
+    /// A `20 mJ` constraint.
+    let constraint20mJ = Constraint.energy(amount: 20, unit: .mJ)
+
+    /// A `200 mJ` constraint.
+    let constraint200mJ = Constraint.energy(amount: 200, unit: .mJ)
+
+    /// The current cost.
+    let cost = Cost(
+        time: ScientificQuantity(amount: 100, unit: .us), energy: ScientificQuantity(amount: 20, unit: .mJ)
+    )
+
+    /// A node with a failure count of 2.
+    lazy var failureCount2Node: Node! = Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
+        node.properties[.failureCount] == .integer(value: 2)
     }
 
-    /// Equality conformance.
-    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.cost == rhs.cost && lhs.destination == rhs.destination
-    }
+    // swiftlint:enable implicitly_unwrapped_optional
 
-    /// Hashable conformance.
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(cost)
-        hasher.combine(destination)
+    /// Initialise the failure count node before every test.
+    override func setUp() {
+        failureCount2Node = Self.kripkeStructure.nodes.lazy.first { (node: Node) -> Bool in
+            node.properties[.failureCount] == .integer(value: 2)
+        }
     }
 
 }

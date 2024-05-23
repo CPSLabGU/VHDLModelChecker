@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// ConstrainedStatement+verify.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,35 +54,64 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
+import TCTLParser
 import VHDLKripkeStructures
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge: Equatable, Hashable, Codable {
+/// Add verification support to constrained statements.
+extension ConstrainedStatement {
 
-    /// The cost of taking this edge.
-    let cost: Cost
+    /// The constraint within the statement.
+    var constraint: Constraint {
+        switch self {
+        case .equal(let constraint), .greaterThan(let constraint), .lessThan(let constraint),
+            .greaterThanOrEqual(let constraint), .lessThanOrEqual(let constraint), .notEqual(let constraint):
+            return constraint
+        }
+    }
 
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
-
-    /// Create an edge from it's stored properties.
+    /// Verify that a node satisfies the cost constraint.
     /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(cost: Cost, destination: UUID) {
-        self.cost = cost
-        self.destination = destination
-    }
-
-    /// Equality conformance.
-    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.cost == rhs.cost && lhs.destination == rhs.destination
-    }
-
-    /// Hashable conformance.
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(cost)
-        hasher.combine(destination)
+    ///   - node: The node to verify.
+    ///   - cost: The current elapsed cost of the entire branch.
+    /// - Throws: A `VerificationError` if the node does not satisfy the constraint.
+    func verify(node: Node, cost: Cost) throws {
+        let value: ScientificQuantity
+        let other: ScientificQuantity
+        let constraint = self.constraint
+        switch constraint {
+        case .time(let amount, let unit):
+            value = cost.time
+            other = ScientificQuantity(amount: amount, unit: unit)
+        case .energy(let amount, let unit):
+            value = cost.energy
+            other = ScientificQuantity(amount: amount, unit: unit)
+        }
+        switch self {
+        case .equal:
+            guard value.quantity == other.quantity else {
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
+            }
+        case .notEqual:
+            guard value.quantity != other.quantity else {
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
+            }
+        case .greaterThan:
+            guard value.quantity > other.quantity else {
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
+            }
+        case .greaterThanOrEqual:
+            guard value.quantity >= other.quantity else {
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
+            }
+        case .lessThan:
+            guard value.quantity < other.quantity else {
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
+            }
+        case .lessThanOrEqual:
+            guard value.quantity <= other.quantity else {
+                throw VerificationError.costViolation(node: node, cost: cost, constraint: self)
+            }
+        }
     }
 
 }

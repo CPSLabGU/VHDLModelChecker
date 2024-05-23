@@ -55,27 +55,47 @@
 
 import Foundation
 import TCTLParser
+import VHDLKripkeStructures
 
 final class Revisit: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var type: RevisitType
+    var cost: Cost
+    var constraints: [ConstrainedStatement]
     var revisit: Revisit?
     var history: Set<UUID>
+    var currentBranch: [UUID]
 
-    init(nodeId: UUID, expression: Expression, type: RevisitType, revisit: Revisit?, history: Set<UUID>) {
+    init(
+        nodeId: UUID,
+        expression: Expression,
+        type: RevisitType,
+        cost: Cost,
+        constraints: [ConstrainedStatement],
+        revisit: Revisit?,
+        history: Set<UUID>,
+        currentBranch: [UUID]
+    ) {
         self.nodeId = nodeId
         self.expression = expression
         self.type = type
+        self.cost = cost
+        self.constraints = constraints
         self.revisit = revisit
         self.history = history
+        self.currentBranch = currentBranch
     }
 
     static func == (lhs: Revisit, rhs: Revisit) -> Bool {
         lhs.nodeId == rhs.nodeId
             && lhs.revisit == rhs.revisit
             && lhs.type == rhs.type
+            && lhs.cost == rhs.cost
+            && lhs.constraints == rhs.constraints
             && lhs.expression == rhs.expression
+            && lhs.history == rhs.history
+            && lhs.currentBranch == rhs.currentBranch
     }
 
     func hash(into hasher: inout Hasher) {
@@ -83,6 +103,10 @@ final class Revisit: Equatable, Hashable {
         hasher.combine(revisit)
         hasher.combine(expression)
         hasher.combine(type)
+        hasher.combine(cost)
+        hasher.combine(constraints)
+        hasher.combine(history)
+        hasher.combine(currentBranch)
     }
 
 }

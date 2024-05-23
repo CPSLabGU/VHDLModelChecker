@@ -61,33 +61,33 @@ enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, S
     /// This successor is required to pass for the verification to hold.
     /// 
     /// Expression e :: e ? revisit(e') : F
-    case required(expression: Expression)
+    case required(expression: Expression, constraints: [ConstrainedStatement])
 
     /// This successor may fail and the verification still holds. When this expression passes, any associated
     /// revisits will be evaluated.
     /// 
     /// Expression e :: !e ? revisit(e') : T
-    case skip(expression: Expression)
+    case skip(expression: Expression, constraints: [ConstrainedStatement])
 
     /// Expression e :: e ? revisit(e') : T
-    case ignored(expression: Expression)
+    case ignored(expression: Expression, constraints: [ConstrainedStatement])
 
     /// A print-friendly description of the successor.
     var description: String {
         switch self {
-        case .required(let expression):
-            return ".required(\(expression.rawValue))"
-        case .skip(let expression):
-            return ".skip(\(expression.rawValue))"
-        case .ignored(let expression):
-            return ".ignore(\(expression.rawValue))"
+        case .required(let expression, let constraints):
+            return ".required(\(expression.rawValue), \(constraints.map(\.rawValue).joined(separator: ", ")))"
+        case .skip(let expression, let constraints):
+            return ".skip(\(expression.rawValue), \(constraints.map(\.rawValue).joined(separator: ", ")))"
+        case .ignored(let expression, let constraints):
+            return ".ignore(\(expression.rawValue), \(constraints.map(\.rawValue).joined(separator: ", ")))"
         }
     }
 
     /// The expression associated with this successor.
     var expression: Expression {
         switch self {
-        case .required(let expression), .skip(let expression), .ignored(let expression):
+        case .required(let expression, _), .skip(let expression, _), .ignored(let expression, _):
             return expression
         }
     }
@@ -99,6 +99,13 @@ enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, S
             return true
         case .skip, .ignored:
             return false
+        }
+    }
+
+    var constraints: [ConstrainedStatement] {
+        switch self {
+        case .skip(_, let constraints), .required(_, let constraints), .ignored(_, let constraints):
+            return constraints
         }
     }
 

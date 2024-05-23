@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// ModelCheckerError.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,36 +53,30 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
+import TCTLParser
 import VHDLKripkeStructures
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge: Equatable, Hashable, Codable {
+public enum ModelCheckerError: Error {
 
-    /// The cost of taking this edge.
-    let cost: Cost
+    case unsatisfied(branch: [Node], expression: Expression)
 
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
+    case constraintViolation(branch: [Node], cost: Cost, constraint: ConstrainedStatement)
 
-    /// Create an edge from it's stored properties.
-    /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(cost: Cost, destination: UUID) {
-        self.cost = cost
-        self.destination = destination
-    }
+    case internalError
 
-    /// Equality conformance.
-    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.cost == rhs.cost && lhs.destination == rhs.destination
-    }
+    case notSupported
 
-    /// Hashable conformance.
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(cost)
-        hasher.combine(destination)
+    init(error: VerificationError, currentBranch: [Node], expression: Expression) {
+        switch error {
+        case .notSupported:
+            self = .notSupported
+        case .internalError:
+            self = .internalError
+        case .unsatisfied(let node):
+            self = .unsatisfied(branch: currentBranch + [node], expression: expression)
+        case .costViolation(let node, let cost, let constraint):
+            self = .constraintViolation(branch: currentBranch + [node], cost: cost, constraint: constraint)
+        }
     }
 
 }

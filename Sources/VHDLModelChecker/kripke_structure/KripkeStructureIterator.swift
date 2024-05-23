@@ -85,7 +85,7 @@ struct KripkeStructureIterator {
                 fatalError("No edge found for \($0)")
             }
             let newEdges = edge.map {
-                NodeEdge(time: $0.time, energy: $0.energy, destination: ids.value($0.target))
+                NodeEdge(cost: $0.cost, destination: ids.value($0.target))
             }
             guard let currentEdges: [NodeEdge] = edges[myID] else {
                 edges[myID] = newEdges

@@ -1,4 +1,4 @@
-// NodeEdge.swift
+// Cost+Arithmetic.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -56,33 +56,41 @@
 import Foundation
 import VHDLKripkeStructures
 
-/// An edge between two `KripkeNode`s.
-class NodeEdge: Equatable, Hashable, Codable {
+extension Cost {
 
-    /// The cost of taking this edge.
-    let cost: Cost
+    static let zero = Cost(time: .zero, energy: .zero)
 
-    /// The UUID of the destination node the machine is in after taking this edge.
-    let destination: UUID
-
-    /// Create an edge from it's stored properties.
-    /// - Parameters:
-    ///   - edge: The cost of the edge.
-    ///   - destination: The desination node.
-    init(cost: Cost, destination: UUID) {
-        self.cost = cost
-        self.destination = destination
+    static func + (lhs: Cost, rhs: Cost) -> Cost {
+        Cost(
+            time: lhs.time + rhs.time,
+            energy: lhs.energy + rhs.energy
+        )
     }
 
-    /// Equality conformance.
-    static func == (lhs: NodeEdge, rhs: NodeEdge) -> Bool {
-        lhs.cost == rhs.cost && lhs.destination == rhs.destination
-    }
+}
 
-    /// Hashable conformance.
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(cost)
-        hasher.combine(destination)
+extension ScientificQuantity {
+
+    static func + (lhs: ScientificQuantity, rhs: ScientificQuantity) -> ScientificQuantity {
+        guard lhs.exponent != rhs.exponent else {
+            return ScientificQuantity(coefficient: lhs.coefficient + rhs.coefficient, exponent: lhs.exponent)
+        }
+        let minExponent = min(lhs.exponent, rhs.exponent)
+        let lhsDiff = lhs.exponent - minExponent
+        let rhsDiff = rhs.exponent - minExponent
+        let lhsAmount: UInt
+        let rhsAmount: UInt
+        let exponent: Int
+        if lhsDiff > rhsDiff {
+            exponent = rhs.exponent
+            lhsAmount = lhs.coefficient * UInt(pow(10.0, Double(lhsDiff)))
+            rhsAmount = rhs.coefficient
+        } else {
+            exponent = lhs.exponent
+            lhsAmount = lhs.coefficient
+            rhsAmount = rhs.coefficient * UInt(pow(10.0, Double(rhsDiff)))
+        }
+        return ScientificQuantity(coefficient: lhsAmount + rhsAmount, exponent: exponent)
     }
 
 }
