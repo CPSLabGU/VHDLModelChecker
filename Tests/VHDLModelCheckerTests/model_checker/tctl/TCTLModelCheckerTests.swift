@@ -60,8 +60,10 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+/// Test class for ``TCTLModelChecker``.
 final class TCTLModelCheckerTests: XCTestCase {
 
+    /// The iterator for the kripke structure.
     lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.
