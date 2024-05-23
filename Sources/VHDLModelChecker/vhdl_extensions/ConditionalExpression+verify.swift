@@ -70,7 +70,7 @@ extension ConditionalExpression {
                 throw VerificationError.unsatisfied(node: node)
             }
         case .edge:
-            throw VerificationError.notSupported
+            throw UnrecoverableError.notSupported
         case .comparison(let comparison):
             try comparison.verify(node: node)
         }

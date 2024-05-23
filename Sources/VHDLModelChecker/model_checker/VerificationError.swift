@@ -59,16 +59,10 @@ import VHDLKripkeStructures
 /// Errors thrown during verification.
 enum VerificationError: Error {
 
-    /// Something within the specification is not supported.
-    case notSupported
-
     /// A node caused the verification to fail.
     case unsatisfied(node: Node)
 
     /// A node failed to satisfy the physical constraints.
     case costViolation(node: Node, cost: Cost, constraint: ConstrainedStatement)
-
-    /// Something within the model checker caused an internal error.
-    case internalError
 
 }

@@ -1,4 +1,4 @@
-// BooleanExpression+verify.swift
+// UnrecoverableError.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,57 +53,13 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import VHDLKripkeStructures
-import VHDLParsing
+/// Errors thrown during verification that are unrecoverable.
+enum UnrecoverableError: Error, Equatable, Hashable, Codable, Sendable, CaseIterable {
 
-/// Add `verify` method.
-extension BooleanExpression {
+    /// Something within the model checker caused an internal error.
+    case internalError
 
-    /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
-    /// node fails to verify.
-    /// - Parameter node: The node to verify against.
-    /// - Throws: A ``VerificationError`` if the node violates the expression.
-    func verify(node: Node) throws {
-        switch self {
-        case .and(let lhs, let rhs):
-            try lhs.verify(node: node)
-            try rhs.verify(node: node)
-        case .or(let lhs, let rhs):
-            do {
-                try lhs.verify(node: node)
-            } catch _ as VerificationError {
-                try rhs.verify(node: node)
-            } catch let error {
-                throw error
-            }
-        case .not(let expression):
-            do {
-                try expression.verify(node: node)
-            } catch _ as VerificationError {
-                return
-            } catch let error {
-                throw error
-            }
-            throw VerificationError.unsatisfied(node: node)
-        case .nand(let lhs, let rhs):
-            try BooleanExpression.not(value: .logical(operation: .and(lhs: lhs, rhs: rhs))).verify(node: node)
-        case .nor(let lhs, let rhs):
-            try BooleanExpression.not(value: .logical(operation: .or(lhs: lhs, rhs: rhs))).verify(node: node)
-        case .xor(let lhs, let rhs):
-            try BooleanExpression.or(
-                lhs: .logical(operation: .and(
-                    lhs: .logical(operation: .not(value: lhs)),
-                    rhs: rhs
-                )),
-                rhs: .logical(operation: .and(
-                    lhs: lhs,
-                    rhs: .logical(operation: .not(value: rhs))
-                ))
-            )
-            .verify(node: node)
-        case .xnor(let lhs, let rhs):
-            try BooleanExpression.not(value: .logical(operation: .xor(lhs: lhs, rhs: rhs))).verify(node: node)
-        }
-    }
+    /// Something within the specification is not supported.
+    case notSupported
 
 }
