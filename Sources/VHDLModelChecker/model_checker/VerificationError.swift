@@ -56,6 +56,7 @@
 import Foundation
 import TCTLParser
 import VHDLKripkeStructures
+import VHDLParsing
 
 /// Errors thrown during verification.
 enum VerificationError: Error {
@@ -82,7 +83,12 @@ extension Node: CustomStringConvertible {
             currentState: \(self.currentState.rawValue),
             executeOnEntry: \(self.executeOnEntry),
             nextState: \(self.nextState.rawValue),
-            properties: \(self.properties.sorted { $0.key < $1.key }.map { "\($0.rawValue): \($1)" }.joined(separator: ",\n"))
+            properties:
+        \(
+            self.properties.sorted { $0.key < $1.key }
+                .map { "\($0.rawValue): \($1)".indent(amount: 2) }
+                .joined(separator: ",\n")
+        )
         )
         """
     }
