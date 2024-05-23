@@ -55,8 +55,12 @@
 
 import VHDLParsing
 
-extension SignalLiteral: Comparable {
+/// Add boolean property.
+extension SignalLiteral {
 
+    // swiftlint:disable discouraged_optional_boolean
+
+    /// The boolean value of the signal literal.
     var boolean: Bool? {
         guard case .boolean(let value) = self else {
             return nil
@@ -64,6 +68,14 @@ extension SignalLiteral: Comparable {
         return value
     }
 
+    // swiftlint:enable discouraged_optional_boolean
+
+}
+
+/// Add `Comparable` conformance.
+extension SignalLiteral: Comparable {
+
+    /// `Comparable` implementation.
     public static func < (lhs: SignalLiteral, rhs: SignalLiteral) -> Bool {
         switch (lhs, rhs) {
         case (.decimal(let lhs), .decimal(let rhs)):
