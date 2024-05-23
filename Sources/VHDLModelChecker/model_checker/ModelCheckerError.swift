@@ -56,7 +56,7 @@
 import TCTLParser
 import VHDLKripkeStructures
 
-public enum ModelCheckerError: Error {
+public enum ModelCheckerError: Error, CustomStringConvertible {
 
     case unsatisfied(branch: [Node], expression: Expression)
 
@@ -64,12 +64,35 @@ public enum ModelCheckerError: Error {
 
     case internalError
 
-    case notSupported
+    case notSupported(expression: Expression)
+
+    public var description: String {
+        switch self {
+        case .notSupported(let expression):
+            return "The following expression is not supported:\n\(expression.rawValue)"
+        case .internalError:
+            return "The model checker encountered an internal error."
+        case .unsatisfied(let branch, let expression):
+            return """
+            The following expression was unsatisfied:
+            \(expression.rawValue)
+            Counter Example:
+            \(branch.map(\.description).joined(separator: "\n"))
+            """
+        case .constraintViolation(let branch, let cost, let constraint):
+            return """
+            The following constraint was violated by the current cost (\(cost)):
+            \(constraint.rawValue)
+            Counter Example:
+            \(branch.map(\.description).joined(separator: "\n"))
+            """
+        }
+    }
 
     init(error: VerificationError, currentBranch: [Node], expression: Expression) {
         switch error {
         case .notSupported:
-            self = .notSupported
+            self = .notSupported(expression: expression)
         case .internalError:
             self = .internalError
         case .unsatisfied(let node):
