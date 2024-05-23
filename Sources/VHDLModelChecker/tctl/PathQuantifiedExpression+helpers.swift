@@ -100,8 +100,8 @@ extension PathQuantifiedExpression {
                     case .revisitting(let expression, let successor):
                         let newSuccessor: RevisitExpression
                         switch successor {
-                        case .required(let succ):
-                            newSuccessor = .ignored(expression: succ)
+                        case .required(let succ, let statements):
+                            newSuccessor = .ignored(expression: succ, constraints: statements)
                         default:
                             newSuccessor = successor
                         }
@@ -127,7 +127,7 @@ extension PathQuantifiedExpression {
                                         quantifier: quantifier, expression: self
                                     )))
                                 )),
-                                precondition: .skip(expression: successor.expression)
+                                precondition: .skip(expression: successor.expression, constraints: [])
                             )
                         ]
                     }

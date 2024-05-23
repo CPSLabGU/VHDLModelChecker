@@ -73,6 +73,7 @@ final class TCTLModelChecker {
                     expression: expression,
                     history: [],
                     cost: .zero,
+                    constraints: [],
                     revisit: nil
                 )
                 try handleJob(job, structure: structure)
@@ -116,6 +117,15 @@ final class TCTLModelChecker {
             throw error
         }
         guard !results.isEmpty else {
+            if job.revisit?.type != .ignored, let failingConstraint = job.constraints.first(where: {
+                    (try? $0.verify(node: node, cost: job.cost)) == nil
+            }) {
+                throw VerificationError.costViolation(
+                    node: node,
+                    cost: job.cost,
+                    constraint: failingConstraint
+                )
+            }
             guard let revisit = job.revisit else {
                 return
             }
@@ -138,30 +148,43 @@ final class TCTLModelChecker {
                         expression: expression,
                         history: job.history.union([job.nodeId]),
                         cost: job.cost + $0.cost,
+                        constraints: job.constraints,
                         revisit: job.revisit
                     )
                 })
             case .revisitting(let expression, let revisit):
-                self.jobs.append(contentsOf: successors.map {
-                    let nodeId = $0.destination
-                    let newRevisit = Revisit(
+                let newRevisit = Revisit(
+                    nodeId: job.nodeId,
+                    expression: expression,
+                    type: revisit.type,
+                    cost: job.cost,
+                    constraints: job.constraints,
+                    revisit: job.revisit,
+                    history: job.history
+                )
+                if revisit.constraints.isEmpty {
+                    self.jobs.append(Job(
                         nodeId: job.nodeId,
                         expression: expression,
-                        type: revisit.type,
+                        history: job.history,
                         cost: job.cost,
-                        revisit: job.revisit,
-                        history: job.history
-                    )
-                    return Job(
-                        nodeId: nodeId,
-                        expression: revisit.expression,
-                        history: job.history.union([job.nodeId]),
-                        cost: job.cost + $0.cost,
+                        constraints: job.constraints,
                         revisit: newRevisit
-                    )
-                })
+                    ))
+                } else {
+                    self.jobs.append(Job(
+                        nodeId: job.nodeId,
+                        expression: expression,
+                        history: job.history,
+                        cost: .zero,
+                        constraints: revisit.constraints,
+                        revisit: newRevisit
+                    ))
+                }
             }
         }
     }
 
 }
+
+// {A F y = '1'}_{t <- (2 us, 5 us), t > 2 us}

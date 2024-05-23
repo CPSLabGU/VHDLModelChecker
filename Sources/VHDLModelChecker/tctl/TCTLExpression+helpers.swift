@@ -71,12 +71,12 @@ extension Expression {
         case .conjunction(let lhs, let rhs):
             return [
                 .revisitting(
-                    expression: rhs, precondition: .required(expression: lhs)
+                    expression: rhs, precondition: .required(expression: lhs, constraints: [])
                 )
             ]
         case .disjunction(let lhs, let rhs):
             return [
-                .revisitting(expression: rhs, precondition: .skip(expression: lhs))
+                .revisitting(expression: rhs, precondition: .skip(expression: lhs, constraints: []))
             ]
         case .not(let expression):
             return [
@@ -84,14 +84,19 @@ extension Expression {
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: false)
                     ))),
-                    precondition: .ignored(expression: expression)
+                    precondition: .ignored(expression: expression, constraints: [])
                 )
             ]
         case .implies(let lhs, let rhs):
             return try Expression.disjunction(lhs: .not(expression: lhs), rhs: rhs)
                 .verify(currentNode: node, inCycle: inCycle, cost: cost)
         case .constrained(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return [
+                .revisitting(
+                    expression: expression.expression,
+                    precondition: .required(expression: self, constraints: expression.constraints)
+                )
+            ]
         }
     }
 

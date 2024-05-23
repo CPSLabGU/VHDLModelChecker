@@ -62,6 +62,7 @@ final class Job: Equatable, Hashable {
     var expression: Expression
     var history: Set<UUID>
     var cost: Cost
+    var constraints: [ConstrainedStatement]
     var revisit: Revisit?
 
     init(
@@ -69,12 +70,14 @@ final class Job: Equatable, Hashable {
         expression: Expression,
         history: Set<UUID>,
         cost: Cost,
+        constraints: [ConstrainedStatement],
         revisit: Revisit?
     ) {
         self.nodeId = nodeId
         self.expression = expression
         self.history = history
         self.cost = cost
+        self.constraints = constraints
         self.revisit = revisit
     }
 
@@ -84,6 +87,7 @@ final class Job: Equatable, Hashable {
             expression: revisit.expression,
             history: revisit.history,
             cost: revisit.cost,
+            constraints: revisit.constraints,
             revisit: revisit.revisit
         )
     }
@@ -93,6 +97,7 @@ final class Job: Equatable, Hashable {
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
             && lhs.cost == rhs.cost
+            && lhs.constraints == rhs.constraints
             && lhs.revisit == rhs.revisit
     }
 
@@ -101,6 +106,7 @@ final class Job: Equatable, Hashable {
         hasher.combine(expression)
         hasher.combine(history)
         hasher.combine(cost)
+        hasher.combine(constraints)
         hasher.combine(revisit)
     }
 
