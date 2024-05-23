@@ -1,4 +1,4 @@
-// VerificationError.swift
+// Node+CustomStringConvertible.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,22 +53,25 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
 import VHDLKripkeStructures
+import VHDLParsing
 
-/// Errors thrown during verification.
-enum VerificationError: Error {
+extension Node: CustomStringConvertible {
 
-    /// Something within the specification is not supported.
-    case notSupported
-
-    /// A node caused the verification to fail.
-    case unsatisfied(node: Node)
-
-    /// A node failed to satisfy the physical constraints.
-    case costViolation(node: Node, cost: Cost, constraint: ConstrainedStatement)
-
-    /// Something within the model checker caused an internal error.
-    case internalError
+    public var description: String {
+        """
+        Node(
+            currentState: \(self.currentState.rawValue),
+            executeOnEntry: \(self.executeOnEntry),
+            nextState: \(self.nextState.rawValue),
+            properties:
+        \(
+            self.properties.sorted { $0.key < $1.key }
+                .map { "\($0.rawValue): \($1)".indent(amount: 2) }
+                .joined(separator: ",\n")
+        )
+        )
+        """
+    }
 
 }

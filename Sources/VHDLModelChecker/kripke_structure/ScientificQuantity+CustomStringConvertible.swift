@@ -1,4 +1,4 @@
-// VerificationError.swift
+// ScientificQuantity+CustomStringConvertible.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,22 +53,17 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import Foundation
 import VHDLKripkeStructures
 
-/// Errors thrown during verification.
-enum VerificationError: Error {
+extension ScientificQuantity: CustomStringConvertible {
 
-    /// Something within the specification is not supported.
-    case notSupported
-
-    /// A node caused the verification to fail.
-    case unsatisfied(node: Node)
-
-    /// A node failed to satisfy the physical constraints.
-    case costViolation(node: Node, cost: Cost, constraint: ConstrainedStatement)
-
-    /// Something within the model checker caused an internal error.
-    case internalError
+    public var description: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .scientific
+        formatter.positiveFormat = "0.###E+0"
+        formatter.exponentSymbol = "e"
+        return formatter.string(for: quantity) ?? "\(self.coefficient)e\(self.exponent)"
+    }
 
 }
