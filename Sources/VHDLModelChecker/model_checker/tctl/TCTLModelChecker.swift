@@ -95,6 +95,14 @@ final class TCTLModelChecker {
         while let job = jobs.popLast() {
             try handleJob(job, structure: structure)
         }
+        guard let session = pendingSessions.first else {
+            return
+        }
+        let nodes = session.value.currentBranch.compactMap { structure.nodes[$0] }
+        guard nodes.count == session.value.currentBranch.count else {
+            throw ModelCheckerError.internalError
+        }
+        throw ModelCheckerError.unsatisfied(branch: nodes, expression: session.value.expression)
     }
 
     // swiftlint:disable:next function_body_length
@@ -141,6 +149,9 @@ final class TCTLModelChecker {
             throw error
         }
         guard !results.isEmpty else {
+            if let session = job.session {
+                pendingSessions[session] = nil
+            }
             if job.revisit?.type != .ignored, let failingConstraint = job.constraints.first(where: {
                     (try? $0.verify(node: node, cost: job.cost)) == nil
             }) {
@@ -190,7 +201,7 @@ final class TCTLModelChecker {
                     type: revisit.type,
                     cost: job.cost,
                     constraints: job.constraints,
-                    session: job.session,
+                    session: session,
                     revisit: job.revisit,
                     history: job.history,
                     currentBranch: job.currentBranch
@@ -203,7 +214,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch,
                         cost: job.cost,
                         constraints: job.constraints,
-                        session: session,
+                        session: nil,
                         revisit: newRevisit
                     ))
                 } else {
@@ -214,7 +225,7 @@ final class TCTLModelChecker {
                         currentBranch: job.currentBranch,
                         cost: .zero,
                         constraints: revisit.constraints,
-                        session: session,
+                        session: nil,
                         revisit: newRevisit
                     ))
                 }
