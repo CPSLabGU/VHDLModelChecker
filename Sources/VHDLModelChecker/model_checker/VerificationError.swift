@@ -53,7 +53,6 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
@@ -71,32 +70,5 @@ enum VerificationError: Error {
 
     /// Something within the model checker caused an internal error.
     case internalError
-
-}
-
-extension Node: CustomStringConvertible {
-
-    public var description: String {
-        """
-        Node(
-            currentState: \(self.currentState.rawValue),
-            executeOnEntry: \(self.executeOnEntry),
-            nextState: \(self.nextState.rawValue),
-            properties: \(self.properties.sorted { $0.key < $1.key }.map { "\($0.rawValue): \($1)" }.joined(separator: ",\n"))
-        )
-        """
-    }
-
-}
-
-extension ScientificQuantity: CustomStringConvertible {
-
-    public var description: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .scientific
-        formatter.positiveFormat = "0.###E+0"
-        formatter.exponentSymbol = "e"
-        return formatter.string(for: quantity) ?? "\(self.coefficient)e\(self.exponent)"
-    }
 
 }

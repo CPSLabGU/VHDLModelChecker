@@ -1,4 +1,4 @@
-// ModelCheckerError.swift
+// ScientificQuantity+CustomStringConvertible.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,53 +53,17 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
+import Foundation
 import VHDLKripkeStructures
 
-public enum ModelCheckerError: Error, CustomStringConvertible {
-
-    case unsatisfied(branch: [Node], expression: Expression)
-
-    case constraintViolation(branch: [Node], cost: Cost, constraint: ConstrainedStatement)
-
-    case internalError
-
-    case notSupported(expression: Expression)
+extension ScientificQuantity: CustomStringConvertible {
 
     public var description: String {
-        switch self {
-        case .notSupported(let expression):
-            return "The following expression is not supported:\n\(expression.rawValue)"
-        case .internalError:
-            return "The model checker encountered an internal error."
-        case .unsatisfied(let branch, let expression):
-            return """
-            The following expression was unsatisfied:
-            \(expression.rawValue)
-            Counter Example:
-            \(branch.map(\.description).joined(separator: "\n"))
-            """
-        case .constraintViolation(let branch, let cost, let constraint):
-            return """
-            The following constraint was violated by the current cost (\(cost)):
-            \(constraint.rawValue)
-            Counter Example:
-            \(branch.map(\.description).joined(separator: "\n"))
-            """
-        }
-    }
-
-    init(error: VerificationError, currentBranch: [Node], expression: Expression) {
-        switch error {
-        case .notSupported:
-            self = .notSupported(expression: expression)
-        case .internalError:
-            self = .internalError
-        case .unsatisfied(let node):
-            self = .unsatisfied(branch: currentBranch + [node], expression: expression)
-        case .costViolation(let node, let cost, let constraint):
-            self = .constraintViolation(branch: currentBranch + [node], cost: cost, constraint: constraint)
-        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .scientific
+        formatter.positiveFormat = "0.###E+0"
+        formatter.exponentSymbol = "e"
+        return formatter.string(for: quantity) ?? "\(self.coefficient)e\(self.exponent)"
     }
 
 }
