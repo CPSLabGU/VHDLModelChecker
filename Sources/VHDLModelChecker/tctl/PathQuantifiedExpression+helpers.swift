@@ -75,12 +75,11 @@ extension PathQuantifiedExpression {
         }
         switch self {
         case .globally(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost) +
-                [
-                    .successor(expression: Expression.quantified(
-                        expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
-                    ))
-                ]
+            return [
+                .successor(expression: Expression.quantified(
+                    expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
+                ))
+            ] + (try expression.verify(currentNode: node, inCycle: inCycle, cost: cost))
         case .finally(let expression):
             do {
                 let result = try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)

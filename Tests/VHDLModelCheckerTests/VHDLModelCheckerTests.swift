@@ -74,6 +74,67 @@ final class VHDLModelCheckerTests: XCTestCase {
         }
     }
 
+    func testModelCheckerFailsForTimeConstraint() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        {A X recoveryMode /= '1'}_{t < 100 ns}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError,
+                case .constraintViolation(let branches, let cost, let constraint) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            branches.forEach {
+                print($0.description)
+            }
+            print("Failed constraint: \(constraint.rawValue)")
+            print("Current cost: \(cost)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testModelCheckerFailsForImpliesTimeConstraint() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t < 100 ns})
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError,
+                case .constraintViolation(let branches, let cost, let constraint) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            print("Failed constraint: \(constraint.rawValue)")
+            print("Current cost: \(cost)")
+            print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testModelCheckerSucceedsWithTimeConstraint() throws {
+        let checker = TCTLModelChecker()
+        let specRaw = """
+        // spec:language VHDL
+
+        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t == 1 us})
+        """
+        let spec = Specification(rawValue: specRaw)!
+        try checker.check(structure: iterator, specification: spec)
+    }
+
     // /// Test a basic verification.
     // func testBasicVerification() throws {
     //     let validStates = kripkeStructure.ringlets.flatMap {

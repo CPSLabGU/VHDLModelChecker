@@ -93,8 +93,12 @@ extension Expression {
         case .constrained(let expression):
             return [
                 .revisitting(
-                    expression: expression.expression,
-                    precondition: .required(expression: self, constraints: expression.constraints)
+                    expression: .language(expression: .vhdl(expression: .conditional(
+                        expression: .literal(value: true)
+                    ))),
+                    precondition: .required(
+                        expression: expression.expression, constraints: expression.constraints
+                    )
                 )
             ]
         }

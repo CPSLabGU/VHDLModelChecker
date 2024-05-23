@@ -180,7 +180,7 @@ final class TCTLModelChecker {
                 if revisit.constraints.isEmpty {
                     self.jobs.append(Job(
                         nodeId: job.nodeId,
-                        expression: expression,
+                        expression: revisit.expression,
                         history: job.history,
                         currentBranch: job.currentBranch,
                         cost: job.cost,
@@ -190,7 +190,7 @@ final class TCTLModelChecker {
                 } else {
                     self.jobs.append(Job(
                         nodeId: job.nodeId,
-                        expression: expression,
+                        expression: revisit.expression,
                         history: job.history,
                         currentBranch: job.currentBranch,
                         cost: .zero,
