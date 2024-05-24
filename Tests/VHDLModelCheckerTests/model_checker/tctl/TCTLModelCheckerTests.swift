@@ -346,6 +346,60 @@ final class TCTLModelCheckerTests: XCTestCase {
         }
     }
 
+    func testModelCheckerBounds() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        {A X recoveryMode /= '1'}_{t < 1 ns}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .constraintViolation = error
+            else {
+                XCTFail("Got incorrect error! \($0)")
+                return
+            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testImplicationFails() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G recoveryMode = '1' -> A X recoveryMode /= '1'
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard
+                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+            else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
+        }
+    }
+
+    func testImplication() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G recoveryMode = '1' -> A G recoveryMode = '0'
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
     func testModelCheckerFails() throws {
         let specRaw = """
         // spec:language VHDL
