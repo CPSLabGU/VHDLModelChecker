@@ -57,22 +57,20 @@ enum SessionStatus: Equatable, Hashable, Codable, Sendable {
 
     case newSession(status: VerifyStatus)
 
-    case runningSession(status: VerifyStatus)
-
     case noSession(status: VerifyStatus)
 
     var isNewSession: Bool {
         switch self {
         case .newSession:
             return true
-        case .runningSession, .noSession:
+        case .noSession:
             return false
         }
     }
 
     var status: VerifyStatus {
         switch self {
-        case .newSession(let status), .runningSession(let status), .noSession(let status):
+        case .newSession(let status), .noSession(let status):
             return status
         }
     }

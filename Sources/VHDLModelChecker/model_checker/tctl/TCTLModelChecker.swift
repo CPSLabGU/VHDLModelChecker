@@ -189,15 +189,7 @@ final class TCTLModelChecker {
         }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
-            let session: UUID?
-            switch result {
-            case .newSession:
-                session = job.session == nil ? UUID() : job.session
-            case .runningSession:
-                session = job.session
-            case .noSession:
-                session = nil
-            }
+            let session = result.isNewSession ? job.session ?? UUID() : nil
             let jobs: [Job]
             switch result.status {
             case .successor(let expression):

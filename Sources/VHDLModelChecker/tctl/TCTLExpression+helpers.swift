@@ -70,19 +70,19 @@ extension Expression {
             return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
         case .conjunction(let lhs, let rhs):
             return [
-                .runningSession(status: .revisitting(
+                .noSession(status: .revisitting(
                     expression: rhs, precondition: .required(expression: lhs, constraints: [])
                 ))
             ]
         case .disjunction(let lhs, let rhs):
             return [
-                .runningSession(status: .revisitting(
+                .noSession(status: .revisitting(
                     expression: rhs, precondition: .skip(expression: lhs, constraints: [])
                 ))
             ]
         case .not(let expression):
             return [
-                .runningSession(status: .revisitting(
+                .noSession(status: .revisitting(
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: false)
                     ))),
@@ -94,7 +94,7 @@ extension Expression {
                 .verify(currentNode: node, inCycle: inCycle, cost: cost)
         case .constrained(let expression):
             return [
-                .runningSession(status: .revisitting(
+                .noSession(status: .revisitting(
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: true)
                     ))),
