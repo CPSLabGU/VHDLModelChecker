@@ -89,11 +89,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -126,8 +126,8 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -190,11 +190,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -212,11 +212,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -263,11 +263,11 @@ final class TCTLModelCheckerTests: XCTestCase {
             guard case .unsatisfied(let branches, let expression) = error else {
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
             XCTFail("Failed to verify!")
         }
     }
@@ -306,11 +306,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -328,11 +328,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -350,11 +350,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -372,11 +372,11 @@ final class TCTLModelCheckerTests: XCTestCase {
                 XCTFail("Got incorrect error!")
                 return
             }
-            branches.forEach {
-                print($0.description)
-            }
-            print("Failed expression: \(expression.rawValue)")
-            print("Branch nodes: \(branches.count)")
+            // branches.forEach {
+            //     print($0.description)
+            // }
+            // print("Failed expression: \(expression.rawValue)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -398,9 +398,9 @@ final class TCTLModelCheckerTests: XCTestCase {
             // branches.forEach {
             //     print($0.description)
             // }
-            print("Failed constraint: \(constraint.rawValue)")
-            print("Current cost: \(cost)")
-            print("Branch nodes: \(branches.count)")
+            // print("Failed constraint: \(constraint.rawValue)")
+            // print("Current cost: \(cost)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 
@@ -422,9 +422,9 @@ final class TCTLModelCheckerTests: XCTestCase {
             // branches.forEach {
             //     print($0.description)
             // }
-            print("Failed constraint: \(constraint.rawValue)")
-            print("Current cost: \(cost)")
-            print("Branch nodes: \(branches.count)")
+            // print("Failed constraint: \(constraint.rawValue)")
+            // print("Current cost: \(cost)")
+            // print("Branch nodes: \(branches.count)")
         }
     }
 

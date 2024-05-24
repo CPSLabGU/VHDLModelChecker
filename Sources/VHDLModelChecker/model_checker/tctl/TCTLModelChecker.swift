@@ -192,7 +192,7 @@ final class TCTLModelChecker {
             let session: UUID?
             switch result {
             case .newSession:
-                session = UUID()
+                session = job.session == nil ? UUID() : job.session
             case .runningSession:
                 session = job.session
             case .noSession:
@@ -221,7 +221,7 @@ final class TCTLModelChecker {
                     type: revisit.type,
                     cost: job.cost,
                     constraints: job.constraints,
-                    session: job.session,
+                    session: session,
                     revisit: job.revisit,
                     history: job.history,
                     currentBranch: job.currentBranch
@@ -235,7 +235,7 @@ final class TCTLModelChecker {
                             currentBranch: job.currentBranch,
                             cost: job.cost,
                             constraints: job.constraints,
-                            session: session,
+                            session: job.session,
                             revisit: newRevisit
                         )
                     ]
@@ -248,15 +248,20 @@ final class TCTLModelChecker {
                             currentBranch: job.currentBranch,
                             cost: .zero,
                             constraints: revisit.constraints,
-                            session: session,
+                            session: job.session,
                             revisit: newRevisit
                         )
                     ]
                 }
             }
             self.jobs.append(contentsOf: jobs)
-            if let session, let job = jobs.first {
-                pendingSessions[session] = job
+            if job.session == nil, let session, let job = jobs.first {
+                switch result {
+                case .newSession:
+                    pendingSessions[session] = job
+                default:
+                    break
+                }
             }
         }
     }
