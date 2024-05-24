@@ -107,13 +107,13 @@ final class TCTLModelChecker {
 
     // swiftlint:disable:next function_body_length
     private func handleJob(_ job: Job, structure: KripkeStructureIterator) throws {
+        if let session = job.session, pendingSessions[session] == nil {
+            return
+        }
         if cycles.contains(job) {
             return
         }
         cycles.insert(job)
-        if let session = job.session, pendingSessions[session] == nil {
-            return
-        }
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
         }
@@ -146,6 +146,12 @@ final class TCTLModelChecker {
                 }
                 throw ModelCheckerError(error: error, currentBranch: currentNodes, expression: job.expression)
             case .ignored:
+                if let session = job.session {
+                    pendingSessions[session] = nil
+                }
+                for session in job.parentSessions {
+                    pendingSessions[session] = nil
+                }
                 return
             case .skip:
                 self.jobs.append(Job(revisit: revisit))
@@ -181,6 +187,9 @@ final class TCTLModelChecker {
             }
             switch revisit.type {
             case .skip:
+                for session in job.parentSessions {
+                    pendingSessions[session] = nil
+                }
                 return
             case .ignored, .required:
                 self.jobs.append(Job(revisit: revisit))

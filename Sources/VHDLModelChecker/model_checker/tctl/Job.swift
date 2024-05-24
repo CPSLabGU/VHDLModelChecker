@@ -67,6 +67,18 @@ final class Job: Equatable, Hashable {
     var session: UUID?
     var revisit: Revisit?
 
+    var parentSessions: Set<UUID> {
+        var sessions: Set<UUID> = []
+        var revisit = self.revisit
+        while let temp = revisit {
+            if let session = temp.session {
+                sessions.insert(session)
+            }
+            revisit = temp.revisit
+        }
+        return sessions
+    }
+
     init(
         nodeId: UUID,
         expression: Expression,
