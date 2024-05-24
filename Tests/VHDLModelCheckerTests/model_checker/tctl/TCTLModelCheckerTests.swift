@@ -227,7 +227,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         A G \(VariableName.failureCount.rawValue) >= 0
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: iterator, specification: spec)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleAlwaysFinallySuccess() throws {
@@ -237,7 +237,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         A F \(VariableName.failureCount.rawValue) >= 0
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: iterator, specification: spec)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleAlwaysNextSuccess() throws {
@@ -247,7 +247,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         A X \(VariableName.failureCount.rawValue) >= 0
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: iterator, specification: spec)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsGlobalSuccess() throws {
@@ -257,19 +257,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         E G \(VariableName.failureCount.rawValue) >= 0
         """
         let spec = Specification(rawValue: specRaw)!
-        do {
-            try checker.check(structure: iterator, specification: spec)
-        } catch let error as ModelCheckerError {
-            guard case .unsatisfied(let branches, let expression) = error else {
-                return
-            }
-            // branches.forEach {
-            //     print($0.description)
-            // }
-            // print("Failed expression: \(expression.rawValue)")
-            // print("Branch nodes: \(branches.count)")
-            XCTFail("Failed to verify!")
-        }
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsFinallySuccess() throws {
@@ -279,7 +267,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         E F \(VariableName.failureCount.rawValue) >= 0
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: iterator, specification: spec)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsNextSuccess() throws {
@@ -289,7 +277,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         E X \(VariableName.failureCount.rawValue) >= 0
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: iterator, specification: spec)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsGlobalFailure() throws {
@@ -435,7 +423,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t == 1 us})
         """
         let spec = Specification(rawValue: specRaw)!
-        try checker.check(structure: iterator, specification: spec)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
 }
