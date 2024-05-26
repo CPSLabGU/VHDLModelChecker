@@ -90,8 +90,11 @@ extension Expression {
                 ))
             ]
         case .implies(let lhs, let rhs):
-            return try Expression.disjunction(lhs: .not(expression: lhs), rhs: rhs)
-                .verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return [
+                .noSession(status: .revisitting(
+                    expression: rhs, precondition: .ignored(expression: lhs, constraints: [])
+                ))
+            ]
         case .constrained(let expression):
             return [
                 .noSession(status: .revisitting(
