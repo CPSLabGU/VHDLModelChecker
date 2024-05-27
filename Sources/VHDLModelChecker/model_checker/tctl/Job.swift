@@ -63,21 +63,11 @@ final class Job: Equatable, Hashable {
     var history: Set<UUID>
     var currentBranch: [UUID]
     var cost: Cost
+    var inSession: Bool
     var constraints: [ConstrainedStatement]
     var session: UUID?
-    var revisit: Revisit?
-
-    var parentSessions: Set<UUID> {
-        var sessions: Set<UUID> = []
-        var revisit = self.revisit
-        while let temp = revisit {
-            if let session = temp.session {
-                sessions.insert(session)
-            }
-            revisit = temp.revisit
-        }
-        return sessions
-    }
+    var successRevisit: Revisit?
+    var failRevisit: Revisit?
 
     init(
         nodeId: UUID,
@@ -85,18 +75,22 @@ final class Job: Equatable, Hashable {
         history: Set<UUID>,
         currentBranch: [UUID],
         cost: Cost,
+        inSession: Bool,
         constraints: [ConstrainedStatement],
         session: UUID?,
-        revisit: Revisit?
+        successRevisit: Revisit?,
+        failRevisit: Revisit?
     ) {
         self.nodeId = nodeId
         self.expression = expression
         self.history = history
         self.currentBranch = currentBranch
         self.cost = cost
+        self.inSession = inSession
         self.constraints = constraints
         self.session = session
-        self.revisit = revisit
+        self.successRevisit = successRevisit
+        self.failRevisit = failRevisit
     }
 
     convenience init(revisit: Revisit) {
@@ -106,9 +100,11 @@ final class Job: Equatable, Hashable {
             history: revisit.history,
             currentBranch: revisit.currentBranch,
             cost: revisit.cost,
+            inSession: revisit.inSession,
             constraints: revisit.constraints,
             session: revisit.session,
-            revisit: revisit.revisit
+            successRevisit: revisit.successRevisit,
+            failRevisit: revisit.failRevisit
         )
     }
 
@@ -118,9 +114,11 @@ final class Job: Equatable, Hashable {
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
             && lhs.cost == rhs.cost
+            && lhs.inSession == rhs.inSession
             && lhs.constraints == rhs.constraints
             && lhs.session == rhs.session
-            && lhs.revisit == rhs.revisit
+            && lhs.successRevisit == rhs.successRevisit
+            && lhs.failRevisit == rhs.failRevisit
     }
 
     func hash(into hasher: inout Hasher) {
@@ -129,9 +127,11 @@ final class Job: Equatable, Hashable {
         hasher.combine(history)
         hasher.combine(currentBranch)
         hasher.combine(cost)
+        hasher.combine(inSession)
         hasher.combine(constraints)
         hasher.combine(session)
-        hasher.combine(revisit)
+        hasher.combine(successRevisit)
+        hasher.combine(failRevisit)
     }
 
 }

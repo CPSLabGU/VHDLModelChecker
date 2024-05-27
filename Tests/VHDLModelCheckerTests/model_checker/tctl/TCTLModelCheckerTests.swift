@@ -394,10 +394,101 @@ final class TCTLModelCheckerTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        A G recoveryMode = '1' -> A G recoveryMode = '0'
+        A G recoveryMode = '1' -> A G recoveryMode = '1'
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testConjunction() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E G true ^ true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testConjunctionFails() throws {
+        let specs = [
+            "A G true ^ false",
+            "A G false ^ true",
+            "A G false ^ false"
+        ]
+        let specRaw = "// spec:language VHDL"
+        for spec in specs {
+            let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
+            XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
+                guard
+                    let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                else {
+                    XCTFail("Got incorrect error!")
+                    return
+                }
+                // branches.forEach {
+                //     print($0.description)
+                // }
+                // print("Failed expression: \(expression.rawValue)")
+                // print("Branch nodes: \(branches.count)")
+            }
+        }
+    }
+
+    func testDisjunction() throws {
+        let specs = [
+            "E G true V false",
+            "E G false V true",
+            "E G true V true",
+            "E F true V false",
+            "E F false V true",
+            "E F true V true",
+            "E X true V false",
+            "E X false V true",
+            "E X true V true",
+            "A G true V false",
+            "A G false V true",
+            "A G true V true",
+            "A F true V false",
+            "A F false V true",
+            "A F true V true",
+            "A X true V false",
+            "A X false V true",
+            "A X true V true"
+        ]
+        let specRaw = "// spec:language VHDL"
+        for spec in specs {
+            let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
+            XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
+        }
+    }
+
+    func testDisjunctionFails() throws {
+        let specs = [
+            "A G false V false",
+            "A F false V false",
+            "A X false V false",
+            "E G false V false",
+            "E F false V false",
+            "E X false V false",
+        ]
+        let specRaw = "// spec:language VHDL"
+        for spec in specs {
+            let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
+            XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
+                guard
+                    let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                else {
+                    XCTFail("Got incorrect error!")
+                    return
+                }
+                // branches.forEach {
+                //     print($0.description)
+                // }
+                // print("Failed expression: \(expression.rawValue)")
+                // print("Branch nodes: \(branches.count)")
+            }
+        }
     }
 
     func testModelCheckerFails() throws {
