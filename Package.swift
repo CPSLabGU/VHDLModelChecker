@@ -40,7 +40,8 @@ let package = Package(
             name: "LLFSMVerify",
             dependencies: [
                 .target(name: "VHDLModelChecker"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
             ]
         ),
         .testTarget(
