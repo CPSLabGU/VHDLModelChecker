@@ -91,14 +91,19 @@ public enum ModelCheckerError: Error, CustomStringConvertible {
 
     init(error: VerificationError, currentBranch: [Node], expression: Expression) {
         switch error {
-        case .notSupported:
-            self = .notSupported(expression: expression)
-        case .internalError:
-            self = .internalError
         case .unsatisfied(let node):
             self = .unsatisfied(branch: currentBranch + [node], expression: expression)
         case .costViolation(let node, let cost, let constraint):
             self = .constraintViolation(branch: currentBranch + [node], cost: cost, constraint: constraint)
+        }
+    }
+
+    init(error: UnrecoverableError, expression: Expression) {
+        switch error {
+        case .notSupported:
+            self = .notSupported(expression: expression)
+        case .internalError:
+            self = .internalError
         }
     }
 

@@ -61,90 +61,53 @@ extension PathQuantifiedExpression {
     func verify(
         currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType, cost: Cost
     ) throws -> [VerifyStatus] {
-        // Verifies a node but does not take into consideration successor nodes.
-        if case .next(let expression) = self {
-            return [.successor(expression: expression)]
-        }
         guard !inCycle else {
             switch self {
-            case .globally(let expression), .finally(let expression), .next(let expression):
-                return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
-            default:
-                throw VerificationError.notSupported
-            }
-        }
-        switch self {
-        case .globally(let expression):
-            return [
-                .successor(expression: Expression.quantified(
-                    expression: GloballyQuantifiedExpression(quantifier: quantifier, expression: self)
-                ))
-            ] + (try expression.verify(currentNode: node, inCycle: inCycle, cost: cost))
-        case .finally(let expression):
-            do {
-                let result = try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
-                return result.flatMap { result -> [VerifyStatus] in
-                    switch result {
-                    case .successor(let expression):
-                        return [
-                            VerifyStatus.successor(
-                                expression: .disjunction(
-                                    lhs: expression,
-                                    rhs: .quantified(expression: .init(
-                                        quantifier: quantifier, expression: self
-                                    ))
-                                )
-                            )
-                        ]
-                    case .revisitting(let expression, let successor):
-                        let newSuccessor: RevisitExpression
-                        switch successor {
-                        case .required(let succ, let statements):
-                            newSuccessor = .ignored(expression: succ, constraints: statements)
-                        default:
-                            newSuccessor = successor
-                        }
-                        return [
-                            VerifyStatus.revisitting(
-                                expression: .disjunction(
-                                    lhs: expression,
-                                    rhs: .quantified(expression: .init(
-                                        quantifier: quantifier,
-                                        expression: .next(
-                                            expression: .quantified(expression: .init(
-                                                quantifier: quantifier, expression: self
-                                            ))
-                                        )
-                                    ))
-                                ),
-                                precondition: newSuccessor
-                            ),
-                            .revisitting(
-                                expression: .quantified(expression: .init(
-                                    quantifier: quantifier,
-                                    expression: .next(expression: .quantified(expression: .init(
-                                        quantifier: quantifier, expression: self
-                                    )))
-                                )),
-                                precondition: .skip(expression: successor.expression, constraints: [])
-                            )
-                        ]
-                    }
-                }
-            } catch {
+            case .next(let expression):
+                return [.successor(expression: expression)]
+            case .globally(let expression), .finally(let expression):
                 return [
-                    .successor(
-                        expression: .disjunction(
-                            lhs: expression,
-                            rhs: .quantified(
-                                expression: .init(quantifier: quantifier, expression: self)
-                            )
-                        )
+                    .revisitting(
+                        expression: .language(expression: .vhdl(expression: .true)),
+                        precondition: .required(expression: expression, constraints: [])
                     )
                 ]
+            case .until, .weak:
+                throw UnrecoverableError.notSupported
             }
-        default:
-            throw VerificationError.notSupported
+        }
+        // Q G e :: .revisit(Q X Q G E, .required(e))
+        // Q F e :: .revisit(Q X Q F e, .skip(e))
+        // Q X e :: .succ(e)
+        switch self {
+        case .next(let expression):
+            return [.successor(expression: expression)]
+        case .globally(let expression):
+            return [
+                .revisitting(
+                    expression: .quantified(expression: GloballyQuantifiedExpression(
+                        quantifier: quantifier,
+                        expression: .next(expression: .quantified(expression: GloballyQuantifiedExpression(
+                            quantifier: quantifier, expression: self
+                        )))
+                    )),
+                    precondition: .required(expression: expression, constraints: [])
+                )
+            ]
+        case .finally(let expression):
+            return [
+                .revisitting(
+                    expression: .quantified(expression: GloballyQuantifiedExpression(
+                        quantifier: quantifier,
+                        expression: .next(expression: .quantified(expression: GloballyQuantifiedExpression(
+                            quantifier: quantifier, expression: self
+                        )))
+                    )),
+                    precondition: .skip(expression: expression, constraints: [])
+                )
+            ]
+        case .until, .weak:
+            throw UnrecoverableError.notSupported
         }
     }
 

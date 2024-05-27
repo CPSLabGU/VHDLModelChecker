@@ -87,7 +87,9 @@ enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, S
     /// The expression associated with this successor.
     var expression: Expression {
         switch self {
-        case .required(let expression, _), .skip(let expression, _), .ignored(let expression, _):
+        case .required(let expression, _),
+            .skip(let expression, _),
+            .ignored(let expression, _):
             return expression
         }
     }
@@ -104,19 +106,10 @@ enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, S
 
     var constraints: [ConstrainedStatement] {
         switch self {
-        case .skip(_, let constraints), .required(_, let constraints), .ignored(_, let constraints):
+        case .skip(_, let constraints),
+            .required(_, let constraints),
+            .ignored(_, let constraints):
             return constraints
-        }
-    }
-
-    var type: RevisitType {
-        switch self {
-        case .skip:
-            return .skip
-        case .required:
-            return .required
-        case .ignored:
-            return .ignored
         }
     }
 

@@ -1,4 +1,4 @@
-// ConstrainedExpression+verify.swift
+// UnrecoverableError.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,23 +53,13 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import TCTLParser
-import VHDLKripkeStructures
+/// Errors thrown during verification that are unrecoverable.
+enum UnrecoverableError: Error, Equatable, Hashable, Codable, Sendable, CaseIterable {
 
-/// Add verification support.
-extension ConstrainedExpression {
+    /// Something within the model checker caused an internal error.
+    case internalError
 
-    /// Verify that `node` satisfies the constraints.
-    /// - Parameters:
-    ///   - node: The node to verify.
-    ///   - inCycle: Whether this node has been visited before.
-    ///   - cost: The current cost of the verification.
-    /// - Returns: An array of statuses for the verification.
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
-        try self.constraints.forEach {
-            try $0.verify(node: node, cost: cost)
-        }
-        return try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
-    }
+    /// Something within the specification is not supported.
+    case notSupported
 
 }

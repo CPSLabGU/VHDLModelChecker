@@ -59,6 +59,10 @@ import VHDLParsing
 
 extension VHDLExpression {
 
+    static let `true` = VHDLExpression.conditional(expression: .literal(value: true))
+
+    static let `false` = VHDLExpression.conditional(expression: .literal(value: false))
+
     func verify(node: Node) throws {
         switch self {
         case .boolean(let expression):

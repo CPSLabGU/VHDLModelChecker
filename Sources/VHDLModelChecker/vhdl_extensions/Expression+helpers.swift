@@ -100,7 +100,7 @@ extension Expression {
             try value.verify(node: node)
         case .reference(let variable):
             guard case .variable(let reference) = variable, case .variable(let name) = reference else {
-                throw VerificationError.notSupported
+                throw UnrecoverableError.notSupported
             }
             switch name {
             case .executeOnEntry:
@@ -113,7 +113,7 @@ extension Expression {
                 }
             }
         default:
-            throw VerificationError.notSupported
+            throw UnrecoverableError.notSupported
         }
     }
 

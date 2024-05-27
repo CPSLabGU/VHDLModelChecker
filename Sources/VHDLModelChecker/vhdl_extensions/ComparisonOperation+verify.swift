@@ -114,9 +114,7 @@ extension ComparisonOperation {
     ///   - rhs: The right-hand side of the equality expression.
     /// - Throws: A ``VerificationError`` if the node violates the equality expression.
     private func verifyEquality(node: Node, lhs: Expression, rhs: Expression) throws {
-        guard let lhsValue = try self.getValue(key: lhs, node: node) else {
-            throw VerificationError.internalError
-        }
+        let lhsValue = try NameOrValue(key: lhs, node: node)
         switch lhsValue {
         case .name(let name):
             guard let rhsValue = rhs.variable, name == rhsValue else {
@@ -126,29 +124,6 @@ extension ComparisonOperation {
             guard let rhsLiteral = rhs.literal, rhsLiteral == literal else {
                 throw VerificationError.unsatisfied(node: node)
             }
-        }
-    }
-
-    /// Get the name or value from the expression in node.
-    private func getValue(key variable: Expression, node: Node) throws -> NameOrValue? {
-        guard let variable = variable.variable else {
-            guard let literal = variable.literal else {
-                throw VerificationError.unsatisfied(node: node)
-            }
-            return .value(literal)
-        }
-        switch variable {
-        case .currentState:
-            return .name(node.currentState)
-        case .executeOnEntry:
-            return .value(.boolean(value: node.executeOnEntry))
-        case .nextState:
-            return .name(node.nextState)
-        default:
-            guard let literal = node.properties[variable] else {
-                return nil
-            }
-            return .value(literal)
         }
     }
 
@@ -162,5 +137,28 @@ private enum NameOrValue: Equatable {
 
     /// A value.
     case value(_ value: SignalLiteral)
+
+    init(key variable: Expression, node: Node) throws {
+        guard let variable = variable.variable else {
+            guard let literal = variable.literal else {
+                throw VerificationError.unsatisfied(node: node)
+            }
+            self = .value(literal)
+            return
+        }
+        switch variable {
+        case .currentState:
+            self = .name(node.currentState)
+        case .executeOnEntry:
+            self = .value(.boolean(value: node.executeOnEntry))
+        case .nextState:
+            self = .name(node.nextState)
+        default:
+            guard let literal = node.properties[variable] else {
+                throw UnrecoverableError.internalError
+            }
+            self = .value(literal)
+        }
+    }
 
 }

@@ -58,7 +58,7 @@ import VHDLKripkeStructures
 
 extension Expression {
 
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [VerifyStatus] {
+    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):
@@ -70,36 +70,41 @@ extension Expression {
             return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
         case .conjunction(let lhs, let rhs):
             return [
-                .revisitting(
+                .noSession(status: .revisitting(
                     expression: rhs, precondition: .required(expression: lhs, constraints: [])
-                )
+                ))
             ]
         case .disjunction(let lhs, let rhs):
             return [
-                .revisitting(expression: rhs, precondition: .skip(expression: lhs, constraints: []))
+                .noSession(status: .revisitting(
+                    expression: rhs, precondition: .skip(expression: lhs, constraints: [])
+                ))
             ]
         case .not(let expression):
             return [
-                .revisitting(
+                .noSession(status: .revisitting(
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: false)
                     ))),
                     precondition: .ignored(expression: expression, constraints: [])
-                )
+                ))
             ]
         case .implies(let lhs, let rhs):
-            return try Expression.disjunction(lhs: .not(expression: lhs), rhs: rhs)
-                .verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return [
+                .noSession(status: .revisitting(
+                    expression: rhs, precondition: .ignored(expression: lhs, constraints: [])
+                ))
+            ]
         case .constrained(let expression):
             return [
-                .revisitting(
+                .noSession(status: .revisitting(
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: true)
                     ))),
                     precondition: .required(
                         expression: expression.expression, constraints: expression.constraints
                     )
-                )
+                ))
             ]
         }
     }

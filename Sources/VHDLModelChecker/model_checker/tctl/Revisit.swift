@@ -60,53 +60,63 @@ import VHDLKripkeStructures
 final class Revisit: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
-    var type: RevisitType
     var cost: Cost
+    var inSession: Bool
     var constraints: [ConstrainedStatement]
-    var revisit: Revisit?
+    var session: UUID?
+    var successRevisit: Revisit?
+    var failRevisit: Revisit?
     var history: Set<UUID>
     var currentBranch: [UUID]
 
     init(
         nodeId: UUID,
         expression: Expression,
-        type: RevisitType,
         cost: Cost,
+        inSession: Bool,
         constraints: [ConstrainedStatement],
-        revisit: Revisit?,
+        session: UUID?,
+        successRevisit: Revisit?,
+        failRevisit: Revisit?,
         history: Set<UUID>,
         currentBranch: [UUID]
     ) {
         self.nodeId = nodeId
         self.expression = expression
-        self.type = type
         self.cost = cost
+        self.inSession = inSession
         self.constraints = constraints
-        self.revisit = revisit
+        self.session = session
+        self.successRevisit = successRevisit
+        self.failRevisit = failRevisit
         self.history = history
         self.currentBranch = currentBranch
     }
 
     static func == (lhs: Revisit, rhs: Revisit) -> Bool {
         lhs.nodeId == rhs.nodeId
-            && lhs.revisit == rhs.revisit
-            && lhs.type == rhs.type
+            && lhs.successRevisit == rhs.successRevisit
+            && lhs.failRevisit == rhs.failRevisit
             && lhs.cost == rhs.cost
+            && lhs.inSession == rhs.inSession
             && lhs.constraints == rhs.constraints
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
+            && lhs.session == rhs.session
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(nodeId)
-        hasher.combine(revisit)
+        hasher.combine(successRevisit)
+        hasher.combine(failRevisit)
         hasher.combine(expression)
-        hasher.combine(type)
         hasher.combine(cost)
+        hasher.combine(inSession)
         hasher.combine(constraints)
         hasher.combine(history)
         hasher.combine(currentBranch)
+        hasher.combine(session)
     }
 
 }

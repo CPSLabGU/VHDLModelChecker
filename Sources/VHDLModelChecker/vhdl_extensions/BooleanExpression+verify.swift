@@ -71,12 +71,18 @@ extension BooleanExpression {
         case .or(let lhs, let rhs):
             do {
                 try lhs.verify(node: node)
-            } catch {
+            } catch _ as VerificationError {
                 try rhs.verify(node: node)
+            } catch let error {
+                throw error
             }
         case .not(let expression):
-            guard (try? expression.verify(node: node)) != nil else {
+            do {
+                try expression.verify(node: node)
+            } catch _ as VerificationError {
                 return
+            } catch let error {
+                throw error
             }
             throw VerificationError.unsatisfied(node: node)
         case .nand(let lhs, let rhs):
@@ -84,12 +90,17 @@ extension BooleanExpression {
         case .nor(let lhs, let rhs):
             try BooleanExpression.not(value: .logical(operation: .or(lhs: lhs, rhs: rhs))).verify(node: node)
         case .xor(let lhs, let rhs):
-            switch (try? lhs.verify(node: node), try? rhs.verify(node: node)) {
-            case (nil, .some), (.some, nil):
-                return
-            default:
-                throw VerificationError.unsatisfied(node: node)
-            }
+            try BooleanExpression.or(
+                lhs: .logical(operation: .and(
+                    lhs: .logical(operation: .not(value: lhs)),
+                    rhs: rhs
+                )),
+                rhs: .logical(operation: .and(
+                    lhs: lhs,
+                    rhs: .logical(operation: .not(value: rhs))
+                ))
+            )
+            .verify(node: node)
         case .xnor(let lhs, let rhs):
             try BooleanExpression.not(value: .logical(operation: .xor(lhs: lhs, rhs: rhs))).verify(node: node)
         }
