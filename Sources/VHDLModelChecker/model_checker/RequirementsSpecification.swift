@@ -56,9 +56,24 @@
 import TCTLParser
 
 /// A specification containing the requirements for a kripke structure.
-public enum RequirementsSpecification: Equatable, Hashable, Codable, Sendable {
+public enum RequirementsSpecification: RawRepresentable, Equatable, Hashable, Codable, Sendable {
 
     /// A specification written in `TCTL`.
     case tctl(specification: TCTLParser.Specification)
+
+    public var rawValue: String {
+        switch self {
+        case .tctl(let specification):
+            return specification.rawValue
+        }
+    }
+
+    public init?(rawValue: String) {
+        if let specification = TCTLParser.Specification(rawValue: rawValue) {
+            self = .tctl(specification: specification)
+        } else {
+            return nil
+        }
+    }
 
 }
