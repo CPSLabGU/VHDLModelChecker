@@ -54,10 +54,47 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import ArgumentParser
+import Foundation
+import VHDLKripkeStructures
+import VHDLModelChecker
 
 @main
 struct LLFSMVerify: ParsableCommand {
 
-    func run() throws { }
+    @Flag(help: "Whether the structure path is a URL to a machine.")
+    var machine = false
+
+    @Argument(
+        // swiftlint:disable:next line_length
+        help: "The location of the Kripke structure. This path may also be a URL to a machine by specifying the --machine flag"
+    )
+    var structurePath: String
+
+    @Argument(help: "The paths to the requirements specification files.")
+    var requirements: [String]
+
+    func run() throws {
+        let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
+        let structureURL = machine
+            ? baseURL.appendingPathComponent("output.json", isDirectory: false)
+            : baseURL
+        try self.verify(structureURL: structureURL)
+    }
+
+    func verify(structureURL: URL) throws {
+        let requirements = try requirements.compactMap {
+            RequirementsSpecification(
+                rawValue: try String(contentsOf: URL(fileURLWithPath: $0, isDirectory: false))
+            )
+        }
+        guard requirements.count == self.requirements.count else {
+            throw ModelCheckerError.internalError
+        }
+        let structureData = try Data(contentsOf: structureURL)
+        let decoder = JSONDecoder()
+        let structure = try decoder.decode(KripkeStructure.self, from: structureData)
+        let modelChecker = VHDLModelChecker()
+        try modelChecker.verify(structure: structure, against: requirements)
+    }
 
 }
