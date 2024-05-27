@@ -65,11 +65,17 @@ extension ConstrainedExpression {
     ///   - inCycle: Whether this node has been visited before.
     ///   - cost: The current cost of the verification.
     /// - Returns: An array of statuses for the verification.
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
-        try self.constraints.forEach {
-            try $0.verify(node: node, cost: cost)
-        }
-        return try self.expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
+        return [
+            .noSession(status: .revisitting(
+                expression: .language(expression: .vhdl(expression: .conditional(
+                    expression: .literal(value: true)
+                ))),
+                precondition: .required(
+                    expression: expression, constraints: constraints
+                )
+            ))
+        ]
     }
 
 }

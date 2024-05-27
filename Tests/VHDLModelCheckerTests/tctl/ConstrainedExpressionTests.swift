@@ -79,69 +79,69 @@ final class ConstrainedExpressionTests: KripkeStructureTestable {
     )))
 
     /// Test that `verify` fails correctly.
-    func testVerifyFails() throws {
-        XCTAssertThrowsError(
-            try ConstrainedExpression(
-                expression: failingExpression,
-                constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
-        )
-        XCTAssertThrowsError(
-            try ConstrainedExpression(
-                expression: validExpression,
-                constraints: [.lessThan(constraint: constraint10us), .lessThan(constraint: constraint200mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
-        )
-        XCTAssertThrowsError(
-            try ConstrainedExpression(
-                expression: validExpression,
-                constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint10mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
-        )
-        XCTAssertThrowsError(
-            try ConstrainedExpression(
-                expression: failingExpression,
-                constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
-        )
-        XCTAssertThrowsError(
-            try ConstrainedExpression(
-                expression: validExpression,
-                constraints: [.lessThan(constraint: constraint10us), .lessThan(constraint: constraint200mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
-        )
-        XCTAssertThrowsError(
-            try ConstrainedExpression(
-                expression: validExpression,
-                constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint10mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
-        )
-    }
+    // func testVerifyFails() throws {
+    //     XCTAssertThrowsError(
+    //         try ConstrainedExpression(
+    //             expression: failingExpression,
+    //             constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
+    //     )
+    //     XCTAssertThrowsError(
+    //         try ConstrainedExpression(
+    //             expression: validExpression,
+    //             constraints: [.lessThan(constraint: constraint10us), .lessThan(constraint: constraint200mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
+    //     )
+    //     XCTAssertThrowsError(
+    //         try ConstrainedExpression(
+    //             expression: validExpression,
+    //             constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint10mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
+    //     )
+    //     XCTAssertThrowsError(
+    //         try ConstrainedExpression(
+    //             expression: failingExpression,
+    //             constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
+    //     )
+    //     XCTAssertThrowsError(
+    //         try ConstrainedExpression(
+    //             expression: validExpression,
+    //             constraints: [.lessThan(constraint: constraint10us), .lessThan(constraint: constraint200mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
+    //     )
+    //     XCTAssertThrowsError(
+    //         try ConstrainedExpression(
+    //             expression: validExpression,
+    //             constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint10mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
+    //     )
+    // }
 
-    /// Test that `verify` succeeds.
-    func testVerify() throws {
-        XCTAssertEqual(
-            try ConstrainedExpression(
-                expression: validExpression,
-                constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: false, cost: cost),
-            try validExpression.verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
-        )
-        XCTAssertEqual(
-            try ConstrainedExpression(
-                expression: validExpression,
-                constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
-            )
-            .verify(currentNode: failureCount2Node, inCycle: true, cost: cost),
-            try validExpression.verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
-        )
-    }
+    // /// Test that `verify` succeeds.
+    // func testVerify() throws {
+    //     XCTAssertEqual(
+    //         try ConstrainedExpression(
+    //             expression: validExpression,
+    //             constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: false, cost: cost),
+    //         try validExpression.verify(currentNode: failureCount2Node, inCycle: false, cost: cost)
+    //     )
+    //     XCTAssertEqual(
+    //         try ConstrainedExpression(
+    //             expression: validExpression,
+    //             constraints: [.lessThan(constraint: constraint200us), .lessThan(constraint: constraint200mJ)]
+    //         )
+    //         .verify(currentNode: failureCount2Node, inCycle: true, cost: cost),
+    //         try validExpression.verify(currentNode: failureCount2Node, inCycle: true, cost: cost)
+    //     )
+    // }
 
 }

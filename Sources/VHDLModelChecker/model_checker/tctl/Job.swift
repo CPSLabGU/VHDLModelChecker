@@ -62,9 +62,8 @@ final class Job: Equatable, Hashable {
     var expression: Expression
     var history: Set<UUID>
     var currentBranch: [UUID]
-    var cost: Cost
     var inSession: Bool
-    var constraints: [ConstrainedStatement]
+    var constraints: [PhysicalConstraint]
     var session: UUID?
     var successRevisit: Revisit?
     var failRevisit: Revisit?
@@ -74,9 +73,8 @@ final class Job: Equatable, Hashable {
         expression: Expression,
         history: Set<UUID>,
         currentBranch: [UUID],
-        cost: Cost,
         inSession: Bool,
-        constraints: [ConstrainedStatement],
+        constraints: [PhysicalConstraint],
         session: UUID?,
         successRevisit: Revisit?,
         failRevisit: Revisit?
@@ -85,7 +83,6 @@ final class Job: Equatable, Hashable {
         self.expression = expression
         self.history = history
         self.currentBranch = currentBranch
-        self.cost = cost
         self.inSession = inSession
         self.constraints = constraints
         self.session = session
@@ -99,7 +96,6 @@ final class Job: Equatable, Hashable {
             expression: revisit.expression,
             history: revisit.history,
             currentBranch: revisit.currentBranch,
-            cost: revisit.cost,
             inSession: revisit.inSession,
             constraints: revisit.constraints,
             session: revisit.session,
@@ -113,7 +109,6 @@ final class Job: Equatable, Hashable {
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
-            && lhs.cost == rhs.cost
             && lhs.inSession == rhs.inSession
             && lhs.constraints == rhs.constraints
             && lhs.session == rhs.session
@@ -126,7 +121,6 @@ final class Job: Equatable, Hashable {
         hasher.combine(expression)
         hasher.combine(history)
         hasher.combine(currentBranch)
-        hasher.combine(cost)
         hasher.combine(inSession)
         hasher.combine(constraints)
         hasher.combine(session)

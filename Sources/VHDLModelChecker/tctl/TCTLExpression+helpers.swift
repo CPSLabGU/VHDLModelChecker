@@ -58,16 +58,16 @@ import VHDLKripkeStructures
 
 extension Expression {
 
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):
             try expression.verify(node: node)
             return []
         case .precedence(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         case .quantified(let expression):
-            return try expression.verify(currentNode: node, inCycle: inCycle, cost: cost)
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         case .conjunction(let lhs, let rhs):
             return [
                 .noSession(status: .revisitting(
@@ -96,16 +96,7 @@ extension Expression {
                 ))
             ]
         case .constrained(let expression):
-            return [
-                .noSession(status: .revisitting(
-                    expression: .language(expression: .vhdl(expression: .conditional(
-                        expression: .literal(value: true)
-                    ))),
-                    precondition: .required(
-                        expression: expression.expression, constraints: expression.constraints
-                    )
-                ))
-            ]
+            return try expression.verify(currentNode: node, inCycle: inCycle)
         }
     }
 

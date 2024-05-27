@@ -59,7 +59,7 @@ import VHDLKripkeStructures
 extension PathQuantifiedExpression {
 
     func verify(
-        currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType, cost: Cost
+        currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType
     ) throws -> [VerifyStatus] {
         guard !inCycle else {
             switch self {

@@ -93,7 +93,6 @@ final class TCTLModelChecker {
                     expression: expression,
                     history: [],
                     currentBranch: [],
-                    cost: .zero,
                     inSession: false,
                     constraints: [],
                     session: nil,
@@ -146,11 +145,7 @@ final class TCTLModelChecker {
         }
         let results: [SessionStatus]
         do {
-            results = try job.expression.verify(
-                currentNode: node,
-                inCycle: job.history.contains(job.nodeId),
-                cost: job.cost
-            )
+            results = try job.expression.verify(currentNode: node, inCycle: job.history.contains(job.nodeId))
         } catch let error as VerificationError {
             guard let revisit = job.failRevisit else {
                 guard !job.inSession else {
@@ -171,7 +166,7 @@ final class TCTLModelChecker {
         }
         guard !results.isEmpty else {
             if let failingConstraint = job.constraints.first(where: {
-                (try? $0.verify(node: node, cost: job.cost)) == nil
+                (try? $0.verify(node: node)) == nil
             }) {
                 if let revisit = job.failRevisit {
                     jobs.append(Job(revisit: revisit))
@@ -186,8 +181,8 @@ final class TCTLModelChecker {
                 }
                 throw ModelCheckerError.constraintViolation(
                     branch: currentNodes + [node],
-                    cost: job.cost,
-                    constraint: failingConstraint
+                    cost: failingConstraint.cost,
+                    constraint: failingConstraint.constraint
                 )
             }
             if let session = job.session {
@@ -201,47 +196,56 @@ final class TCTLModelChecker {
         }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
+            let newSuccessRevisit = job.successRevisit.map(Revisit.init)
+            newSuccessRevisit?.constraints = []
+            let newFailRevisit = job.failRevisit.map(Revisit.init)
+            newFailRevisit?.constraints = []
             let session = result.isNewSession ? UUID() : nil
             let sessionRevisit = Revisit(
                 nodeId: job.nodeId,
                 expression: .language(expression: .vhdl(expression: .true)),
-                cost: job.cost,
                 inSession: result.isNewSession ? true : job.inSession,
-                constraints: job.constraints,
+                constraints: [],
                 session: session,
-                successRevisit: job.successRevisit,
-                failRevisit: job.failRevisit,
+                successRevisit: newSuccessRevisit,
+                failRevisit: newFailRevisit,
                 history: job.history,
                 currentBranch: job.currentBranch
             )
             let jobs: [Job]
             switch result.status {
             case .successor(let expression):
-                jobs = successors.map {
-                    let nodeId = $0.destination
+                jobs = successors.map { successor in
+                    let nodeId = successor.destination
                     return Job(
                         nodeId: nodeId,
                         expression: expression,
                         history: job.history.union([job.nodeId]),
                         currentBranch: job.currentBranch + [job.nodeId],
-                        cost: job.cost + $0.cost,
                         inSession: result.isNewSession ? true : job.inSession,
-                        constraints: job.constraints,
+                        constraints: job.constraints.map {
+                            PhysicalConstraint(cost: $0.cost + successor.cost, constraint: $0.constraint)
+                        },
                         session: nil,
                         successRevisit: sessionRevisit,
-                        failRevisit: job.failRevisit
+                        failRevisit: newFailRevisit
                     )
                 }
             case .revisitting(let expression, let revisit):
+                let revisitConstraints = revisit.constraints.map {
+                    PhysicalConstraint(cost: .zero, constraint: $0)
+                }
+                let newConstraints = job.constraints + revisitConstraints
+                let alternativeRevisit = Revisit(revisit: sessionRevisit)
+                alternativeRevisit.constraints = newConstraints
                 let newRevisit = Revisit(
                     nodeId: job.nodeId,
                     expression: expression,
-                    cost: job.cost,
                     inSession: result.isNewSession ? true : job.inSession,
-                    constraints: job.constraints,
+                    constraints: newConstraints,
                     session: nil,
                     successRevisit: sessionRevisit,
-                    failRevisit: job.failRevisit,
+                    failRevisit: newFailRevisit,
                     history: job.history,
                     currentBranch: job.currentBranch
                 )
@@ -250,45 +254,27 @@ final class TCTLModelChecker {
                 switch revisit {
                 case .ignored:
                     successRevisit = newRevisit
-                    failRevisit = sessionRevisit
+                    failRevisit = alternativeRevisit
                 case .required:
                     successRevisit = newRevisit
-                    failRevisit = job.failRevisit
+                    failRevisit = newFailRevisit
                 case .skip:
-                    successRevisit = sessionRevisit
+                    successRevisit = alternativeRevisit
                     failRevisit = newRevisit
                 }
-                if revisit.constraints.isEmpty {
-                    jobs = [
-                        Job(
-                            nodeId: job.nodeId,
-                            expression: revisit.expression,
-                            history: job.history,
-                            currentBranch: job.currentBranch,
-                            cost: job.cost,
-                            inSession: result.isNewSession ? true : job.inSession,
-                            constraints: job.constraints,
-                            session: job.session,
-                            successRevisit: successRevisit,
-                            failRevisit: failRevisit
-                        )
-                    ]
-                } else {
-                    jobs = [
-                        Job(
-                            nodeId: job.nodeId,
-                            expression: revisit.expression,
-                            history: job.history,
-                            currentBranch: job.currentBranch,
-                            cost: .zero,
-                            inSession: result.isNewSession ? true : job.inSession,
-                            constraints: revisit.constraints,
-                            session: job.session,
-                            successRevisit: successRevisit,
-                            failRevisit: failRevisit
-                        )
-                    ]
-                }
+                jobs = [
+                    Job(
+                        nodeId: job.nodeId,
+                        expression: revisit.expression,
+                        history: job.history,
+                        currentBranch: job.currentBranch,
+                        inSession: result.isNewSession ? true : job.inSession,
+                        constraints: newConstraints,
+                        session: job.session,
+                        successRevisit: successRevisit,
+                        failRevisit: failRevisit
+                    )
+                ]
             }
             self.jobs.append(contentsOf: jobs)
             if let session, let job = jobs.first {

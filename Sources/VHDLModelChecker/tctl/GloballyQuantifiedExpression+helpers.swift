@@ -82,9 +82,9 @@ extension GloballyQuantifiedExpression {
         }
     }
 
-    func verify(currentNode node: Node, inCycle: Bool, cost: Cost) throws -> [SessionStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
         let results = try self.expression.verify(
-            currentNode: node, inCycle: inCycle, quantifier: self.quantifier, cost: cost
+            currentNode: node, inCycle: inCycle, quantifier: self.quantifier
         )
         switch self {
         case .always:

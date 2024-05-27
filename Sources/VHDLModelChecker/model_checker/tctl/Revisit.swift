@@ -60,9 +60,8 @@ import VHDLKripkeStructures
 final class Revisit: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
-    var cost: Cost
     var inSession: Bool
-    var constraints: [ConstrainedStatement]
+    var constraints: [PhysicalConstraint]
     var session: UUID?
     var successRevisit: Revisit?
     var failRevisit: Revisit?
@@ -72,9 +71,8 @@ final class Revisit: Equatable, Hashable {
     init(
         nodeId: UUID,
         expression: Expression,
-        cost: Cost,
         inSession: Bool,
-        constraints: [ConstrainedStatement],
+        constraints: [PhysicalConstraint],
         session: UUID?,
         successRevisit: Revisit?,
         failRevisit: Revisit?,
@@ -83,7 +81,6 @@ final class Revisit: Equatable, Hashable {
     ) {
         self.nodeId = nodeId
         self.expression = expression
-        self.cost = cost
         self.inSession = inSession
         self.constraints = constraints
         self.session = session
@@ -93,11 +90,24 @@ final class Revisit: Equatable, Hashable {
         self.currentBranch = currentBranch
     }
 
+    convenience init(revisit: Revisit) {
+        self.init(
+            nodeId: revisit.nodeId,
+            expression: revisit.expression,
+            inSession: revisit.inSession,
+            constraints: revisit.constraints,
+            session: revisit.session,
+            successRevisit: revisit.successRevisit,
+            failRevisit: revisit.failRevisit,
+            history: revisit.history,
+            currentBranch: revisit.currentBranch
+        )
+    }
+
     static func == (lhs: Revisit, rhs: Revisit) -> Bool {
         lhs.nodeId == rhs.nodeId
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
-            && lhs.cost == rhs.cost
             && lhs.inSession == rhs.inSession
             && lhs.constraints == rhs.constraints
             && lhs.expression == rhs.expression
@@ -111,7 +121,6 @@ final class Revisit: Equatable, Hashable {
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
         hasher.combine(expression)
-        hasher.combine(cost)
         hasher.combine(inSession)
         hasher.combine(constraints)
         hasher.combine(history)
