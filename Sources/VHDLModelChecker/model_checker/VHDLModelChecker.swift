@@ -76,7 +76,7 @@ public struct VHDLModelChecker {
                 }
             }
         }
-        print("Verification completed in \(elapsedTime).")
+        print("Verification completed in \(elapsedTime) (± \(clock.minimumResolution)).")
     }
 
 }
