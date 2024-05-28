@@ -79,6 +79,9 @@ struct LLFSMVerify: ParsableCommand {
     @Argument(help: "The paths to the requirements specification files.")
     var requirements: [String]
 
+    @Flag(help: "Write the counter example to a graphviz file called branch.dot")
+    var writeGraphviz = false
+
     func run() throws {
         let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
         let structureURL = machine
@@ -100,7 +103,46 @@ struct LLFSMVerify: ParsableCommand {
         let decoder = JSONDecoder()
         let structure = try decoder.decode(KripkeStructure.self, from: structureData)
         let modelChecker = VHDLModelChecker()
-        try modelChecker.verify(structure: structure, against: requirements)
+        guard !writeGraphviz else {
+            try modelChecker.verify(structure: structure, against: requirements)
+            return
+        }
+        do {
+            try modelChecker.verify(structure: structure, against: requirements)
+        } catch let error as ModelCheckerError {
+            switch error {
+            case .unsatisfied(let branch, _):
+                guard let initialNode = branch.first else {
+                    throw error
+                }
+                let branchSet = Set(branch)
+                let edges = Dictionary(
+                    uniqueKeysWithValues: structure.edges
+                        .compactMap { (node: Node, edges: [Edge]) -> (Node, [Edge])? in
+                            guard branchSet.contains(node) else {
+                                return nil
+                            }
+                            let newEdges = edges.filter { branchSet.contains($0.target) }
+                            return (node, newEdges)
+                        }
+                )
+                let newStructure = KripkeStructure(
+                    nodes: Array(branchSet), edges: edges, initialStates: [initialNode]
+                )
+                let graphviz: String = newStructure.graphviz
+                guard let data = graphviz.data(using: .utf8) else {
+                    throw error
+                }
+                let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
+                try data.write(to: url)
+                throw error
+            default:
+                throw error
+            }
+        } catch {
+            throw error
+        }
+        
     }
 
 }

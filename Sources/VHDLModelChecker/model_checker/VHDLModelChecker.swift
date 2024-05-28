@@ -69,47 +69,12 @@ public struct VHDLModelChecker {
         let iterator = KripkeStructureIterator(structure: structure)
         let clock = ContinuousClock()
         let elapsedTime = try clock.measure {
-            do {
-                try specification.forEach {
-                    switch $0 {
-                    case .tctl(let specification):
-                        try tctlChecker.check(structure: iterator, specification: specification)
-                    }
+            try specification.forEach {
+                switch $0 {
+                case .tctl(let specification):
+                    try tctlChecker.check(structure: iterator, specification: specification)
                 }
-            } catch let error as ModelCheckerError {
-                switch error {
-                case .unsatisfied(let branch, _):
-                    guard let initialNode = branch.first else {
-                        throw error
-                    }
-                    let branchSet = Set(branch)
-                    let edges = Dictionary(
-                        uniqueKeysWithValues: structure.edges
-                            .compactMap { (node: Node, edges: [Edge]) -> (Node, [Edge])? in
-                                guard branchSet.contains(node) else {
-                                    return nil
-                                }
-                                let newEdges = edges.filter { branchSet.contains($0.target) }
-                                return (node, newEdges)
-                            }
-                    )
-                    let newStructure = KripkeStructure(
-                        nodes: Array(branchSet), edges: edges, initialStates: [initialNode]
-                    )
-                    let graphviz: String = newStructure.graphviz
-                    guard let data = graphviz.data(using: .utf8) else {
-                        throw error
-                    }
-                    let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
-                    try data.write(to: url)
-                    throw error
-                default:
-                    throw error
-                }
-            } catch {
-                throw error
             }
-            
         }
         print("Verification completed in \(elapsedTime) (± \(clock.minimumResolution)).")
     }
