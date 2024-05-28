@@ -67,12 +67,16 @@ public struct VHDLModelChecker {
     ) throws {
         let tctlChecker = TCTLModelChecker()
         let iterator = KripkeStructureIterator(structure: structure)
-        try specification.forEach {
-            switch $0 {
-            case .tctl(let specification):
-                try tctlChecker.check(structure: iterator, specification: specification)
+        let clock = ContinuousClock()
+        let elapsedTime = try clock.measure {
+            try specification.forEach {
+                switch $0 {
+                case .tctl(let specification):
+                    try tctlChecker.check(structure: iterator, specification: specification)
+                }
             }
         }
+        print("Verification completed in \(elapsedTime).")
     }
 
 }
