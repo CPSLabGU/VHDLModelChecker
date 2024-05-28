@@ -103,7 +103,7 @@ struct LLFSMVerify: ParsableCommand {
         let decoder = JSONDecoder()
         let structure = try decoder.decode(KripkeStructure.self, from: structureData)
         let modelChecker = VHDLModelChecker()
-        guard !writeGraphviz else {
+        guard writeGraphviz else {
             try modelChecker.verify(structure: structure, against: requirements)
             return
         }
