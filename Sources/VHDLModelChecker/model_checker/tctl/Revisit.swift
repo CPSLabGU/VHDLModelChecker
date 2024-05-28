@@ -63,10 +63,11 @@ final class Revisit: Equatable, Hashable {
     var inSession: Bool
     var constraints: [PhysicalConstraint]
     var session: UUID?
-    var successRevisit: Revisit?
-    var failRevisit: Revisit?
+    var successRevisit: UUID?
+    var failRevisit: UUID?
     var history: Set<UUID>
     var currentBranch: [UUID]
+    var allSessionIds: SessionIdStore
 
     init(
         nodeId: UUID,
@@ -74,10 +75,11 @@ final class Revisit: Equatable, Hashable {
         inSession: Bool,
         constraints: [PhysicalConstraint],
         session: UUID?,
-        successRevisit: Revisit?,
-        failRevisit: Revisit?,
+        successRevisit: UUID?,
+        failRevisit: UUID?,
         history: Set<UUID>,
-        currentBranch: [UUID]
+        currentBranch: [UUID],
+        allSessionIds: SessionIdStore
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -88,6 +90,7 @@ final class Revisit: Equatable, Hashable {
         self.failRevisit = failRevisit
         self.history = history
         self.currentBranch = currentBranch
+        self.allSessionIds = allSessionIds
     }
 
     convenience init(revisit: Revisit) {
@@ -100,32 +103,35 @@ final class Revisit: Equatable, Hashable {
             successRevisit: revisit.successRevisit,
             failRevisit: revisit.failRevisit,
             history: revisit.history,
-            currentBranch: revisit.currentBranch
+            currentBranch: revisit.currentBranch,
+            allSessionIds: revisit.allSessionIds
         )
     }
 
     static func == (lhs: Revisit, rhs: Revisit) -> Bool {
         lhs.nodeId == rhs.nodeId
-            && lhs.successRevisit == rhs.successRevisit
-            && lhs.failRevisit == rhs.failRevisit
+            && lhs.expression == rhs.expression
             && lhs.inSession == rhs.inSession
             && lhs.constraints == rhs.constraints
-            && lhs.expression == rhs.expression
+            && lhs.session == rhs.session
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
-            && lhs.session == rhs.session
+            && lhs.allSessionIds == rhs.allSessionIds
+            && lhs.successRevisit == rhs.successRevisit
+            && lhs.failRevisit == rhs.failRevisit
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(nodeId)
-        hasher.combine(successRevisit)
-        hasher.combine(failRevisit)
         hasher.combine(expression)
         hasher.combine(inSession)
+        hasher.combine(session)
         hasher.combine(constraints)
         hasher.combine(history)
         hasher.combine(currentBranch)
-        hasher.combine(session)
+        hasher.combine(allSessionIds)
+        hasher.combine(successRevisit)
+        hasher.combine(failRevisit)
     }
 
 }

@@ -57,6 +57,62 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
+final class CycleData: Equatable, Hashable {
+
+    var nodeId: UUID
+
+    var expression: Expression
+
+    var inCycle: Bool
+
+    var session: UUID?
+
+    var constraints: [PhysicalConstraint]
+
+    var successRevisit: UUID?
+
+    var failRevisit: UUID?
+
+    init(
+        nodeId: UUID,
+        expression: Expression,
+        inCycle: Bool,
+        session: UUID?,
+        constraints: [PhysicalConstraint],
+        successRevisit: UUID?,
+        failRevisit: UUID?
+    ) {
+        self.nodeId = nodeId
+        self.expression = expression
+        self.inCycle = inCycle
+        self.session = session
+        self.constraints = constraints
+        self.successRevisit = successRevisit
+        self.failRevisit = failRevisit
+    }
+
+    static func == (lhs: CycleData, rhs: CycleData) -> Bool {
+        lhs.nodeId == rhs.nodeId
+            && lhs.expression == rhs.expression
+            && lhs.inCycle == rhs.inCycle
+            && lhs.session == rhs.session
+            && lhs.constraints == rhs.constraints
+            && lhs.successRevisit == rhs.successRevisit
+            && lhs.failRevisit == rhs.failRevisit
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(nodeId)
+        hasher.combine(expression)
+        hasher.combine(inCycle)
+        hasher.combine(session)
+        hasher.combine(constraints)
+        hasher.combine(successRevisit)
+        hasher.combine(failRevisit)
+    }
+
+}
+
 final class Job: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
@@ -65,8 +121,25 @@ final class Job: Equatable, Hashable {
     var inSession: Bool
     var constraints: [PhysicalConstraint]
     var session: UUID?
-    var successRevisit: Revisit?
-    var failRevisit: Revisit?
+    var successRevisit: UUID?
+    var failRevisit: UUID?
+    var allSessionIds: SessionIdStore
+
+    var cycleData: CycleData {
+        CycleData(
+            nodeId: nodeId,
+            expression: expression,
+            inCycle: history.contains(nodeId),
+            session: session,
+            constraints: constraints,
+            successRevisit: successRevisit,
+            failRevisit: failRevisit
+        )
+    }
+
+    var sessionKey: SessionKey {
+        SessionKey(nodeId: nodeId, expression: expression, constraints: constraints)
+    }
 
     init(
         nodeId: UUID,
@@ -76,8 +149,9 @@ final class Job: Equatable, Hashable {
         inSession: Bool,
         constraints: [PhysicalConstraint],
         session: UUID?,
-        successRevisit: Revisit?,
-        failRevisit: Revisit?
+        successRevisit: UUID?,
+        failRevisit: UUID?,
+        allSessionIds: SessionIdStore
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -88,6 +162,7 @@ final class Job: Equatable, Hashable {
         self.session = session
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
+        self.allSessionIds = allSessionIds
     }
 
     convenience init(revisit: Revisit) {
@@ -100,7 +175,8 @@ final class Job: Equatable, Hashable {
             constraints: revisit.constraints,
             session: revisit.session,
             successRevisit: revisit.successRevisit,
-            failRevisit: revisit.failRevisit
+            failRevisit: revisit.failRevisit,
+            allSessionIds: revisit.allSessionIds
         )
     }
 
@@ -114,6 +190,7 @@ final class Job: Equatable, Hashable {
             && lhs.session == rhs.session
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
+            && lhs.allSessionIds == rhs.allSessionIds
     }
 
     func hash(into hasher: inout Hasher) {
@@ -126,6 +203,7 @@ final class Job: Equatable, Hashable {
         hasher.combine(session)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
+        hasher.combine(allSessionIds)
     }
 
 }
