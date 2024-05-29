@@ -82,6 +82,9 @@ struct LLFSMVerify: ParsableCommand {
     @Flag(help: "Write the counter example to a graphviz file called branch.dot")
     var writeGraphviz = false
 
+    @Option(help: "The maximum number of states to return in the counter example.")
+    var branchDepth: UInt?
+
     func run() throws {
         let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
         let structureURL = machine
@@ -103,16 +106,22 @@ struct LLFSMVerify: ParsableCommand {
         let decoder = JSONDecoder()
         let structure = try decoder.decode(KripkeStructure.self, from: structureData)
         let modelChecker = VHDLModelChecker()
-        guard writeGraphviz else {
-            try modelChecker.verify(structure: structure, against: requirements)
-            return
-        }
         do {
             try modelChecker.verify(structure: structure, against: requirements)
         } catch let error as ModelCheckerError {
             switch error {
-            case .unsatisfied(let branch, _):
-                try createGraphvizFile(for: branch, error: error, structure: structure)
+            case .unsatisfied(let branch, let expression):
+                let counterBranch: [Node]
+                if let branchDepth {
+                    counterBranch = Array(branch.dropFirst(max(branch.count - Int(branchDepth), 0)))
+                } else {
+                    counterBranch = branch
+                }
+                let newError = ModelCheckerError.unsatisfied(branch: counterBranch, expression: expression)
+                guard writeGraphviz else {
+                    throw newError
+                }
+                try createGraphvizFile(for: counterBranch, error: newError, structure: structure)
             default:
                 throw error
             }
