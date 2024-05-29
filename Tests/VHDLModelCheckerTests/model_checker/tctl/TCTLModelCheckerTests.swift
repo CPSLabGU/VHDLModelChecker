@@ -565,7 +565,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t == 1 us})
+        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t <= 1 us})
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
