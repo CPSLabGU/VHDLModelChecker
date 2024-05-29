@@ -112,37 +112,40 @@ struct LLFSMVerify: ParsableCommand {
         } catch let error as ModelCheckerError {
             switch error {
             case .unsatisfied(let branch, _):
-                guard let initialNode = branch.first else {
-                    throw error
-                }
-                let branchSet = Set(branch)
-                let edges = Dictionary(
-                    uniqueKeysWithValues: structure.edges
-                        .compactMap { (node: Node, edges: [Edge]) -> (Node, [Edge])? in
-                            guard branchSet.contains(node) else {
-                                return nil
-                            }
-                            let newEdges = edges.filter { branchSet.contains($0.target) }
-                            return (node, newEdges)
-                        }
-                )
-                let newStructure = KripkeStructure(
-                    nodes: Array(branchSet), edges: edges, initialStates: [initialNode]
-                )
-                let graphviz: String = newStructure.graphviz
-                guard let data = graphviz.data(using: .utf8) else {
-                    throw error
-                }
-                let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
-                try data.write(to: url)
-                throw error
+                try createGraphvizFile(for: branch, error: error, structure: structure)
             default:
                 throw error
             }
         } catch {
             throw error
         }
-        
+    }
+
+    func createGraphvizFile(for branch: [Node], error: Error, structure: KripkeStructure) throws {
+        guard let initialNode = branch.first else {
+            throw error
+        }
+        let branchSet = Set(branch)
+        let edges = Dictionary(
+            uniqueKeysWithValues: structure.edges
+                .compactMap { (node: Node, edges: [Edge]) -> (Node, [Edge])? in
+                    guard branchSet.contains(node) else {
+                        return nil
+                    }
+                    let newEdges = Array(Set(edges.filter { branchSet.contains($0.target) }))
+                    return (node, newEdges)
+                }
+        )
+        let newStructure = KripkeStructure(
+            nodes: Array(branchSet), edges: edges, initialStates: [initialNode]
+        )
+        let graphviz: String = newStructure.graphviz
+        guard let data = graphviz.data(using: .utf8) else {
+            throw error
+        }
+        let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
+        try data.write(to: url)
+        throw error
     }
 
 }
