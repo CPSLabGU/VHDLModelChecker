@@ -76,6 +76,21 @@ class KripkeStructureTestable: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    /// The mode selector kripke structure.
+    static let modeSelectorKripkeStructure = {
+        let path = FileManager.default.currentDirectoryPath.appending(
+            "/Tests/VHDLModelCheckerTests/modeSelector_kripkeStructure.json"
+        )
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
+            fatalError("No data!")
+        }
+        let decoder = JSONDecoder()
+        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
+            fatalError("Failed to parse kripke structure!")
+        }
+        return kripkeStructureParsed
+    }()
+
     // swiftlint:disable implicitly_unwrapped_optional
 
     /// A `10 us` constraint.
