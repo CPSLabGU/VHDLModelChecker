@@ -134,17 +134,20 @@ struct LLFSMVerify: ParsableCommand {
         guard let initialNode = branch.first else {
             throw error
         }
+        var edges: [Node: [Edge]] = [:]
         let branchSet = Set(branch)
-        let edges = Dictionary(
-            uniqueKeysWithValues: structure.edges
-                .compactMap { (node: Node, edges: [Edge]) -> (Node, [Edge])? in
-                    guard branchSet.contains(node) else {
-                        return nil
-                    }
-                    let newEdges = Array(Set(edges.filter { branchSet.contains($0.target) }))
-                    return (node, newEdges)
-                }
-        )
+        var lastNode = initialNode
+        try branch.dropFirst().forEach { node in
+            guard let edge = structure.edges[lastNode]?.first(where: { $0.target == node }) else {
+                throw ModelCheckerError.internalError
+            }
+            defer { lastNode = node }
+            guard let currentEdges = edges[lastNode] else {
+                edges[lastNode] = [edge]
+                return
+            }
+            edges[lastNode] = Array(Set(currentEdges + [edge]))
+        }
         let newStructure = KripkeStructure(
             nodes: Array(branchSet), edges: edges, initialStates: [initialNode]
         )
