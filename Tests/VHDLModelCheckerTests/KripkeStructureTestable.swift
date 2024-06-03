@@ -63,10 +63,10 @@ class KripkeStructureTestable: XCTestCase {
 
     /// The kripke structure to test.
     static let kripkeStructure = {
-        let path = FileManager.default.currentDirectoryPath.appending(
-            "/Tests/VHDLModelCheckerTests/output.json"
-        )
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
+        guard
+            let pathURL = Bundle.module.url(forResource: "output", withExtension: "json"),
+            let data = try? Data(contentsOf: pathURL)
+        else {
             fatalError("No data!")
         }
         let decoder = JSONDecoder()
@@ -78,10 +78,12 @@ class KripkeStructureTestable: XCTestCase {
 
     /// The mode selector kripke structure.
     static let modeSelectorKripkeStructure = {
-        let path = FileManager.default.currentDirectoryPath.appending(
-            "/Tests/VHDLModelCheckerTests/modeSelector_kripkeStructure.json"
-        )
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path, isDirectory: false)) else {
+        guard
+            let pathURL = Bundle.module.url(
+                forResource: "modeSelector_kripkeStructure", withExtension: "json"
+            ),
+            let data = try? Data(contentsOf: pathURL)
+        else {
             fatalError("No data!")
         }
         let decoder = JSONDecoder()
