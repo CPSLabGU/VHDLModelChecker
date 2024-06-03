@@ -582,4 +582,15 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
+    func testExistsUntil() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G operationalMode = '1' -> E operationalMode = '1' U bootMode = '1'
+        """
+        let spec = Specification(rawValue: specRaw)!
+        let iterator = KripkeStructureIterator(structure: KripkeStructureTestable.modeSelectorKripkeStructure)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
 }
