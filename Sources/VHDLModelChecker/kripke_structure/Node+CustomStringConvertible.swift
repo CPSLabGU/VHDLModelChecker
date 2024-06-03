@@ -62,6 +62,7 @@ extension Node: CustomStringConvertible {
         """
         Node(
             currentState: \(self.currentState.rawValue),
+            type: \(self.type),
             executeOnEntry: \(self.executeOnEntry),
             nextState: \(self.nextState.rawValue),
             properties:
