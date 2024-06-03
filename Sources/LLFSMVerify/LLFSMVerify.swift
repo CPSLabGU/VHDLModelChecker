@@ -85,6 +85,14 @@ struct LLFSMVerify: ParsableCommand {
     @Option(help: "The maximum number of states to return in the counter example.")
     var branchDepth: UInt?
 
+    @Flag(
+        help: """
+        Write the entire Kripke Structure. This flag must also be used with the --write-graphviz flag.
+        The --branch-depth option is also ignored when this flag is present.
+        """
+    )
+    var entireStructure = false
+
     func run() throws {
         let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
         let structureURL = machine
@@ -130,7 +138,7 @@ struct LLFSMVerify: ParsableCommand {
         }
     }
 
-    func createGraphvizFile(for branch: [Node], error: Error, structure: KripkeStructure) throws {
+    func writeBranch(for branch: [Node], error: Error, structure: KripkeStructure) throws {
         guard let initialNode = branch.first else {
             throw error
         }
@@ -158,6 +166,61 @@ struct LLFSMVerify: ParsableCommand {
         let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
         try data.write(to: url)
         throw error
+    }
+
+    func writeStructure(for branch: [Node], error: Error, structure: KripkeStructure) throws {
+        let branchNodes = Set(branch)
+        let nodeKeys = Dictionary(uniqueKeysWithValues: structure.nodes.enumerated().map { ($1, $0) })
+        let nodesString = nodeKeys.lazy.sorted { $0.value < $1.value }
+            .map {
+                let color = branchNodes.contains($0.key) ? "red" : "black"
+                let nodeStr = "\"\($0.value)\" [style=rounded shape=rectangle label=\"\($0.key.graphviz)\" " +
+                    "color=\"\(color)\" fontcolor=\"\(color)\"]"
+                guard structure.initialStates.contains($0.key) else {
+                    return nodeStr
+                }
+                return "\"\($0.value)-0\" [shape=point color=\"\(color)\"]\n" +
+                    "\(nodeStr)\n\"\($0.value)-0\" -> \"\($0.value)\" [color=\"\(color)\"" +
+                    " fontcolor=\"\(color)\"]"
+            }
+            .joined(separator: "\n")
+            .components(separatedBy: "\n")
+            .map { "    \($0)" }
+            .joined(separator: "\n")
+        let edges = structure.edges.lazy.filter { nodeKeys[$0.key] != nil }
+            .sorted { nodeKeys[$0.key]! < nodeKeys[$1.key]! }
+            .flatMap { node1, edges1 in
+                let id = nodeKeys[node1]!
+                return edges1.map {
+                    let color = branchNodes.contains(node1) && branchNodes.contains($0.target)
+                        ? "red" : "black"
+                    guard let id2 = nodeKeys[$0.target] else {
+                        fatalError("Failed to create graphviz edge for node \($0.target)")
+                    }
+                    return "\"\(id)\" -> \"\(id2)\" [label=\($0.cost.graphviz) color=\"\(color)\"" +
+                        " fontcolor=\"\(color)\"]"
+                }
+            }
+        let diagram = """
+        digraph {
+        \(nodesString)
+        \(edges.map { "    \($0)" }.joined(separator: "\n"))
+        }
+        """
+        guard let data = diagram.data(using: .utf8) else {
+            throw error
+        }
+        let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
+        try data.write(to: url)
+        throw error
+    }
+
+    func createGraphvizFile(for branch: [Node], error: Error, structure: KripkeStructure) throws {
+        guard entireStructure else {
+            try writeBranch(for: branch, error: error, structure: structure)
+            return
+        }
+        try writeStructure(for: branch, error: error, structure: structure)
     }
 
 }
