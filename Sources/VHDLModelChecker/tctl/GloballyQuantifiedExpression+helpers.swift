@@ -59,6 +59,15 @@ import VHDLKripkeStructures
 /// Add verify methods to expression.
 extension GloballyQuantifiedExpression {
 
+    var historyExpression: GloballyQuantifiedExpression? {
+        switch pathQuantifier {
+        case .globally, .finally:
+            return self
+        default:
+            return nil
+        }
+    }
+
     /// The current quantifier of this expression.
     var quantifier: GlobalQuantifiedType {
         switch self {
@@ -66,6 +75,13 @@ extension GloballyQuantifiedExpression {
             return .always
         case .eventually:
             return .eventually
+        }
+    }
+
+    var pathQuantifier: PathQuantifiedExpression {
+        switch self {
+        case .always(let expression), .eventually(let expression):
+            return expression
         }
     }
 

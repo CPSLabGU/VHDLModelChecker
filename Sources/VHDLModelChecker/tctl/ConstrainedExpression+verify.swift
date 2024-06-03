@@ -67,14 +67,7 @@ extension ConstrainedExpression {
     /// - Returns: An array of statuses for the verification.
     func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
         return [
-            .noSession(status: .revisitting(
-                expression: .language(expression: .vhdl(expression: .conditional(
-                    expression: .literal(value: true)
-                ))),
-                precondition: .required(
-                    expression: expression, constraints: constraints
-                )
-            ))
+            .addConstraints(expression: expression, constraints: constraints)
         ]
     }
 

@@ -84,7 +84,7 @@ final class TCTLModelChecker {
 
     var revisits: [UUID: Revisit] = [:]
 
-    private var debug = false
+    private var debug = true
 
     init() {
         self.jobs.reserveCapacity(1000000)
@@ -114,6 +114,7 @@ final class TCTLModelChecker {
                     history: [],
                     currentBranch: [],
                     inSession: false,
+                    historyExpression: nil,
                     constraints: [],
                     session: nil,
                     successRevisit: nil,
@@ -141,10 +142,22 @@ final class TCTLModelChecker {
 
     // swiftlint:disable:next function_body_length
     private func handleJob(_ job: Job, structure: KripkeStructureIterator) throws {
-        if debug { print("\n") }
+        defer {
+            if debug { print("_\n_") }
+        }
         if let session = job.session, let sessionResult = completedSessions[session] {
             if debug {
-                print("job: \(job.expression.rawValue), inCycle: \(job.history.contains(job.nodeId)), sessionId: \(job.session?.description ?? "nil"), history: \(job.history.sorted { $0.description < $1.description })")
+                print("""
+                    job: \(revisitId(for: Revisit(job: job)))
+                    expression: \(job.expression.rawValue),
+                    inCycle: \(job.history.contains(job.nodeId)),
+                    sessionId: \(job.session?.description ?? "nil"),
+                    historyExpression: \(job.historyExpression?.rawValue ?? "nil"),
+                    constraints: [\(job.constraints.map { "([\($0.constraint.rawValue), cost: \($0.cost))" }.joined(separator: ", "))],
+                    history: \(job.history.sorted { $0.description < $1.description })
+                    successRevisit: \(job.successRevisit?.description ?? "nil")
+                    failRevisit: \(job.failRevisit?.description ?? "nil")
+                    """)
                 print("session completed: \(sessionResult?.localizedDescription ?? "nil").")
                 fflush(stdout)
             }
@@ -158,7 +171,16 @@ final class TCTLModelChecker {
         let cycleData = job.cycleData
         if cycles.contains(cycleData) {
             if debug {
-                print("job: \(job.expression.rawValue), inCycle: \(job.history.contains(job.nodeId)), sessionId: \(job.session?.description ?? "nil"), history: \(job.history.sorted { $0.description < $1.description })")
+                print("""
+                    job: \(job.expression.rawValue),
+                    inCycle: \(job.history.contains(job.nodeId)),
+                    sessionId: \(job.session?.description ?? "nil"),
+                    historyExpression: \(job.historyExpression?.rawValue ?? "nil"),
+                    constraints: [\(job.constraints.map { "([\($0.constraint.rawValue), cost: \($0.cost))" }.joined(separator: ", "))],
+                    history: \(job.history.sorted { $0.description < $1.description })
+                    successRevisit: \(job.successRevisit?.description ?? "nil")
+                    failRevisit: \(job.failRevisit?.description ?? "nil")
+                    """)
                 print("in cycle.")
                 fflush(stdout)
             }
@@ -172,9 +194,36 @@ final class TCTLModelChecker {
             throw ModelCheckerError.internalError
         }
         if debug {
-            print("node: \(node)")
-            print("job: \(job.expression.rawValue), inCycle: \(job.history.contains(job.nodeId)), sessionId: \(job.session?.description ?? "nil"), history: \(job.history.sorted { $0.description < $1.description })")
+            print("nodeId: \(job.nodeId), node: \(node)")
+            print("""
+                job: \(revisitId(for: Revisit(job: job)))
+                expression: \(job.expression.rawValue),
+                inCycle: \(job.history.contains(job.nodeId)),
+                sessionId: \(job.session?.description ?? "nil"),
+                historyExpression: \(job.historyExpression?.rawValue ?? "nil"),
+                constraints: [\(job.constraints.map { "([\($0.constraint.rawValue), cost: \($0.cost))" }.joined(separator: ", "))],
+                history: \(job.history.sorted { $0.description < $1.description })
+                successRevisit: \(job.successRevisit?.description ?? "nil")
+                failRevisit: \(job.failRevisit?.description ?? "nil")
+                """)
             fflush(stdout)
+        }
+        if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
+            let newJob = Job(
+                nodeId: job.nodeId,
+                expression: job.expression,
+                history: [],
+                currentBranch: [],
+                inSession: job.inSession,
+                historyExpression: historyExpression,
+                constraints: job.constraints,
+                session: job.session,
+                successRevisit: job.successRevisit,
+                failRevisit: job.failRevisit,
+                allSessionIds: job.allSessionIds
+            )
+            jobs.append(newJob)
+            return
         }
         let results: [SessionStatus]
         do {
@@ -209,15 +258,40 @@ final class TCTLModelChecker {
         }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
+            switch result {
+            case .addConstraints(let expression, let constraints):
+                let newJob = Job(
+                    nodeId: job.nodeId,
+                    expression: expression,
+                    history: job.history,
+                    currentBranch: job.currentBranch,
+                    inSession: job.inSession,
+                    historyExpression: job.historyExpression,
+                    constraints: job.constraints + constraints.map {
+                        PhysicalConstraint(cost: .zero, constraint: $0)
+                    },
+                    session: job.session,
+                    successRevisit: job.successRevisit,
+                    failRevisit: job.failRevisit,
+                    allSessionIds: job.allSessionIds
+                )
+                self.jobs.append(newJob)
+                return
+            default:
+                break
+            }
             let newSuccessRevisit = try job.successRevisit.map { Revisit(revisit: try revisit(withId: $0)) }
-            newSuccessRevisit?.constraints = []
+            // newSuccessRevisit?.constraints = []
             let newSuccessRevisitId = newSuccessRevisit.map(revisitId)
             let newFailRevisit = try job.failRevisit.map { Revisit(revisit: try revisit(withId: $0)) }
-            newFailRevisit?.constraints = []
+            // newFailRevisit?.constraints = []
             let newFailRevisitId = newFailRevisit.map(revisitId)
             let session = result.isNewSession ? try sessionId(forJob: job) : nil
             let jobs: [Job]
-            switch result.status {
+            guard let resultStatus = result.status else {
+                throw ModelCheckerError.internalError
+            }
+            switch resultStatus {
             case .successor(let expression):
                 if successors.isEmpty {
                     return
@@ -232,6 +306,7 @@ final class TCTLModelChecker {
                         nodeId: job.nodeId,
                         expression: .language(expression: .vhdl(expression: .true)),
                         inSession: true,
+                        historyExpression: job.historyExpression,
                         constraints: [],
                         session: session,
                         successRevisit: newSuccessRevisitId,
@@ -244,6 +319,7 @@ final class TCTLModelChecker {
                         nodeId: job.nodeId,
                         expression: .language(expression: .vhdl(expression: .false)),
                         inSession: true,
+                        historyExpression: job.historyExpression,
                         constraints: [],
                         session: session,
                         successRevisit: newSuccessRevisitId,
@@ -267,6 +343,7 @@ final class TCTLModelChecker {
                         history: job.history.union([job.nodeId]),
                         currentBranch: job.currentBranch + [job.nodeId],
                         inSession: result.isNewSession ? true : job.inSession,
+                        historyExpression: job.historyExpression,
                         constraints: job.constraints.map {
                             PhysicalConstraint(cost: $0.cost + successor.cost, constraint: $0.constraint)
                         },
@@ -294,6 +371,7 @@ final class TCTLModelChecker {
                         nodeId: job.nodeId,
                         expression: .language(expression: .vhdl(expression: .true)),
                         inSession: true,
+                        historyExpression: job.historyExpression,
                         constraints: [],
                         session: session,
                         successRevisit: newSuccessRevisitId,
@@ -306,6 +384,7 @@ final class TCTLModelChecker {
                         nodeId: job.nodeId,
                         expression: .language(expression: .vhdl(expression: .false)),
                         inSession: true,
+                        historyExpression: job.historyExpression,
                         constraints: [],
                         session: session,
                         successRevisit: newSuccessRevisitId,
@@ -325,18 +404,15 @@ final class TCTLModelChecker {
                 for (session, amount) in newAllSessionIds.sessionIds {
                     try increment(session: session, amount: amount)
                 }
-                let revisitConstraints = revisit.constraints.map {
-                    PhysicalConstraint(cost: .zero, constraint: $0)
-                }
-                let newConstraints = job.constraints + revisitConstraints
                 let alternativeRevisit = sessionRevisit.map(Revisit.init)
-                alternativeRevisit?.constraints = newConstraints
+                // alternativeRevisit?.constraints = []
                 let sessionRevisitId = sessionRevisit.map(revisitId)
                 let newRevisit = Revisit(
                     nodeId: job.nodeId,
                     expression: expression,
                     inSession: result.isNewSession ? true : job.inSession,
-                    constraints: newConstraints,
+                    historyExpression: job.historyExpression,
+                    constraints: job.constraints,
                     session: nil,
                     successRevisit: sessionRevisitId,
                     failRevisit: newFailRevisitId,
@@ -365,7 +441,8 @@ final class TCTLModelChecker {
                     history: job.history,
                     currentBranch: job.currentBranch,
                     inSession: result.isNewSession ? true : job.inSession,
-                    constraints: newConstraints,
+                    historyExpression: job.historyExpression,
+                    constraints: job.constraints,
                     session: job.session,
                     successRevisit: successRevisitId,
                     failRevisit: failRevisitId,

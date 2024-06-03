@@ -69,7 +69,7 @@ extension PathQuantifiedExpression {
                 return [
                     .revisitting(
                         expression: .language(expression: .vhdl(expression: .true)),
-                        precondition: .required(expression: expression, constraints: [])
+                        precondition: .required(expression: expression)
                     )
                 ]
             case .until, .weak:
@@ -91,7 +91,7 @@ extension PathQuantifiedExpression {
                             quantifier: quantifier, expression: self
                         )))
                     )),
-                    precondition: .required(expression: expression, constraints: [])
+                    precondition: .required(expression: expression)
                 )
             ]
         case .finally(let expression):
@@ -103,7 +103,7 @@ extension PathQuantifiedExpression {
                             quantifier: quantifier, expression: self
                         )))
                     )),
-                    precondition: .skip(expression: expression, constraints: [])
+                    precondition: .skip(expression: expression)
                 )
             ]
         case .until, .weak:

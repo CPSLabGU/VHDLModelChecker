@@ -58,6 +58,24 @@ import VHDLKripkeStructures
 
 extension Expression {
 
+    var historyExpression: Expression? {
+        switch self {
+        case .quantified(let expression):
+            return expression.historyExpression.map { .quantified(expression: $0) }
+        default:
+            return nil
+        }
+    }
+
+    var constraints: [ConstrainedStatement]? {
+        switch self {
+        case .constrained(let expression):
+            return expression.constraints
+        default:
+            return nil
+        }
+    }
+
     func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
@@ -71,13 +89,13 @@ extension Expression {
         case .conjunction(let lhs, let rhs):
             return [
                 .noSession(status: .revisitting(
-                    expression: rhs, precondition: .required(expression: lhs, constraints: [])
+                    expression: rhs, precondition: .required(expression: lhs)
                 ))
             ]
         case .disjunction(let lhs, let rhs):
             return [
                 .noSession(status: .revisitting(
-                    expression: rhs, precondition: .skip(expression: lhs, constraints: [])
+                    expression: rhs, precondition: .skip(expression: lhs)
                 ))
             ]
         case .not(let expression):
@@ -86,13 +104,13 @@ extension Expression {
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: false)
                     ))),
-                    precondition: .ignored(expression: expression, constraints: [])
+                    precondition: .ignored(expression: expression)
                 ))
             ]
         case .implies(let lhs, let rhs):
             return [
                 .noSession(status: .revisitting(
-                    expression: rhs, precondition: .ignored(expression: lhs, constraints: [])
+                    expression: rhs, precondition: .ignored(expression: lhs)
                 ))
             ]
         case .constrained(let expression):

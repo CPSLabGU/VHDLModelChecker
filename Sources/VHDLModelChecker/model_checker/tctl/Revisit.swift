@@ -61,6 +61,7 @@ final class Revisit: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var inSession: Bool
+    var historyExpression: Expression?
     var constraints: [PhysicalConstraint]
     var session: UUID?
     var successRevisit: UUID?
@@ -73,6 +74,7 @@ final class Revisit: Equatable, Hashable {
         nodeId: UUID,
         expression: Expression,
         inSession: Bool,
+        historyExpression: Expression?,
         constraints: [PhysicalConstraint],
         session: UUID?,
         successRevisit: UUID?,
@@ -84,6 +86,7 @@ final class Revisit: Equatable, Hashable {
         self.nodeId = nodeId
         self.expression = expression
         self.inSession = inSession
+        self.historyExpression = historyExpression
         self.constraints = constraints
         self.session = session
         self.successRevisit = successRevisit
@@ -98,6 +101,7 @@ final class Revisit: Equatable, Hashable {
             nodeId: revisit.nodeId,
             expression: revisit.expression,
             inSession: revisit.inSession,
+            historyExpression: revisit.historyExpression,
             constraints: revisit.constraints,
             session: revisit.session,
             successRevisit: revisit.successRevisit,
@@ -108,10 +112,27 @@ final class Revisit: Equatable, Hashable {
         )
     }
 
+    convenience init(job: Job) {
+        self.init(
+            nodeId: job.nodeId,
+            expression: job.expression,
+            inSession: job.inSession,
+            historyExpression: job.historyExpression,
+            constraints: job.constraints,
+            session: job.session,
+            successRevisit: job.successRevisit,
+            failRevisit: job.failRevisit,
+            history: job.history,
+            currentBranch: job.currentBranch,
+            allSessionIds: job.allSessionIds
+        )
+    }
+
     static func == (lhs: Revisit, rhs: Revisit) -> Bool {
         lhs.nodeId == rhs.nodeId
             && lhs.expression == rhs.expression
             && lhs.inSession == rhs.inSession
+            && lhs.historyExpression == rhs.historyExpression
             && lhs.constraints == rhs.constraints
             && lhs.session == rhs.session
             && lhs.history == rhs.history
@@ -125,6 +146,7 @@ final class Revisit: Equatable, Hashable {
         hasher.combine(nodeId)
         hasher.combine(expression)
         hasher.combine(inSession)
+        hasher.combine(historyExpression)
         hasher.combine(session)
         hasher.combine(constraints)
         hasher.combine(history)

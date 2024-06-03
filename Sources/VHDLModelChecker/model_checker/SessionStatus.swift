@@ -53,25 +53,37 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import TCTLParser
+
 enum SessionStatus: Equatable, Hashable, Codable, Sendable {
 
     case newSession(status: VerifyStatus)
 
     case noSession(status: VerifyStatus)
 
+    /// The current verification continues by evaluation the associated
+    /// expression with additional constraints.
+    /// - Parameters:
+    ///     - expression: The expression to evaluate.
+    ///     - constraints: The new constraints to add before evaluating
+    ///     `expression`.
+    case addConstraints(expression: Expression, constraints: [ConstrainedStatement])
+
     var isNewSession: Bool {
         switch self {
         case .newSession:
             return true
-        case .noSession:
+        case .noSession, .addConstraints:
             return false
         }
     }
 
-    var status: VerifyStatus {
+    var status: VerifyStatus? {
         switch self {
         case .newSession(let status), .noSession(let status):
             return status
+        case .addConstraints:
+            return nil
         }
     }
 

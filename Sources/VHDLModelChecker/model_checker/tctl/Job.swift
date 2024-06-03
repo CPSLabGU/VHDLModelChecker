@@ -65,6 +65,8 @@ final class CycleData: Equatable, Hashable {
 
     var inCycle: Bool
 
+    var historyExpression: Expression?
+
     var session: UUID?
 
     var constraints: [PhysicalConstraint]
@@ -77,6 +79,7 @@ final class CycleData: Equatable, Hashable {
         nodeId: UUID,
         expression: Expression,
         inCycle: Bool,
+        historyExpression: Expression?,
         session: UUID?,
         constraints: [PhysicalConstraint],
         successRevisit: UUID?,
@@ -85,6 +88,7 @@ final class CycleData: Equatable, Hashable {
         self.nodeId = nodeId
         self.expression = expression
         self.inCycle = inCycle
+        self.historyExpression = historyExpression
         self.session = session
         self.constraints = constraints
         self.successRevisit = successRevisit
@@ -95,6 +99,7 @@ final class CycleData: Equatable, Hashable {
         lhs.nodeId == rhs.nodeId
             && lhs.expression == rhs.expression
             && lhs.inCycle == rhs.inCycle
+            && lhs.historyExpression == rhs.historyExpression
             && lhs.session == rhs.session
             && lhs.constraints == rhs.constraints
             && lhs.successRevisit == rhs.successRevisit
@@ -105,6 +110,7 @@ final class CycleData: Equatable, Hashable {
         hasher.combine(nodeId)
         hasher.combine(expression)
         hasher.combine(inCycle)
+        hasher.combine(historyExpression)
         hasher.combine(session)
         hasher.combine(constraints)
         hasher.combine(successRevisit)
@@ -119,6 +125,7 @@ final class Job: Equatable, Hashable {
     var history: Set<UUID>
     var currentBranch: [UUID]
     var inSession: Bool
+    var historyExpression: Expression?
     var constraints: [PhysicalConstraint]
     var session: UUID?
     var successRevisit: UUID?
@@ -130,6 +137,7 @@ final class Job: Equatable, Hashable {
             nodeId: nodeId,
             expression: expression,
             inCycle: history.contains(nodeId),
+            historyExpression: historyExpression,
             session: session,
             constraints: constraints,
             successRevisit: successRevisit,
@@ -147,6 +155,7 @@ final class Job: Equatable, Hashable {
         history: Set<UUID>,
         currentBranch: [UUID],
         inSession: Bool,
+        historyExpression: Expression?,
         constraints: [PhysicalConstraint],
         session: UUID?,
         successRevisit: UUID?,
@@ -158,6 +167,7 @@ final class Job: Equatable, Hashable {
         self.history = history
         self.currentBranch = currentBranch
         self.inSession = inSession
+        self.historyExpression = historyExpression
         self.constraints = constraints
         self.session = session
         self.successRevisit = successRevisit
@@ -172,6 +182,7 @@ final class Job: Equatable, Hashable {
             history: revisit.history,
             currentBranch: revisit.currentBranch,
             inSession: revisit.inSession,
+            historyExpression: revisit.historyExpression,
             constraints: revisit.constraints,
             session: revisit.session,
             successRevisit: revisit.successRevisit,
@@ -186,6 +197,7 @@ final class Job: Equatable, Hashable {
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
             && lhs.inSession == rhs.inSession
+            && lhs.historyExpression == rhs.historyExpression
             && lhs.constraints == rhs.constraints
             && lhs.session == rhs.session
             && lhs.successRevisit == rhs.successRevisit
@@ -199,6 +211,7 @@ final class Job: Equatable, Hashable {
         hasher.combine(history)
         hasher.combine(currentBranch)
         hasher.combine(inSession)
+        hasher.combine(historyExpression)
         hasher.combine(constraints)
         hasher.combine(session)
         hasher.combine(successRevisit)
