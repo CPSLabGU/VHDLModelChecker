@@ -84,7 +84,7 @@ final class TCTLModelChecker {
 
     var revisits: [UUID: Revisit] = [:]
 
-    private var debug = false
+    private var debug = true
 
     init() {
         self.jobs.reserveCapacity(1000000)
