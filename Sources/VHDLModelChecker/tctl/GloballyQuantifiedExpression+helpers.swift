@@ -61,7 +61,7 @@ extension GloballyQuantifiedExpression {
 
     var historyExpression: GloballyQuantifiedExpression? {
         switch pathQuantifier {
-        case .globally, .finally:
+        case .globally, .finally, .weak, .until:
             return self
         default:
             return nil

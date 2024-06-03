@@ -65,15 +65,15 @@ extension PathQuantifiedExpression {
             switch self {
             case .next(let expression):
                 return [.successor(expression: expression)]
-            case .globally(let expression), .finally(let expression):
+            case .globally(let expression), .finally(let expression), .until(_, let expression):
                 return [
                     .revisitting(
                         expression: .language(expression: .vhdl(expression: .true)),
                         precondition: .required(expression: expression)
                     )
                 ]
-            case .until, .weak:
-                throw UnrecoverableError.notSupported
+            case .weak(let lhs, let rhs):
+                return [.revisitting(expression: lhs, precondition: .skip(expression: rhs))]
             }
         }
         // Q G e :: .revisit(Q X Q G E, .required(e))
@@ -106,8 +106,23 @@ extension PathQuantifiedExpression {
                     precondition: .skip(expression: expression)
                 )
             ]
-        case .until, .weak:
-            throw UnrecoverableError.notSupported
+        case .until(let lhs, let rhs), .weak(let lhs, let rhs):
+            return [
+                .revisitting(
+                    expression: .conjunction(
+                        lhs: lhs,
+                        rhs: .quantified(expression: GloballyQuantifiedExpression(
+                            quantifier: quantifier,
+                            expression: .next(expression: .quantified(
+                                expression: GloballyQuantifiedExpression(
+                                    quantifier: quantifier, expression: self
+                                )
+                            ))
+                        ))
+                    ),
+                    precondition: .skip(expression: rhs)
+                )
+            ]
         }
     }
 
