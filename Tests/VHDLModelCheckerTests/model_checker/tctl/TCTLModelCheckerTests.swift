@@ -589,7 +589,9 @@ final class TCTLModelCheckerTests: XCTestCase {
         A G operationalMode = '1' -> E operationalMode = '1' U bootMode = '1'
         """
         let spec = Specification(rawValue: specRaw)!
-        let iterator = KripkeStructureIterator(structure: KripkeStructureTestable.modeSelectorKripkeStructure)
+        let iterator = KripkeStructureIterator(
+            structure: KripkeStructureTestable.modeSelectorKripkeStructureOld
+        )
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 

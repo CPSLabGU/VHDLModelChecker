@@ -78,13 +78,13 @@ final class TCTLModelChecker {
 
     var sessionIds: [SessionKey: UUID] = [:]
 
-    var sessionReferences: [UUID: UInt] = [:]
+    // var sessionReferences: [UUID: UInt] = [:]
 
     var revisitIds: [Revisit: UUID] = [:]
 
     var revisits: [UUID: Revisit] = [:]
 
-    private var debug = true
+    private var debug = false
 
     init() {
         self.jobs.reserveCapacity(1000000)
@@ -92,7 +92,7 @@ final class TCTLModelChecker {
         self.completedSessions.reserveCapacity(1000000)
         self.pendingSessions.reserveCapacity(1000000)
         self.sessionIds.reserveCapacity(1000000)
-        self.sessionReferences.reserveCapacity(1000000)
+        // self.sessionReferences.reserveCapacity(1000000)
         self.revisitIds.reserveCapacity(1000000)
         self.revisits.reserveCapacity(1000000)
     }
@@ -103,7 +103,7 @@ final class TCTLModelChecker {
         self.completedSessions.removeAll(keepingCapacity: true)
         self.pendingSessions.removeAll(keepingCapacity: true)
         self.sessionIds.removeAll(keepingCapacity: true)
-        self.sessionReferences.removeAll(keepingCapacity: true)
+        // self.sessionReferences.removeAll(keepingCapacity: true)
         self.revisitIds.removeAll(keepingCapacity: true)
         self.revisits.removeAll(keepingCapacity: true)
         for id in structure.initialStates {
@@ -127,9 +127,9 @@ final class TCTLModelChecker {
         while let job = jobs.popLast() {
             try handleJob(job, structure: structure)
         }
-        guard !sessionReferences.contains(where: { $0.value > 0 }) else {
-            throw ModelCheckerError.internalError
-        }
+        // guard !sessionReferences.contains(where: { $0.value > 0 }) else {
+        //     throw ModelCheckerError.internalError
+        // }
         guard let (_, session) = pendingSessions.first else {
             return
         }
@@ -168,6 +168,9 @@ final class TCTLModelChecker {
             }
             return
         }
+        if let session = job.session, pendingSessions[session] == nil {
+            throw ModelCheckerError.internalError
+        }
         let cycleData = job.cycleData
         if cycles.contains(cycleData) {
             if debug {
@@ -184,9 +187,9 @@ final class TCTLModelChecker {
                 print("in cycle.")
                 fflush(stdout)
             }
-            for (session, count) in job.allSessionIds.sessionIds {
-                try decrement(session: session, amount: count)
-            }
+            // for (session, count) in job.allSessionIds.sessionIds {
+            //     decrement(session: session, amount: count)
+            // }
             return
         }
         cycles.insert(cycleData)
@@ -253,9 +256,11 @@ final class TCTLModelChecker {
             try succeed(job: job)
             return
         }
-        for (session, amount) in job.allSessionIds.sessionIds {
-            try decrement(session: session, amount: amount)
-        }
+        // defer {
+        //     for (session, amount) in job.allSessionIds.sessionIds {
+        //         decrement(session: session, amount: amount)
+        //     }
+        // }
         lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
             switch result {
@@ -275,66 +280,61 @@ final class TCTLModelChecker {
                     failRevisit: job.failRevisit,
                     allSessionIds: job.allSessionIds
                 )
+                // for (session, amount) in newJob.allSessionIds.sessionIds {
+                //     increment(session: session, amount: amount)
+                // }
                 self.jobs.append(newJob)
                 return
             default:
                 break
             }
-            let newSuccessRevisit = try job.successRevisit.map { Revisit(revisit: try revisit(withId: $0)) }
-            // newSuccessRevisit?.constraints = []
-            let newSuccessRevisitId = newSuccessRevisit.map(revisitId)
-            let newFailRevisit = try job.failRevisit.map { Revisit(revisit: try revisit(withId: $0)) }
-            // newFailRevisit?.constraints = []
-            let newFailRevisitId = newFailRevisit.map(revisitId)
             let session = result.isNewSession ? try sessionId(forJob: job) : nil
             let jobs: [Job]
             guard let resultStatus = result.status else {
                 throw ModelCheckerError.internalError
             }
+            let successRevisit: UUID?
+            let failRevisit: UUID?
+            let newAllSessionIds: SessionIdStore
+            if let session {
+                newAllSessionIds = SessionIdStore(store: job.allSessionIds)
+                newAllSessionIds.addSession(id: session)
+                successRevisit = revisitId(for: Revisit(
+                    nodeId: job.nodeId,
+                    expression: .language(expression: .vhdl(expression: .true)),
+                    inSession: true,
+                    historyExpression: job.historyExpression,
+                    constraints: [],
+                    session: session,
+                    successRevisit: job.successRevisit,
+                    failRevisit: job.failRevisit,
+                    history: job.history,
+                    currentBranch: job.currentBranch,
+                    allSessionIds: newAllSessionIds
+                ))
+                failRevisit = revisitId(for: Revisit(
+                    nodeId: job.nodeId,
+                    expression: .language(expression: .vhdl(expression: .false)),
+                    inSession: true,
+                    historyExpression: job.historyExpression,
+                    constraints: [],
+                    session: session,
+                    successRevisit: job.successRevisit,
+                    failRevisit: job.failRevisit,
+                    history: job.history,
+                    currentBranch: job.currentBranch,
+                    allSessionIds: newAllSessionIds
+                ))
+            } else {
+                newAllSessionIds = SessionIdStore(store: job.allSessionIds)
+                successRevisit = job.successRevisit
+                failRevisit = job.failRevisit
+            }
             switch resultStatus {
             case .successor(let expression):
                 if successors.isEmpty {
-                    return
+                    continue
                 }
-                let sessionRevisit: Revisit?
-                let sessionFailRevisit: Revisit?
-                let newAllSessionIds: SessionIdStore
-                if let session {
-                    newAllSessionIds = SessionIdStore(store: job.allSessionIds)
-                    newAllSessionIds.addSession(id: session)
-                    sessionRevisit = Revisit(
-                        nodeId: job.nodeId,
-                        expression: .language(expression: .vhdl(expression: .true)),
-                        inSession: true,
-                        historyExpression: job.historyExpression,
-                        constraints: [],
-                        session: session,
-                        successRevisit: newSuccessRevisitId,
-                        failRevisit: newFailRevisitId,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        allSessionIds: newAllSessionIds
-                    )
-                    sessionFailRevisit = Revisit(
-                        nodeId: job.nodeId,
-                        expression: .language(expression: .vhdl(expression: .false)),
-                        inSession: true,
-                        historyExpression: job.historyExpression,
-                        constraints: [],
-                        session: session,
-                        successRevisit: newSuccessRevisitId,
-                        failRevisit: newFailRevisitId,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        allSessionIds: newAllSessionIds
-                    )
-                } else {
-                    newAllSessionIds = SessionIdStore(store: job.allSessionIds)
-                    sessionRevisit = newSuccessRevisit
-                    sessionFailRevisit = newFailRevisit
-                }
-                let sessionRevisitId = sessionRevisit.map(revisitId)
-                let sessionFailRevisitId = sessionFailRevisit.map(revisitId)
                 jobs = successors.map { successor in
                     let nodeId = successor.destination
                     return Job(
@@ -348,93 +348,44 @@ final class TCTLModelChecker {
                             PhysicalConstraint(cost: $0.cost + successor.cost, constraint: $0.constraint)
                         },
                         session: nil,
-                        successRevisit: sessionRevisitId,
-                        failRevisit: sessionFailRevisitId,
+                        successRevisit: successRevisit,
+                        failRevisit: failRevisit,
                         allSessionIds: newAllSessionIds
                     )
                 }
-                for (session, amount) in newAllSessionIds.sessionIds {
-                    try increment(session: session, amount: amount * UInt(successors.count))
-                    // try decrement(session: session, amount: 1)
-                }
+                // for (session, amount) in newAllSessionIds.sessionIds {
+                //     increment(session: session, amount: amount * UInt(successors.count))
+                // }
             case .revisitting(let expression, let revisit):
-                let sessionRevisit: Revisit?
-                let sessionFailRevisit: Revisit?
-                let newAllSessionIds: SessionIdStore
-                if let session {
-                    newAllSessionIds = SessionIdStore(store: job.allSessionIds)
-                    // if let jobSession = job.session {
-                    //     newAllSessionIds.removeSession(id: jobSession)
-                    // }
-                    newAllSessionIds.addSession(id: session)
-                    sessionRevisit = Revisit(
-                        nodeId: job.nodeId,
-                        expression: .language(expression: .vhdl(expression: .true)),
-                        inSession: true,
-                        historyExpression: job.historyExpression,
-                        constraints: [],
-                        session: session,
-                        successRevisit: newSuccessRevisitId,
-                        failRevisit: newFailRevisitId,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        allSessionIds: newAllSessionIds
-                    )
-                    sessionFailRevisit = Revisit(
-                        nodeId: job.nodeId,
-                        expression: .language(expression: .vhdl(expression: .false)),
-                        inSession: true,
-                        historyExpression: job.historyExpression,
-                        constraints: [],
-                        session: session,
-                        successRevisit: newSuccessRevisitId,
-                        failRevisit: newFailRevisitId,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        allSessionIds: newAllSessionIds
-                    )
-                } else {
-                    newAllSessionIds = SessionIdStore(store: job.allSessionIds)
-                    // if let jobSession = job.session {
-                    //     newAllSessionIds.removeSession(id: jobSession)
-                    // }
-                    sessionRevisit = newSuccessRevisit
-                    sessionFailRevisit = newFailRevisit
-                }
-                for (session, amount) in newAllSessionIds.sessionIds {
-                    try increment(session: session, amount: amount)
-                }
-                let alternativeRevisit = sessionRevisit.map(Revisit.init)
-                // alternativeRevisit?.constraints = []
-                let sessionRevisitId = sessionRevisit.map(revisitId)
-                let newRevisit = Revisit(
+                let newRevisit = revisitId(for: Revisit(
                     nodeId: job.nodeId,
                     expression: expression,
                     inSession: result.isNewSession ? true : job.inSession,
                     historyExpression: job.historyExpression,
                     constraints: job.constraints,
                     session: nil,
-                    successRevisit: sessionRevisitId,
-                    failRevisit: newFailRevisitId,
+                    successRevisit: successRevisit,
+                    failRevisit: failRevisit,
                     history: job.history,
                     currentBranch: job.currentBranch,
                     allSessionIds: newAllSessionIds
-                )
-                let successRevisit: Revisit?
-                let failRevisit: Revisit?
+                ))
+                // for (session, amount) in newAllSessionIds.sessionIds {
+                //     increment(session: session, amount: amount)
+                // }
+                let revisitSuccess: UUID?
+                let revisitFail: UUID?
                 switch revisit {
                 case .ignored:
-                    successRevisit = newRevisit
-                    failRevisit = alternativeRevisit
+                    revisitSuccess = newRevisit
+                    revisitFail = successRevisit
                 case .required:
-                    successRevisit = newRevisit
-                    failRevisit = sessionFailRevisit
+                    revisitSuccess = newRevisit
+                    revisitFail = failRevisit
                 case .skip:
-                    successRevisit = alternativeRevisit
-                    failRevisit = newRevisit
+                    revisitSuccess = successRevisit
+                    revisitFail = newRevisit
                 }
-                let successRevisitId = successRevisit.map(revisitId)
-                let failRevisitId = failRevisit.map(revisitId)
                 let newJob = Job(
                     nodeId: job.nodeId,
                     expression: revisit.expression,
@@ -444,16 +395,12 @@ final class TCTLModelChecker {
                     historyExpression: job.historyExpression,
                     constraints: job.constraints,
                     session: job.session,
-                    successRevisit: successRevisitId,
-                    failRevisit: failRevisitId,
+                    successRevisit: revisitSuccess,
+                    failRevisit: revisitFail,
                     allSessionIds: newAllSessionIds
                 )
-                if let jobSession = job.session {
-                    // newJob.allSessionIds.addSession(id: jobSession)
-                    try increment(session: jobSession, amount: 1)
-                }
-                // if let session = session {
-                //     try decrement(session: session, amount: 1)
+                // for (session, amount) in job.allSessionIds.sessionIds {
+                //     increment(session: session, amount: amount)
                 // }
                 jobs = [newJob]
             }
@@ -507,7 +454,7 @@ final class TCTLModelChecker {
         } else {
             let id = UUID()
             sessionIds[key] = id
-            sessionReferences[id] = 0
+            // sessionReferences[id] = 0
             out = id
         }
         if completedSessions[out] == nil {
@@ -518,7 +465,7 @@ final class TCTLModelChecker {
 
     private func succeed(job: Job) throws {
         if let session = job.session {
-            try decrement(session: session, amount: 1)
+            // decrement(session: session, amount: 1)
             completedSessions[session] = .some(nil)
             pendingSessions[session] = nil
         }
@@ -538,44 +485,42 @@ final class TCTLModelChecker {
         structure: KripkeStructureIterator, job: Job, computeError: ([Node]) -> ModelCheckerError
     ) throws {
         _ = try job.failRevisit.map { self.jobs.append(Job(revisit: try revisit(withId: $0))) }
-        guard let session = job.session else {
+        guard job.session != nil else {
             if job.failRevisit != nil { return }
             throw error(structure: structure, job: job, computeError)
         }
-        let currentCount = try decrement(session: session, amount: 1)
-        guard currentCount == 0 else {
-            if job.failRevisit != nil { return }
-            throw error(structure: structure, job: job, computeError)
-        }
-        let error = error(structure: structure, job: job, computeError)
-        completedSessions[session] = error
-        pendingSessions[session] = nil
-        if job.failRevisit != nil { return }
-        throw error
+        // let currentCount = decrement(session: session, amount: 1)
+        // guard currentCount == 0 else {
+        //     return
+        // }
+        // let error = error(structure: structure, job: job, computeError)
+        // if completedSessions[session] == nil {
+        //     completedSessions[session] = error
+        // }
+        // if job.failRevisit != nil { return }
+        // throw error
+        return
     }
 
-    @discardableResult
-    private func increment(session: UUID, amount: UInt) throws -> UInt {
-        guard let currentCount = sessionReferences[session] else {
-            throw ModelCheckerError.internalError
-        }
-        let newValue = currentCount + amount
-        sessionReferences[session] = newValue
-        return newValue
-    }
+    // @discardableResult
+    // private func increment(session: UUID, amount: UInt) -> UInt {
+    //     let currentCount = sessionReferences[session] ?? 0
+    //     let newValue = currentCount + amount
+    //     sessionReferences[session] = newValue
+    //     return newValue
+    // }
 
-    @discardableResult
-    private func decrement(session: UUID, amount: UInt) throws -> UInt {
-        guard let currentCount = sessionReferences[session] else {
-            throw ModelCheckerError.internalError
-        }
-        let newValue = currentCount - amount
-        sessionReferences[session] = newValue
-        if newValue == 0 {
-            pendingSessions[session] = nil
-        }
-        return newValue
-    }
+    // @discardableResult
+    // private func decrement(session: UUID, amount: UInt) -> UInt {
+    //     let currentCount = sessionReferences[session] ?? 0
+    //     let newValue = currentCount - amount
+    //     sessionReferences[session] = newValue
+    //     if newValue == 0 {
+    //         sessionReferences[session] = nil
+    //         pendingSessions[session] = nil
+    //     }
+    //     return newValue
+    // }
 
     private func error(
         structure: KripkeStructureIterator, job: Job, _ computeError: ([Node]) -> ModelCheckerError
