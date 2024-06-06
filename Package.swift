@@ -52,7 +52,11 @@ let package = Package(
                 .product(name: "TCTLParser", package: "TCTLParser"),
                 .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
             ],
-            resources: [.process("output.json"), .process("modeSelector_kripkeStructure.json")]
+            resources: [
+                .process("output.json"),
+                .process("modeSelector_kripkeStructure.json"),
+                .process("modeSelector_kripkeStructure_old.json")
+            ]
         )
     ]
 )

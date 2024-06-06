@@ -93,6 +93,23 @@ class KripkeStructureTestable: XCTestCase {
         return kripkeStructureParsed
     }()
 
+    /// The mode selector kripke structure.
+    static let modeSelectorKripkeStructureOld = {
+        guard
+            let pathURL = Bundle.module.url(
+                forResource: "modeSelector_kripkeStructure_old", withExtension: "json"
+            ),
+            let data = try? Data(contentsOf: pathURL)
+        else {
+            fatalError("No data!")
+        }
+        let decoder = JSONDecoder()
+        guard let kripkeStructureParsed = try? decoder.decode(KripkeStructure.self, from: data) else {
+            fatalError("Failed to parse kripke structure!")
+        }
+        return kripkeStructureParsed
+    }()
+
     // swiftlint:disable implicitly_unwrapped_optional
 
     /// A `10 us` constraint.
