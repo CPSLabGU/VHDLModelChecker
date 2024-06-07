@@ -595,4 +595,26 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
+    func testImpliesAnd() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G operationalMode = '1' and operationFailure = '1' -> {A F timerOn = '1'}_{t <= 2 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        let iterator = KripkeStructureIterator(structure: KripkeStructureTestable.modeSelectorKripkeStructure)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testLargeImpliesAnd() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G (((bootMode = '1' and bootFailure = '1') and bootSuccess /= '1') -> {A F timerOn = '1'}_{t <= 2 us})
+        """
+        let spec = Specification(rawValue: specRaw)!
+        let iterator = KripkeStructureIterator(structure: KripkeStructureTestable.modeSelectorKripkeStructure)
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
 }

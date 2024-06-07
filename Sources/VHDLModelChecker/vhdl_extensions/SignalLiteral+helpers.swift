@@ -72,6 +72,62 @@ extension SignalLiteral {
 
 }
 
+extension SignalLiteral {
+
+    static func == (lhs: SignalLiteral, rhs: SignalLiteral) -> Bool {
+        switch (lhs, rhs) {
+        case (.bit(let lhs), .bit(let rhs)):
+            return lhs == rhs
+        case (.boolean(let lhs), .boolean(let rhs)):
+            return lhs == rhs
+        case (.decimal(let lhs), .decimal(let rhs)):
+            return lhs == rhs
+        case (.integer(let lhs), .integer(let rhs)):
+            return lhs == rhs
+        case (.integer(let lhs), .decimal(let rhs)):
+            return Double(lhs) == rhs
+        case (.decimal(let lhs), .integer(let rhs)):
+            return lhs == Double(rhs)
+        case (.logic(let lhs), .logic(let rhs)):
+            return lhs == rhs
+        case (.bit(let lhs), .logic(let rhs)):
+            return LogicLiteral(bit: lhs) == rhs
+        case (.logic(let lhs), .bit(let rhs)):
+            return lhs == LogicLiteral(bit: rhs)
+        case (.vector(let lhs), .vector(let rhs)):
+            return lhs == rhs
+        default:
+            return false
+        }
+    }
+
+}
+
+extension VectorLiteral {
+
+    static func == (lhs: VectorLiteral, rhs: VectorLiteral) -> Bool {
+        switch (lhs, rhs) {
+        case (.bits(let lhs), .bits(let rhs)):
+            return lhs == rhs
+        case (.hexademical(let lhs), .hexademical(let rhs)):
+            return lhs == rhs
+        case (.octal(let lhs), octal(let rhs)):
+            return lhs == rhs
+        case (.logics(let lhs), .logics(let rhs)):
+            return lhs == rhs
+        case (.bits(let lhs), .logics(let rhs)):
+            return lhs.values.map(LogicLiteral.init(bit:)) == rhs.values
+        case (.logics(let lhs), .bits(let rhs)):
+            return lhs.values == rhs.values.map(LogicLiteral.init(bit:))
+        case (.indexed(let lhs), .indexed(let rhs)):
+            return lhs == rhs
+        default:
+            return false
+        }
+    }
+
+}
+
 /// Add `Comparable` conformance.
 extension SignalLiteral: Comparable {
 

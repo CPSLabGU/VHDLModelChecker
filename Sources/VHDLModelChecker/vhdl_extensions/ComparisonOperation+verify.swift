@@ -74,15 +74,7 @@ extension ComparisonOperation {
             .verify(node: node)
         case .greaterThan(let lhs, let rhs):
             guard let variable = lhs.variable, let rhs = rhs.literal else {
-                guard
-                    let lhs = lhs.literal,
-                    let rhs = rhs.variable,
-                    let value = node.properties[rhs],
-                    lhs > value
-                else {
-                    throw VerificationError.unsatisfied(node: node)
-                }
-                return
+                throw UnrecoverableError.notSupported
             }
             guard let value = node.properties[variable], value > rhs else {
                 throw VerificationError.unsatisfied(node: node)
@@ -99,9 +91,8 @@ extension ComparisonOperation {
             ))))
             .verify(node: node)
         case .lessThanOrEqual(let lhs, let rhs):
-            try BooleanExpression.or(
-                lhs: .conditional(condition: .comparison(value: .lessThan(lhs: lhs, rhs: rhs))),
-                rhs: .conditional(condition: .comparison(value: .equality(lhs: lhs, rhs: rhs)))
+            try BooleanExpression.not(
+                value: .conditional(condition: .comparison(value: .greaterThan(lhs: lhs, rhs: rhs)))
             )
             .verify(node: node)
         }
@@ -121,7 +112,10 @@ extension ComparisonOperation {
                 throw VerificationError.unsatisfied(node: node)
             }
         case .value(let literal):
-            guard let rhsLiteral = rhs.literal, rhsLiteral == literal else {
+            guard let rhsLiteral = rhs.literal else {
+                throw UnrecoverableError.notSupported
+            }
+            guard rhsLiteral == literal else {
                 throw VerificationError.unsatisfied(node: node)
             }
         }
@@ -140,11 +134,7 @@ private enum NameOrValue: Equatable {
 
     init(key variable: Expression, node: Node) throws {
         guard let variable = variable.variable else {
-            guard let literal = variable.literal else {
-                throw VerificationError.unsatisfied(node: node)
-            }
-            self = .value(literal)
-            return
+            throw UnrecoverableError.notSupported
         }
         switch variable {
         case .currentState:

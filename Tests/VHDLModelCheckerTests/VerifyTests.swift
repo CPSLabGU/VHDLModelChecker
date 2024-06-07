@@ -180,7 +180,7 @@ final class VerifyTests: XCTestCase {
             )))
             .verify(node: failureCount2Node)
         )
-        XCTAssertNoThrow(
+        XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .greaterThan(
                 lhs: .literal(value: .integer(value: 3)),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
@@ -252,7 +252,7 @@ final class VerifyTests: XCTestCase {
             )))
             .verify(node: failureCount2Node)
         )
-        XCTAssertNoThrow(
+        XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .greaterThanOrEqual(
                 lhs: .literal(value: .integer(value: 3)),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
@@ -298,7 +298,7 @@ final class VerifyTests: XCTestCase {
             )))
             .verify(node: failureCount2Node)
         )
-        XCTAssertNoThrow(
+        XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .lessThan(
                 lhs: .literal(value: .integer(value: 1)),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
@@ -330,7 +330,7 @@ final class VerifyTests: XCTestCase {
             )))
             .verify(node: failureCount2Node)
         )
-        XCTAssertNoThrow(
+        XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
                 lhs: .literal(value: .integer(value: 1)),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))
@@ -351,7 +351,7 @@ final class VerifyTests: XCTestCase {
             )))
             .verify(node: failureCount2Node)
         )
-        XCTAssertNoThrow(
+        XCTAssertThrowsError(
             try VHDLExpression.conditional(expression: .comparison(value: .lessThanOrEqual(
                 lhs: .literal(value: .integer(value: 2)),
                 rhs: .reference(variable: .variable(reference: .variable(name: .failureCount)))

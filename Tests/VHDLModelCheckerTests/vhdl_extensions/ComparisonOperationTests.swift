@@ -1,0 +1,185 @@
+// ComparisonOperationTests.swift
+// VHDLModelChecker
+// 
+// Created by Morgan McColl.
+// Copyright © 2024 Morgan McColl. All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 
+// 2. Redistributions in binary form must reproduce the above
+//    copyright notice, this list of conditions and the following
+//    disclaimer in the documentation and/or other materials
+//    provided with the distribution.
+// 
+// 3. All advertising materials mentioning features or use of this
+//    software must display the following acknowledgement:
+// 
+//    This product includes software developed by Morgan McColl.
+// 
+// 4. Neither the name of the author nor the names of contributors
+//    may be used to endorse or promote products derived from this
+//    software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+// OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// -----------------------------------------------------------------------
+// This program is free software; you can redistribute it and/or
+// modify it under the above terms or under the terms of the GNU
+// General Public License as published by the Free Software Foundation;
+// either version 2 of the License, or (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, see http://www.gnu.org/licenses/
+// or write to the Free Software Foundation, Inc., 51 Franklin Street,
+// Fifth Floor, Boston, MA  02110-1301, USA.
+
+import VHDLKripkeStructures
+@testable import VHDLModelChecker
+import VHDLParsing
+import XCTest
+
+/// Test class for ``ComparisonOperation`` Extensions.
+final class ComparisonOperationTests: KripkeStructureTestable {
+
+    /// The `failureCount` variable.
+    let failureCount = VHDLParsing.Expression.reference(variable: .variable(
+        reference: .variable(name: .failureCount)
+    ))
+
+    /// The `currentState` variable.
+    let currentState = VHDLParsing.Expression.reference(variable: .variable(reference: .variable(
+        name: .currentState
+    )))
+
+    /// The `executeOnEntry` variable.
+    let executeOnEntry = VHDLParsing.Expression.reference(variable: .variable(reference: .variable(
+        name: .executeOnEntry
+    )))
+
+    /// The `nextState` variable.
+    let nextState = VHDLParsing.Expression.reference(variable: .variable(reference: .variable(
+        name: .nextState
+    )))
+
+    /// The integer `2`.
+    let two = VHDLParsing.Expression.literal(value: .integer(value: 2))
+
+    /// The integer `0`.
+    let zero = VHDLParsing.Expression.literal(value: .integer(value: 0))
+
+    /// Test the `equality` operation.
+    func testEquality() {
+        XCTAssertNoThrow(
+            try ComparisonOperation.equality(lhs: failureCount, rhs: two).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: two, rhs: failureCount).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: two, rhs: two).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: failureCount, rhs: failureCount)
+                .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: failureCount, rhs: zero).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: zero, rhs: failureCount).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(
+                lhs: .reference(variable: .variable(reference: .variable(
+                    // swiftlint:disable:next force_unwrapping
+                    name: VariableName(rawValue: "x")!
+                ))),
+                rhs: two
+            )
+            .verify(node: failureCount2Node)
+        )
+    }
+
+    /// Test the `equality` operation.
+    func testEqualityReservedWords() {
+        XCTAssertNoThrow(
+            try ComparisonOperation.equality(
+                lhs: currentState,
+                rhs: Expression.reference(variable: .variable(reference: .variable(
+                    name: failureCount2Node.currentState
+                )))
+            )
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try ComparisonOperation.equality(
+                lhs: executeOnEntry,
+                rhs: Expression.literal(value: .boolean(value: failureCount2Node.executeOnEntry))
+            )
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertNoThrow(
+            try ComparisonOperation.equality(
+                lhs: nextState,
+                rhs: Expression.reference(variable: .variable(reference: .variable(
+                    name: failureCount2Node.nextState
+                )))
+            )
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: nextState, rhs: two).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(
+                lhs: executeOnEntry,
+                rhs: Expression.literal(value: .boolean(value: !failureCount2Node.executeOnEntry))
+            )
+            .verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.equality(lhs: currentState, rhs: two).verify(node: failureCount2Node)
+        )
+    }
+
+    /// Test the `notEquals` operation.
+    func testNotEquals() {
+        XCTAssertNoThrow(
+            try ComparisonOperation.notEquals(lhs: failureCount, rhs: zero).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.notEquals(lhs: failureCount, rhs: two).verify(node: failureCount2Node)
+        )
+    }
+
+    /// Test `greaterThan` operation.
+    func testGreaterThan() {
+        XCTAssertNoThrow(
+            try ComparisonOperation.greaterThan(lhs: failureCount, rhs: zero).verify(node: failureCount2Node)
+        )
+        XCTAssertThrowsError(
+            try ComparisonOperation.greaterThan(lhs: failureCount, rhs: two).verify(node: failureCount2Node)
+        )
+    }
+
+}
