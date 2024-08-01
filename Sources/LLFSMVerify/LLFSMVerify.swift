@@ -117,32 +117,42 @@ struct LLFSMVerify: ParsableCommand {
         do {
             try modelChecker.verify(structure: structure, against: requirements)
         } catch let error as ModelCheckerError {
-            switch error {
-            case .unsatisfied(let branch, let expression, let base):
-                let counterBranch: [Node]
-                if let branchDepth {
-                    counterBranch = Array(branch.dropFirst(max(branch.count - Int(branchDepth), 0)))
-                } else {
-                    counterBranch = branch
-                }
-                let newError = ModelCheckerError.unsatisfied(
-                    branch: counterBranch, expression: expression, base: base
-                )
-                guard writeGraphviz else {
-                    throw newError
-                }
-                try createGraphvizFile(for: counterBranch, error: newError, structure: structure)
-            default:
-                throw error
-            }
+            try handleError(error: error, structure: structure)
+            throw error
         } catch {
             throw error
         }
+        guard writeGraphviz else {
+            return
+        }
+        try writeGraphvizFile(rawValue: structure.graphviz)
+    }
+
+    func writeGraphvizFile(rawValue: String) throws {
+        let diagram = Data(rawValue.utf8)
+        let url = URL(fileURLWithPath: "graph.dot", isDirectory: false)
+        try diagram.write(to: url)
+    }
+
+    func handleError(error: ModelCheckerError, structure: KripkeStructure) throws {
+        guard writeGraphviz, case .unsatisfied(let branch, let expression, let base) = error else {
+            return
+        }
+        let counterBranch: [Node]
+        if let branchDepth {
+            counterBranch = Array(branch.dropFirst(max(branch.count - Int(branchDepth), 0)))
+        } else {
+            counterBranch = branch
+        }
+        let newError = ModelCheckerError.unsatisfied(
+            branch: counterBranch, expression: expression, base: base
+        )
+        try createGraphvizFile(for: counterBranch, error: newError, structure: structure)
     }
 
     func writeBranch(for branch: [Node], error: Error, structure: KripkeStructure) throws {
         guard let initialNode = branch.first else {
-            throw error
+            return
         }
         var edges: [Node: [Edge]] = [:]
         let branchSet = Set(branch)
@@ -161,13 +171,7 @@ struct LLFSMVerify: ParsableCommand {
         let newStructure = KripkeStructure(
             nodes: Array(branchSet), edges: edges, initialStates: [initialNode]
         )
-        let graphviz: String = newStructure.graphviz
-        guard let data = graphviz.data(using: .utf8) else {
-            throw error
-        }
-        let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
-        try data.write(to: url)
-        throw error
+        try writeGraphvizFile(rawValue: newStructure.graphviz)
     }
 
     func writeStructure(for branch: [Node], error: Error, structure: KripkeStructure) throws {
@@ -209,12 +213,7 @@ struct LLFSMVerify: ParsableCommand {
         \(edges.map { "    \($0)" }.joined(separator: "\n"))
         }
         """
-        guard let data = diagram.data(using: .utf8) else {
-            throw error
-        }
-        let url = URL(fileURLWithPath: "branch.dot", isDirectory: false)
-        try data.write(to: url)
-        throw error
+        try writeGraphvizFile(rawValue: diagram)
     }
 
     func createGraphvizFile(for branch: [Node], error: Error, structure: KripkeStructure) throws {
