@@ -137,7 +137,9 @@ final class TCTLModelChecker {
         guard nodes.count == session.currentBranch.count else {
             throw ModelCheckerError.internalError
         }
-        throw ModelCheckerError.unsatisfied(branch: nodes, expression: session.expression)
+        throw ModelCheckerError.unsatisfied(
+            branch: nodes, expression: session.expression, base: session.historyExpression
+        )
     }
 
     // swiftlint:disable:next function_body_length
@@ -233,7 +235,9 @@ final class TCTLModelChecker {
             results = try job.expression.verify(currentNode: node, inCycle: job.history.contains(job.nodeId))
         } catch let error as VerificationError {
             try fail(structure: structure, job: job) {
-                ModelCheckerError(error: error, currentBranch: $0, expression: job.expression)
+                ModelCheckerError(
+                    error: error, currentBranch: $0, expression: job.expression, base: job.historyExpression
+                )
             }
             return
         } catch let error as UnrecoverableError {

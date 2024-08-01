@@ -118,14 +118,16 @@ struct LLFSMVerify: ParsableCommand {
             try modelChecker.verify(structure: structure, against: requirements)
         } catch let error as ModelCheckerError {
             switch error {
-            case .unsatisfied(let branch, let expression):
+            case .unsatisfied(let branch, let expression, let base):
                 let counterBranch: [Node]
                 if let branchDepth {
                     counterBranch = Array(branch.dropFirst(max(branch.count - Int(branchDepth), 0)))
                 } else {
                     counterBranch = branch
                 }
-                let newError = ModelCheckerError.unsatisfied(branch: counterBranch, expression: expression)
+                let newError = ModelCheckerError.unsatisfied(
+                    branch: counterBranch, expression: expression, base: base
+                )
                 guard writeGraphviz else {
                     throw newError
                 }

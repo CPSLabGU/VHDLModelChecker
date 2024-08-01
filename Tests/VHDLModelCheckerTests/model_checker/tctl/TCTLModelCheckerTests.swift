@@ -84,7 +84,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -121,7 +122,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -185,7 +187,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -207,7 +210,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -289,7 +293,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -311,7 +316,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -333,7 +339,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -377,7 +384,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -421,7 +429,8 @@ final class TCTLModelCheckerTests: XCTestCase {
             let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
             XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
                 guard
-                    let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                    let error = $0 as? ModelCheckerError,
+                    case .unsatisfied(let branches, let expression, let base) = error
                 else {
                     XCTFail("Got incorrect error!")
                     return
@@ -477,7 +486,8 @@ final class TCTLModelCheckerTests: XCTestCase {
             let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
             XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
                 guard
-                    let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                    let error = $0 as? ModelCheckerError,
+                    case .unsatisfied(let branches, let expression, let base) = error
                 else {
                     XCTFail("Got incorrect error!")
                     return
@@ -500,7 +510,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
-                let error = $0 as? ModelCheckerError, case .unsatisfied(let branches, let expression) = error
+                let error = $0 as? ModelCheckerError,
+                case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return

@@ -58,7 +58,7 @@ import VHDLKripkeStructures
 
 public enum ModelCheckerError: Error, CustomStringConvertible {
 
-    case unsatisfied(branch: [Node], expression: Expression)
+    case unsatisfied(branch: [Node], expression: Expression, base: Expression?)
 
     case constraintViolation(branch: [Node], cost: Cost, constraint: ConstrainedStatement)
 
@@ -72,10 +72,10 @@ public enum ModelCheckerError: Error, CustomStringConvertible {
             return "The following expression is not supported:\n\(expression.rawValue)"
         case .internalError:
             return "The model checker encountered an internal error."
-        case .unsatisfied(let branch, let expression):
+        case .unsatisfied(let branch, let expression, let base):
             return """
             The following expression was unsatisfied:
-            \(expression.rawValue)
+            \(expression.rawValue)\(base.flatMap { "\nBase Expression:\n\($0.rawValue)" } ?? "\n")
             Counter Example:
             \(branch.map(\.description).joined(separator: "\n"))
             """
@@ -89,10 +89,10 @@ public enum ModelCheckerError: Error, CustomStringConvertible {
         }
     }
 
-    init(error: VerificationError, currentBranch: [Node], expression: Expression) {
+    init(error: VerificationError, currentBranch: [Node], expression: Expression, base: Expression? = nil) {
         switch error {
         case .unsatisfied(let node):
-            self = .unsatisfied(branch: currentBranch + [node], expression: expression)
+            self = .unsatisfied(branch: currentBranch + [node], expression: expression, base: base)
         case .costViolation(let node, let cost, let constraint):
             self = .constraintViolation(branch: currentBranch + [node], cost: cost, constraint: constraint)
         }
