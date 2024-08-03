@@ -130,8 +130,25 @@ struct LLFSMVerify: ParsableCommand {
 
     func writeGraphvizFile(rawValue: String) throws {
         let diagram = Data(rawValue.utf8)
-        let url = URL(fileURLWithPath: "graph.dot", isDirectory: false)
-        try diagram.write(to: url)
+        let url: URL
+        if machine {
+            let verificationFolder = URL(fileURLWithPath: structurePath, isDirectory: true)
+                .appendingPathComponent("build/verification", isDirectory: true)
+            let manager = FileManager.default
+            var isDirectory: ObjCBool = false
+            if !manager.fileExists(atPath: verificationFolder.path, isDirectory: &isDirectory) {
+                try manager.createDirectory(at: verificationFolder, withIntermediateDirectories: true)
+                isDirectory = true
+            }
+            if !isDirectory.boolValue {
+                throw ModelCheckerError.internalError
+            }
+            url = URL(fileURLWithPath: structurePath, isDirectory: true)
+                .appendingPathComponent("build/verification/graph.dot", isDirectory: false)
+        } else {
+            url = URL(fileURLWithPath: "graph.dot", isDirectory: false)
+        }
+        try diagram.write(to: url, options: .atomic)
     }
 
     func handleError(error: ModelCheckerError, structure: KripkeStructure) throws {
