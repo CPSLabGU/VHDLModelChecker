@@ -22,7 +22,8 @@ let package = Package(
         .package(url: "https://github.com/mipalgu/VHDLParsing", from: "2.4.0"),
         .package(url: "https://github.com/cpslabgu/TCTLParser", from: "1.1.0"),
         .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", from: "1.3.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0")
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
+        .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -33,7 +34,8 @@ let package = Package(
             dependencies: [
                 .product(name: "VHDLParsing", package: "VHDLParsing"),
                 .product(name: "TCTLParser", package: "TCTLParser"),
-                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
+                .product(name: "SQLite", package: "SQLite.swift")
             ]
         ),
         .executableTarget(
@@ -50,7 +52,8 @@ let package = Package(
                 .target(name: "VHDLModelChecker"),
                 .product(name: "VHDLParsing", package: "VHDLParsing"),
                 .product(name: "TCTLParser", package: "TCTLParser"),
-                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
+                .product(name: "SQLite", package: "SQLite.swift")
             ],
             resources: [
                 .process("output.json"),
