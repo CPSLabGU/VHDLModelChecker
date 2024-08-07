@@ -90,8 +90,8 @@ final class TCTLModelChecker {
                     constraints: [],
                     session: nil,
                     successRevisit: nil,
-                    failRevisit: nil,
-                    allSessionIds: SessionIdStore(sessionIds: [:])
+                    failRevisit: nil
+                    // allSessionIds: SessionIdStore(sessionIds: [:])
                 )
                 try handleJob(job, structure: structure)
             }
@@ -196,8 +196,8 @@ final class TCTLModelChecker {
                 constraints: job.constraints,
                 session: job.session,
                 successRevisit: job.successRevisit,
-                failRevisit: job.failRevisit,
-                allSessionIds: job.allSessionIds
+                failRevisit: job.failRevisit
+                // allSessionIds: job.allSessionIds
             )
             try self.store.addJob(job: newJob)
             return
@@ -253,8 +253,8 @@ final class TCTLModelChecker {
                     },
                     session: job.session,
                     successRevisit: job.successRevisit,
-                    failRevisit: job.failRevisit,
-                    allSessionIds: job.allSessionIds
+                    failRevisit: job.failRevisit
+                    // allSessionIds: job.allSessionIds
                 )
                 // for (session, amount) in newJob.allSessionIds.sessionIds {
                 //     increment(session: session, amount: amount)
@@ -271,10 +271,10 @@ final class TCTLModelChecker {
             }
             let successRevisit: UUID?
             let failRevisit: UUID?
-            let newAllSessionIds: SessionIdStore
+            // let newAllSessionIds: SessionIdStore
             if let session {
-                newAllSessionIds = SessionIdStore(store: job.allSessionIds)
-                newAllSessionIds.addSession(id: session)
+                // newAllSessionIds = SessionIdStore(store: job.allSessionIds)
+                // newAllSessionIds.addSession(id: session)
                 successRevisit = try revisitId(for: Revisit(
                     nodeId: job.nodeId,
                     expression: .language(expression: .vhdl(expression: .true)),
@@ -285,8 +285,8 @@ final class TCTLModelChecker {
                     successRevisit: job.successRevisit,
                     failRevisit: job.failRevisit,
                     history: job.history,
-                    currentBranch: job.currentBranch,
-                    allSessionIds: newAllSessionIds
+                    currentBranch: job.currentBranch
+                    // allSessionIds: newAllSessionIds
                 ))
                 failRevisit = try revisitId(for: Revisit(
                     nodeId: job.nodeId,
@@ -298,11 +298,11 @@ final class TCTLModelChecker {
                     successRevisit: job.successRevisit,
                     failRevisit: job.failRevisit,
                     history: job.history,
-                    currentBranch: job.currentBranch,
-                    allSessionIds: newAllSessionIds
+                    currentBranch: job.currentBranch
+                    // allSessionIds: newAllSessionIds
                 ))
             } else {
-                newAllSessionIds = SessionIdStore(store: job.allSessionIds)
+                // newAllSessionIds = SessionIdStore(store: job.allSessionIds)
                 successRevisit = job.successRevisit
                 failRevisit = job.failRevisit
             }
@@ -325,8 +325,8 @@ final class TCTLModelChecker {
                         },
                         session: nil,
                         successRevisit: successRevisit,
-                        failRevisit: failRevisit,
-                        allSessionIds: newAllSessionIds
+                        failRevisit: failRevisit
+                        // allSessionIds: newAllSessionIds
                     )
                 }
                 // for (session, amount) in newAllSessionIds.sessionIds {
@@ -343,8 +343,8 @@ final class TCTLModelChecker {
                     successRevisit: successRevisit,
                     failRevisit: failRevisit,
                     history: job.history,
-                    currentBranch: job.currentBranch,
-                    allSessionIds: newAllSessionIds
+                    currentBranch: job.currentBranch
+                    // allSessionIds: newAllSessionIds
                 ))
                 // for (session, amount) in newAllSessionIds.sessionIds {
                 //     increment(session: session, amount: amount)
@@ -372,8 +372,8 @@ final class TCTLModelChecker {
                     constraints: job.constraints,
                     session: job.session,
                     successRevisit: revisitSuccess,
-                    failRevisit: revisitFail,
-                    allSessionIds: newAllSessionIds
+                    failRevisit: revisitFail
+                    // allSessionIds: newAllSessionIds
                 )
                 // for (session, amount) in job.allSessionIds.sessionIds {
                 //     increment(session: session, amount: amount)

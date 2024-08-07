@@ -68,7 +68,7 @@ final class Revisit: Equatable, Hashable {
     var failRevisit: UUID?
     var history: Set<UUID>
     var currentBranch: [UUID]
-    var allSessionIds: SessionIdStore
+    // var allSessionIds: SessionIdStore
 
     init(
         nodeId: UUID,
@@ -80,8 +80,8 @@ final class Revisit: Equatable, Hashable {
         successRevisit: UUID?,
         failRevisit: UUID?,
         history: Set<UUID>,
-        currentBranch: [UUID],
-        allSessionIds: SessionIdStore
+        currentBranch: [UUID]
+        // allSessionIds: SessionIdStore
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -93,7 +93,7 @@ final class Revisit: Equatable, Hashable {
         self.failRevisit = failRevisit
         self.history = history
         self.currentBranch = currentBranch
-        self.allSessionIds = allSessionIds
+        // self.allSessionIds = allSessionIds
     }
 
     convenience init(revisit: Revisit) {
@@ -107,8 +107,8 @@ final class Revisit: Equatable, Hashable {
             successRevisit: revisit.successRevisit,
             failRevisit: revisit.failRevisit,
             history: revisit.history,
-            currentBranch: revisit.currentBranch,
-            allSessionIds: revisit.allSessionIds
+            currentBranch: revisit.currentBranch
+            // allSessionIds: revisit.allSessionIds
         )
     }
 
@@ -123,8 +123,8 @@ final class Revisit: Equatable, Hashable {
             successRevisit: job.successRevisit,
             failRevisit: job.failRevisit,
             history: job.history,
-            currentBranch: job.currentBranch,
-            allSessionIds: job.allSessionIds
+            currentBranch: job.currentBranch
+            // allSessionIds: job.allSessionIds
         )
     }
 
@@ -137,7 +137,7 @@ final class Revisit: Equatable, Hashable {
             && lhs.session == rhs.session
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
-            && lhs.allSessionIds == rhs.allSessionIds
+            // && lhs.allSessionIds == rhs.allSessionIds
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
     }
@@ -151,7 +151,7 @@ final class Revisit: Equatable, Hashable {
         hasher.combine(constraints)
         hasher.combine(history)
         hasher.combine(currentBranch)
-        hasher.combine(allSessionIds)
+        // hasher.combine(allSessionIds)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
     }
