@@ -57,7 +57,7 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class CycleData: Equatable, Hashable {
+final class CycleData: Equatable, Hashable, Codable {
 
     var nodeId: UUID
 
@@ -119,7 +119,7 @@ final class CycleData: Equatable, Hashable {
 
 }
 
-final class Job: Equatable, Hashable {
+final class Job: Equatable, Hashable, Codable {
     var nodeId: UUID
     var expression: Expression
     var history: Set<UUID>

@@ -57,7 +57,7 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class Revisit: Equatable, Hashable {
+final class Revisit: Equatable, Hashable, Codable {
     var nodeId: UUID
     var expression: Expression
     var inSession: Bool
