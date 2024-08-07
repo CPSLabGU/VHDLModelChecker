@@ -75,6 +75,8 @@ protocol JobStorable {
 
     func hasCycle(cycle: CycleData) throws -> Bool
 
+    func pendingSession(session: UUID) throws -> Job?
+
     mutating func removePendingSession(session: UUID) throws
 
     mutating func reset() throws

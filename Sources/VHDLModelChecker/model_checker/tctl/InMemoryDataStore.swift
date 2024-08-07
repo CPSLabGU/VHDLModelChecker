@@ -118,11 +118,15 @@ class InMemoryDataStore: JobStorable {
     }
 
     func addSessionJob(session: UUID, job: Job) throws {
-        pendingSessions[session] = job
+        self.pendingSessions[session] = job
     }
 
     func hasCycle(cycle: CycleData) throws -> Bool {
         self.cycles.contains(cycle)
+    }
+
+    func pendingSession(session: UUID) throws -> Job? {
+        self.pendingSessions[session]
     }
 
     func removePendingSession(session: UUID) throws {
