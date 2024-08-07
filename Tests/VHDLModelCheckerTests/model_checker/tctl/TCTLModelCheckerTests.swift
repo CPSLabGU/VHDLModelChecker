@@ -67,7 +67,7 @@ final class TCTLModelCheckerTests: XCTestCase {
     lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.
-    let checker = TCTLModelChecker()
+    let checker = TCTLModelChecker(store: InMemoryDataStore())
 
     /// Initialise the test data before every test.
     override func setUp() {

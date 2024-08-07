@@ -65,7 +65,7 @@ public struct VHDLModelChecker {
     public func verify(
         structure: KripkeStructure, against specification: [RequirementsSpecification]
     ) throws {
-        let tctlChecker = TCTLModelChecker()
+        let tctlChecker = TCTLModelChecker(store: InMemoryDataStore())
         let iterator = KripkeStructureIterator(structure: structure)
         let clock = ContinuousClock()
         let elapsedTime = try clock.measure {

@@ -68,44 +68,16 @@ import VHDLKripkeStructures
 
 final class TCTLModelChecker {
 
-    var jobs: [Job] = []
-
-    var cycles: Set<CycleData> = []
-
-    var completedSessions: [UUID: ModelCheckerError?] = [:]
-
-    var pendingSessions: [UUID: Job] = [:]
-
-    var sessionIds: [SessionKey: UUID] = [:]
-
-    // var sessionReferences: [UUID: UInt] = [:]
-
-    var revisitIds: [Revisit: UUID] = [:]
-
-    var revisits: [UUID: Revisit] = [:]
+    private var store: JobStorable
 
     private var debug = false
 
-    init() {
-        self.jobs.reserveCapacity(1000000)
-        self.cycles.reserveCapacity(1000000)
-        self.completedSessions.reserveCapacity(1000000)
-        self.pendingSessions.reserveCapacity(1000000)
-        self.sessionIds.reserveCapacity(1000000)
-        // self.sessionReferences.reserveCapacity(1000000)
-        self.revisitIds.reserveCapacity(1000000)
-        self.revisits.reserveCapacity(1000000)
+    init(store: JobStorable) {
+        self.store = store
     }
 
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
-        self.jobs.removeAll(keepingCapacity: true)
-        self.cycles.removeAll(keepingCapacity: true)
-        self.completedSessions.removeAll(keepingCapacity: true)
-        self.pendingSessions.removeAll(keepingCapacity: true)
-        self.sessionIds.removeAll(keepingCapacity: true)
-        // self.sessionReferences.removeAll(keepingCapacity: true)
-        self.revisitIds.removeAll(keepingCapacity: true)
-        self.revisits.removeAll(keepingCapacity: true)
+        try self.store.reset()
         for id in structure.initialStates {
             for expression in specification.requirements {
                 let job = Job(
@@ -124,13 +96,13 @@ final class TCTLModelChecker {
                 try handleJob(job, structure: structure)
             }
         }
-        while let job = jobs.popLast() {
+        while let job = try self.store.next {
             try handleJob(job, structure: structure)
         }
         // guard !sessionReferences.contains(where: { $0.value > 0 }) else {
         //     throw ModelCheckerError.internalError
         // }
-        guard let (_, session) = pendingSessions.first else {
+        guard let (_, session) = try self.store.nextPendingSession else {
             return
         }
         let nodes = session.currentBranch.compactMap { structure.nodes[$0] }
@@ -147,10 +119,10 @@ final class TCTLModelChecker {
         defer {
             if debug { print("_\n_") }
         }
-        if let session = job.session, let sessionResult = completedSessions[session] {
+        if let session = job.session, let sessionResult = try self.store.sessionStatus(session: session) {
             if debug {
                 print("""
-                    job: \(revisitId(for: Revisit(job: job)))
+                    job: \(try revisitId(for: Revisit(job: job)))
                     expression: \(job.expression.rawValue),
                     inCycle: \(job.history.contains(job.nodeId)),
                     sessionId: \(job.session?.description ?? "nil"),
@@ -170,11 +142,11 @@ final class TCTLModelChecker {
             }
             return
         }
-        if let session = job.session, pendingSessions[session] == nil {
+        if let session = job.session, try self.store.pendingSession(session: session) == nil {
             throw ModelCheckerError.internalError
         }
         let cycleData = job.cycleData
-        if cycles.contains(cycleData) {
+        if try store.hasCycle(cycle: cycleData) {
             if debug {
                 print("""
                     job: \(job.expression.rawValue),
@@ -194,14 +166,14 @@ final class TCTLModelChecker {
             // }
             return
         }
-        cycles.insert(cycleData)
+        try self.store.addCycle(cycle: cycleData)
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
         }
         if debug {
             print("nodeId: \(job.nodeId), node: \(node)")
             print("""
-                job: \(revisitId(for: Revisit(job: job)))
+                job: \(try revisitId(for: Revisit(job: job)))
                 expression: \(job.expression.rawValue),
                 inCycle: \(job.history.contains(job.nodeId)),
                 sessionId: \(job.session?.description ?? "nil"),
@@ -227,7 +199,7 @@ final class TCTLModelChecker {
                 failRevisit: job.failRevisit,
                 allSessionIds: job.allSessionIds
             )
-            jobs.append(newJob)
+            try self.store.addJob(job: newJob)
             return
         }
         let results: [SessionStatus]
@@ -287,7 +259,7 @@ final class TCTLModelChecker {
                 // for (session, amount) in newJob.allSessionIds.sessionIds {
                 //     increment(session: session, amount: amount)
                 // }
-                self.jobs.append(newJob)
+                try self.store.addJob(job: newJob)
                 return
             default:
                 break
@@ -303,7 +275,7 @@ final class TCTLModelChecker {
             if let session {
                 newAllSessionIds = SessionIdStore(store: job.allSessionIds)
                 newAllSessionIds.addSession(id: session)
-                successRevisit = revisitId(for: Revisit(
+                successRevisit = try revisitId(for: Revisit(
                     nodeId: job.nodeId,
                     expression: .language(expression: .vhdl(expression: .true)),
                     inSession: true,
@@ -316,7 +288,7 @@ final class TCTLModelChecker {
                     currentBranch: job.currentBranch,
                     allSessionIds: newAllSessionIds
                 ))
-                failRevisit = revisitId(for: Revisit(
+                failRevisit = try revisitId(for: Revisit(
                     nodeId: job.nodeId,
                     expression: .language(expression: .vhdl(expression: .false)),
                     inSession: true,
@@ -361,7 +333,7 @@ final class TCTLModelChecker {
                 //     increment(session: session, amount: amount * UInt(successors.count))
                 // }
             case .revisitting(let expression, let revisit):
-                let newRevisit = revisitId(for: Revisit(
+                let newRevisit = try revisitId(for: Revisit(
                     nodeId: job.nodeId,
                     expression: expression,
                     inSession: result.isNewSession ? true : job.inSession,
@@ -408,7 +380,7 @@ final class TCTLModelChecker {
                 // }
                 jobs = [newJob]
             }
-            self.jobs.append(contentsOf: jobs)
+            try self.store.addManyJobs(jobs: jobs)
             // var counts: [UUID: UInt] = [:]
             // func assignCount(_ session: UUID) {
             //     if counts[session] == nil {
@@ -453,16 +425,14 @@ final class TCTLModelChecker {
     private func sessionId(forJob job: Job) throws -> UUID {
         let key = job.sessionKey
         let out: UUID
-        if let id = sessionIds[key] {
+        if let id = try self.store.sessionId(key: key) {
             out = id
         } else {
-            let id = UUID()
-            sessionIds[key] = id
             // sessionReferences[id] = 0
-            out = id
+            out = try self.store.addKey(key: key)
         }
-        if completedSessions[out] == nil {
-            pendingSessions[out] = job
+        if try self.store.sessionStatus(session: out) == nil {
+            try self.store.addSessionJob(session: out, job: job)
         }
         return out
     }
@@ -470,12 +440,11 @@ final class TCTLModelChecker {
     private func succeed(job: Job) throws {
         if let session = job.session {
             // decrement(session: session, amount: 1)
-            completedSessions[session] = .some(nil)
-            pendingSessions[session] = nil
+            try self.store.removePendingSession(session: session)
         }
         if let revisitId = job.successRevisit {
             let revisit = try revisit(withId: revisitId)
-            self.jobs.append(Job(revisit: revisit))
+            try self.store.addJob(job: Job(revisit: revisit))
         }
     }
 
@@ -488,7 +457,7 @@ final class TCTLModelChecker {
     private func fail(
         structure: KripkeStructureIterator, job: Job, computeError: ([Node]) -> ModelCheckerError
     ) throws {
-        _ = try job.failRevisit.map { self.jobs.append(Job(revisit: try revisit(withId: $0))) }
+        _ = try job.failRevisit.map { try self.store.addJob(job: Job(revisit: try revisit(withId: $0))) }
         guard job.session != nil else {
             if job.failRevisit != nil { return }
             throw error(structure: structure, job: job, computeError)
@@ -536,18 +505,15 @@ final class TCTLModelChecker {
         return computeError(currentNodes)
     }
 
-    private func revisitId(for revisit: Revisit) -> UUID {
-        if let id = revisitIds[revisit] {
+    private func revisitId(for revisit: Revisit) throws -> UUID {
+        if let id = try self.store.revisitID(revisit: revisit) {
             return id
         }
-        let id = UUID()
-        revisitIds[revisit] = id
-        revisits[id] = revisit
-        return id
+        return try self.store.addRevisit(revisit: revisit)
     }
 
     private func revisit(withId id: UUID) throws -> Revisit {
-        guard let revisit = revisits[id] else {
+        guard let revisit = try self.store.revisit(id: id) else {
             throw ModelCheckerError.internalError
         }
         return revisit
