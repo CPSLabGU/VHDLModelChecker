@@ -67,12 +67,21 @@ final class TCTLModelCheckerTests: XCTestCase {
     lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.
-    let checker = TCTLModelChecker(store: InMemoryDataStore())
+    var checker: TCTLModelChecker!
 
     /// Initialise the test data before every test.
     override func setUp() {
         super.setUp()
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
+        checker = TCTLModelChecker(
+            store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.sqlite3")
+        )
+    }
+
+    override func tearDown() {
+        super.tearDown()
+        let manager = FileManager.default
+        _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.sqlite3")
     }
 
     func testSimpleAlwaysNext() throws {

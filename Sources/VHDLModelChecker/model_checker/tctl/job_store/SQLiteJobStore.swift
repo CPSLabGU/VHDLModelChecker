@@ -72,6 +72,8 @@ final class SQLiteJobStore: JobStorable {
 
     private let sessionKeys = Table("session_keys")
 
+    private let currentJobs = Table("current_jobs")
+
     private let id = Expression<Int64>("id")
 
     private let uuid = Expression<UUID>("id")
@@ -94,10 +96,15 @@ final class SQLiteJobStore: JobStorable {
 
     var next: Job? {
         get throws {
-            guard let row = try db.prepare(jobs.select([jobsData])).dropLast().first else {
+            guard let row = try db.pluck(currentJobs.order(id.desc)) else {
                 return nil
             }
-            return try decoder.decode(Job.self, from: row[jobsData])
+            try db.run(currentJobs.order(id.desc).limit(1).delete())
+            let jobId = row[jobId]
+            guard let jobRow = try db.prepare(jobs.order(id.desc)).first(where: { $0[id] == jobId }) else {
+                throw SQLiteError.corruptDatabase
+            }
+            return try decoder.decode(Job.self, from: jobRow[jobsData])
         }
     }
 
@@ -105,7 +112,7 @@ final class SQLiteJobStore: JobStorable {
         get throws {
             guard
                 let row = try db.pluck(pendingSessions),
-                let job = try db.prepare(jobs.select(jobsData)).first(where: { $0[id] == row[jobId] })
+                let job = try db.prepare(jobs).first(where: { $0[id] == row[jobId] })
             else {
                 return nil
             }
@@ -127,16 +134,10 @@ final class SQLiteJobStore: JobStorable {
             guard !isDirectory.boolValue else {
                 throw SQLiteError.invalidPath(url: url)
             }
-            self.init(db: try Connection(url.path))
-            try db.run(jobs.drop(ifExists: true))
-            try db.run(cycles.drop(ifExists: true))
-            try db.run(completedSessions.drop(ifExists: true))
-            try db.run(pendingSessions.drop(ifExists: true))
-            try db.run(revisits.drop(ifExists: true))
+            try manager.removeItem(at: url)
+            self.init(db: try Connection(url.path, readonly: false))
         } else {
-            manager.createFile(atPath: url.path, contents: nil)
-            self.init(db: try Connection(url.path))
-            try self.clearDatabase()
+            self.init(db: try Connection(url.path, readonly: false))
         }
         try self.createSchema()
     }
@@ -146,12 +147,15 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func clearDatabase() throws {
-        try db.run(jobs.drop(ifExists: true))
-        try db.run(cycles.drop(ifExists: true))
-        try db.run(completedSessions.drop(ifExists: true))
-        try db.run(pendingSessions.drop(ifExists: true))
-        try db.run(revisits.drop(ifExists: true))
-        try db.run(sessionKeys.drop(ifExists: true))
+        try db.transaction {
+            try db.run(currentJobs.drop(ifExists: true))
+            try db.run(sessionKeys.drop(ifExists: true))
+            try db.run(completedSessions.drop(ifExists: true))
+            try db.run(pendingSessions.drop(ifExists: true))
+            try db.run(cycles.drop(ifExists: true))
+            try db.run(jobs.drop(ifExists: true))
+            try db.run(revisits.drop(ifExists: true))
+        }
     }
 
     private func createSchema() throws {
@@ -172,6 +176,7 @@ final class SQLiteJobStore: JobStorable {
             })
             try db.run(pendingSessions.create {
                 $0.column(uuid, primaryKey: true)
+                $0.column(jobId)
                 $0.foreignKey(jobId, references: jobs, id)
             })
             try db.run(revisits.create {
@@ -184,6 +189,12 @@ final class SQLiteJobStore: JobStorable {
                 $0.column(key)
             })
             try db.run(sessionKeys.createIndex(key))
+            try db.run(currentJobs.create {
+                $0.column(id, primaryKey: .autoincrement)
+                $0.column(jobId)
+                $0.foreignKey(jobId, references: jobs, id)
+            })
+            try db.run(currentJobs.createIndex(jobId))
         }
     }
 
@@ -194,7 +205,10 @@ final class SQLiteJobStore: JobStorable {
 
     func addJob(job: Job) throws {
         let data = try encoder.encode(job)
-        try db.run(jobs.insert(jobsData <- data))
+        try db.transaction {
+            let id = try db.run(jobs.insert(jobsData <- data))
+            try db.run(currentJobs.insert([jobId <- id]))
+        }
     }
     func addKey(key: SessionKey) throws -> UUID {
         let id = UUID()
@@ -204,10 +218,14 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func addManyJobs(jobs: [Job]) throws {
-        let data = try jobs.map {
-            [jobsData <- try encoder.encode($0)]
+        try db.transaction {
+            let firstId = (try db.pluck(self.jobs.order(id.desc)).map { $0[id] + 1 }) ?? Int64.zero
+            let data = try jobs.map {
+                [jobsData <- try encoder.encode($0)]
+            }
+            let lastId = try db.run(self.jobs.insertMany(data))
+            try db.run(self.currentJobs.insertMany((firstId...lastId).map { [jobId <- $0] }))
         }
-        try db.run(self.jobs.insertMany(data))
     }
 
     func addRevisit(revisit: Revisit) throws -> UUID {
@@ -218,13 +236,16 @@ final class SQLiteJobStore: JobStorable {
 
     func addSessionJob(session: UUID, job: Job) throws {
         let data = try encoder.encode(job)
-        let jobId: Int64
-        if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
-            jobId = selectedJob[id]
-        } else {
-            jobId = try db.run(jobs.insert(jobsData <- data))
+        try db.transaction {
+            let jobId: Int64
+            if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
+                jobId = selectedJob[id]
+            } else {
+                jobId = try db.run(jobs.insert([jobsData <- data]))
+            }
+            try db.run(pendingSessions.filter(uuid == session).delete())
+            try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
         }
-        try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
     }
 
     func hasCycle(cycle: CycleData) throws -> Bool {
@@ -237,7 +258,7 @@ final class SQLiteJobStore: JobStorable {
             return nil
         }
         let jobId = row[jobId]
-        guard let job = try db.prepare(jobs.select(jobsData)).first(where: { $0[id] == jobId }) else {
+        guard let job = try db.prepare(jobs).first(where: { $0[id] == jobId }) else {
             return nil
         }
         return try self.decoder.decode(Job.self, from: job[jobsData])
