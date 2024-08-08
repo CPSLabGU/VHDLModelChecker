@@ -12,28 +12,28 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         super.store = InMemoryDataStore()
     }
 
-    override func testCanAddJobs() throws {
-        try super.testCanAddJobs()
+    func testCanAddJobs() throws {
+        try super._testCanAddJobs()
     }
 
-    override func testCanAddManyJobs() throws {
-        try super.testCanAddManyJobs()
+    func testCanAddManyJobs() throws {
+        try super._testCanAddManyJobs()
     }
 
-    override func testInCycle() throws {
-        try super.testInCycle()
+    func testInCycle() throws {
+        try super._testInCycle()
     }
 
-    override func testReset() throws {
-        try super.testReset()
+    func testReset() throws {
+        try super._testReset()
     }
 
-    override func testSessions() throws {
-        try super.testSessions()
+    func testSessions() throws {
+        try super._testSessions()
     }
 
-    override func testSessionStatus() throws {
-        try super.testSessionStatus()
+    func testSessionStatus() throws {
+        try super._testSessionStatus()
     }
 
 }

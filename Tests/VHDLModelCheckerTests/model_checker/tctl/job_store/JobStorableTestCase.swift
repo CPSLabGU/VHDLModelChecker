@@ -43,7 +43,7 @@ class JobStorableTestCase: XCTestCase {
         )
     }
 
-    func testCanAddJobs() throws {
+    func _testCanAddJobs() throws {
         let job = try self.newJob
         let jobId = try store.addJob(job: job)
         let result = try store.job(withId: jobId)
@@ -55,7 +55,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNil(try store.next)
     }
 
-    func testCanAddManyJobs() throws {
+    func _testCanAddManyJobs() throws {
         let jobs = try Array(repeating: 0, count: 10).map { _ in try self.newJob }
         try store.addManyJobs(jobs: jobs)
         try jobs.reversed().forEach {
@@ -65,13 +65,13 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNil(try store.next)
     }
 
-    func testInCycle() throws {
+    func _testInCycle() throws {
         let job = try newJob
         XCTAssertFalse(try store.inCycle(job))
         XCTAssertTrue(try store.inCycle(job))
     }
 
-    func testReset() throws {
+    func _testReset() throws {
         let job1 = try newJob
         let job2 = try newJob
         let job1Id = try store.addJob(job: job1)
@@ -93,7 +93,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNotEqual(session2, session2_2)
     }
 
-    func testSessions() throws {
+    func _testSessions() throws {
         let job = try newJob
         let session = try store.sessionId(forJob: job)
         XCTAssertTrue(try store.isPending(session: session))
@@ -110,7 +110,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNil(try store.pendingSessionJob)
     }
 
-    func testSessionStatus() throws {
+    func _testSessionStatus() throws {
         let job1 = try newJob
         let job2 = try newJob
         let session1 = try store.sessionId(forJob: job1)
