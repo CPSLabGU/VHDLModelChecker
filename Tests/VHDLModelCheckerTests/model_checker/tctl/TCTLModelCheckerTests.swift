@@ -76,6 +76,9 @@ final class TCTLModelCheckerTests: XCTestCase {
         checker = TCTLModelChecker(
             store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
         )
+        // checker = TCTLModelChecker(
+        //     store: InMemoryDataStore()
+        // )
     }
 
     override func tearDown() {

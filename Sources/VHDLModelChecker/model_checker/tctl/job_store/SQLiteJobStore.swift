@@ -68,8 +68,6 @@ final class SQLiteJobStore: JobStorable {
 
     private let pendingSessions = Table("pending_sessions")
 
-    private let revisits = Table("revisits")
-
     private let sessionKeys = Table("session_keys")
 
     private let currentJobs = Table("current_jobs")
@@ -84,43 +82,51 @@ final class SQLiteJobStore: JobStorable {
 
     private let status = Expression<Data?>("status")
 
-    private let jobId = Expression<Int64>("job")
-
-    private let revisit = Expression<Data>("revisit")
+    private let jobId = Expression<UUID>("job")
 
     private let key = Expression<Data>("key")
 
     private let encoder = {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return encoder
     }()
 
     private let decoder = JSONDecoder()
 
-    var next: Job? {
+    private var _next: UUID? {
         get throws {
             guard let row = try db.pluck(currentJobs.order(id.desc)) else {
                 return nil
             }
-            try db.run(currentJobs.order(id.desc).limit(1).delete())
-            let jobId = row[jobId]
-            guard let jobRow = try db.prepare(jobs.order(id.desc)).first(where: { $0[id] == jobId }) else {
-                throw SQLiteError.corruptDatabase
-            }
-            return try decoder.decode(Job.self, from: jobRow[jobsData])
+            try db.run(currentJobs.filter(id == row[id]).delete())
+            return row[jobId]
         }
     }
 
-    var nextPendingSession: (UUID, Job)? {
+    var next: UUID? {
+        get throws {
+            try tx { try _next }
+        }
+    }
+
+    private var _pendingSessionJob: Job? {
         get throws {
             guard
                 let row = try db.pluck(pendingSessions),
-                let job = try db.prepare(jobs).first(where: { $0[id] == row[jobId] })
+                let job = try db.pluck(jobs.filter(uuid == row[jobId]))
             else {
                 return nil
             }
-            return (row[uuid], try decoder.decode(Job.self, from: job[jobsData]))
+            print(String(data: job[jobsData], encoding: .utf8))
+            fflush(stdout)
+            return try decoder.decode(Job.self, from: job[jobsData])
+        }
+    }
+
+    var pendingSessionJob: Job? {
+        get throws {
+            try tx { try _pendingSessionJob }
         }
     }
 
@@ -151,169 +157,200 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func clearDatabase() throws {
-        try db.transaction {
-            try db.run(currentJobs.drop(ifExists: true))
-            try db.run(sessionKeys.drop(ifExists: true))
-            try db.run(completedSessions.drop(ifExists: true))
-            try db.run(pendingSessions.drop(ifExists: true))
-            try db.run(cycles.drop(ifExists: true))
-            try db.run(jobs.drop(ifExists: true))
-            try db.run(revisits.drop(ifExists: true))
-        }
+        try db.run(currentJobs.drop(ifExists: true))
+        try db.run(sessionKeys.drop(ifExists: true))
+        try db.run(completedSessions.drop(ifExists: true))
+        try db.run(pendingSessions.drop(ifExists: true))
+        try db.run(cycles.drop(ifExists: true))
+        try db.run(jobs.drop(ifExists: true))
     }
 
     private func createSchema() throws {
-        try db.transaction {
-            try db.run(jobs.create {
-                $0.column(id, primaryKey: .autoincrement)
-                $0.column(jobsData)
-            })
-            try db.run(jobs.createIndex(jobsData))
-            try db.run(cycles.create {
-                $0.column(id, primaryKey: .autoincrement)
-                $0.column(cycleData)
-            })
-            try db.run(cycles.createIndex(cycleData))
-            try db.run(completedSessions.create {
-                $0.column(uuid, primaryKey: true)
-                $0.column(status)
-            })
-            try db.run(pendingSessions.create {
-                $0.column(uuid, primaryKey: true)
-                $0.column(jobId)
-                $0.foreignKey(jobId, references: jobs, id)
-            })
-            try db.run(revisits.create {
-                $0.column(uuid, primaryKey: true)
-                $0.column(revisit)
-            })
-            try db.run(revisits.createIndex(revisit))
-            try db.run(sessionKeys.create {
-                $0.column(uuid, primaryKey: true)
-                $0.column(key)
-            })
-            try db.run(sessionKeys.createIndex(key))
-            try db.run(currentJobs.create {
-                $0.column(id, primaryKey: .autoincrement)
-                $0.column(jobId)
-                $0.foreignKey(jobId, references: jobs, id)
-            })
-            try db.run(currentJobs.createIndex(jobId))
-        }
+        try db.run(jobs.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(jobsData)
+        })
+        try db.run(jobs.createIndex(jobsData))
+        try db.run(cycles.create {
+            $0.column(id, primaryKey: .autoincrement)
+            $0.column(cycleData)
+        })
+        try db.run(cycles.createIndex(cycleData))
+        try db.run(completedSessions.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(status)
+        })
+        try db.run(pendingSessions.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(jobId)
+            $0.foreignKey(jobId, references: jobs, uuid, update: .cascade, delete: .cascade)
+        })
+        try db.run(sessionKeys.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(key)
+        })
+        try db.run(sessionKeys.createIndex(key))
+        try db.run(currentJobs.create {
+            $0.column(id, primaryKey: .autoincrement)
+            $0.column(jobId)
+            $0.foreignKey(jobId, references: jobs, uuid, update: .cascade, delete: .cascade)
+        })
+        try db.run(currentJobs.createIndex(jobId))
     }
 
-    func addCycle(cycle: CycleData) throws {
-        let data = try encoder.encode(cycle)
-        try db.run(cycles.insert(cycleData <- data))
-    }
-
-    func addJob(job: Job) throws {
-        let data = try encoder.encode(job)
-        try db.transaction {
-            let id = try db.run(jobs.insert(jobsData <- data))
+    func addJob(job: Job) throws -> UUID {
+        try tx {
+            let id = try _id(forJob: job)
             try db.run(currentJobs.insert([jobId <- id]))
+            return id
         }
-    }
-    func addKey(key: SessionKey) throws -> UUID {
-        let id = UUID()
-        let data = try encoder.encode(key)
-        try db.run(sessionKeys.insert(uuid <- id, self.key <- data))
-        return id
     }
 
     func addManyJobs(jobs: [Job]) throws {
         try db.transaction {
-            let firstId = (try db.pluck(self.jobs.order(id.desc)).map { $0[id] + 1 }) ?? Int64.zero
             let data = try jobs.map {
-                [jobsData <- try encoder.encode($0)]
+                [self.jobId <- try self._id(forJob: $0)]
             }
-            let lastId = try db.run(self.jobs.insertMany(data))
-            try db.run(self.currentJobs.insertMany((firstId...lastId).map { [jobId <- $0] }))
+            try db.run(self.currentJobs.insertMany(data))
         }
     }
 
-    func addRevisit(revisit: Revisit) throws -> UUID {
-        let id = UUID()
-        try db.run(revisits.insert([uuid <- id, self.revisit <- try encoder.encode(revisit)]))
-        return id
-    }
-
-    func addSessionJob(session: UUID, job: Job) throws {
-        let data = try encoder.encode(job)
+    func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
+        let data: Data? = try result.map { try encoder.encode($0) }
         try db.transaction {
-            let jobId: Int64
-            if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
-                jobId = selectedJob[id]
-            } else {
-                jobId = try db.run(jobs.insert([jobsData <- data]))
-            }
             try db.run(pendingSessions.filter(uuid == session).delete())
-            try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
-        }
-    }
-
-    func hasCycle(cycle: CycleData) throws -> Bool {
-        let data = try encoder.encode(cycle)
-        return try db.prepare(cycles.select(cycleData)).contains { $0[cycleData] == data }
-    }
-
-    func pendingSession(session: UUID) throws -> Job? {
-        guard let row = try db.prepare(pendingSessions).first(where: { $0[uuid] == session }) else {
-            return nil
-        }
-        let jobId = row[jobId]
-        guard let job = try db.prepare(jobs).first(where: { $0[id] == jobId }) else {
-            return nil
-        }
-        return try self.decoder.decode(Job.self, from: job[jobsData])
-    }
-
-    func removePendingSession(session: UUID) throws {
-        try db.transaction {
-            let row = pendingSessions.filter(uuid == session)
-            try db.run(row.delete())
-            let status: ModelCheckerError? = nil
-            let data = try encoder.encode(status)
             try db.run(completedSessions.insert([uuid <- session, self.status <- data]))
         }
     }
 
-    func reset() throws {
+    func id(forJob job: Job) throws -> UUID {
+        try tx { try _id(forJob: job) }
+    }
+    
+    private func _id(forJob job: Job) throws -> UUID {
+        let data = try encoder.encode(job)
+        if let row = try db.pluck(jobs.filter(jobsData == data)) {
+            return row[uuid]
+        } else {
+            let id = UUID()
+            try db.run(jobs.insert(uuid <- id, jobsData <- data))
+            return id
+        }
+    }
+
+    // func revisitID(revisit: Revisit) throws -> UUID? {
+    //     let data = try encoder.encode(revisit)
+    //     guard let row = try db.prepare(revisits).first(where: { $0[self.revisit] == data }) else {
+    //         return nil
+    //     }
+    //     return row[uuid]
+    // }
+
+    // func addKey(key: SessionKey) throws -> UUID {
+    //     let id = UUID()
+    //     let data = try encoder.encode(key)
+    //     try db.run(sessionKeys.insert(uuid <- id, self.key <- data))
+    //     return id
+    // }
+
+    // func addRevisit(revisit: Revisit) throws -> UUID {
+    //     let id = UUID()
+    //     try db.run(revisits.insert([uuid <- id, self.revisit <- try encoder.encode(revisit)]))
+    //     return id
+    // }
+
+    // func addSessionJob(session: UUID, job: Job) throws {
+    //     let data = try encoder.encode(job)
+    //     try db.transaction {
+    //         let jobId: Int64
+    //         if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
+    //             jobId = selectedJob[id]
+    //         } else {
+    //             jobId = try db.run(jobs.insert([jobsData <- data]))
+    //         }
+    //         try db.run(pendingSessions.filter(uuid == session).delete())
+    //         try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
+    //     }
+    // }
+
+    private func _inCycle(_ job: Job) throws -> Bool {
+        let data = try encoder.encode(job.cycleData)
+        let inCycle = try db.pluck(cycles.select(id).filter(cycleData == data)) != nil
+        if !inCycle {
+            try db.run(cycles.insert(cycleData <- data))
+        }
+        return inCycle
+    }
+
+    func inCycle(_ job: Job) throws -> Bool {
+        try tx { try _inCycle(job) }
+    }
+
+    func isPending(session: UUID) throws -> Bool {
+        try db.pluck(pendingSessions.filter(uuid == session)) != nil
+    }
+
+    func job(withId id: UUID) throws -> Job {
+        guard let row = try db.pluck(jobs.filter(uuid == id)) else {
+            throw SQLiteError.corruptDatabase
+        }
+        print(String(data: row[jobsData], encoding: .utf8))
+        fflush(stdout)
+        return try self.decoder.decode(Job.self, from: row[jobsData])
+    }
+
+    private func _reset() throws {
         try self.clearDatabase()
         try self.createSchema()
     }
 
-    func revisit(id: UUID) throws -> Revisit? {
-        guard let row = try db.prepare(revisits).first(where: { $0[uuid] == id }) else {
-            return nil
-        }
-        return try self.decoder.decode(Revisit.self, from: row[revisit])
+    func reset() throws {
+        try tx { try _reset() }
     }
 
-    func revisitID(revisit: Revisit) throws -> UUID? {
-        let data = try encoder.encode(revisit)
-        guard let row = try db.prepare(revisits).first(where: { $0[self.revisit] == data }) else {
-            return nil
+    private func _sessionId(forJob job: Job) throws -> UUID {
+        let key = try self.encoder.encode(job.sessionKey)
+        let out: UUID
+        if let row = try self.db.pluck(sessionKeys.filter(self.key == key)) {
+            out = row[uuid]
+        } else {
+            out = UUID()
+            try self.db.run(sessionKeys.insert([uuid <- out, self.key <- key]))
         }
-        return row[uuid]
+        guard try self.sessionStatus(session: out) == nil else {
+            return out
+        }
+        let jobId = try _id(forJob: job)
+        if try self.db.pluck(pendingSessions.filter(uuid == out)) != nil {
+            try self.db.run(pendingSessions.filter(uuid == out).update(self.jobId <- jobId))
+        } else {
+            try self.db.run(pendingSessions.insert(uuid <- out, self.jobId <- jobId))
+        }
+        return out
     }
 
-    func sessionId(key: SessionKey) throws -> UUID? {
-        let data = try encoder.encode(key)
-        guard let row = try db.prepare(sessionKeys).first(where: { $0[self.key] == data }) else {
-            return nil
-        }
-        return row[uuid]
+    func sessionId(forJob job: Job) throws -> UUID {
+        try tx { try _sessionId(forJob: job) }
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
-        guard let row = try db.prepare(completedSessions).first(where: { $0[uuid] == session }) else {
+        guard let row = try db.pluck(completedSessions.filter(uuid == session)) else {
             return nil
         }
         guard let data = row[status] else {
             return .some(nil)
         }
+        print(String(data: data, encoding: .utf8))
+        fflush(stdout)
         return try self.decoder.decode(ModelCheckerError.self, from: data)
+    }
+
+    private func tx<T>(_ body: () throws -> T) throws -> T {
+        var out: T?
+        try db.transaction {
+            out = try body()
+        }
+        return out!
     }
 
 }

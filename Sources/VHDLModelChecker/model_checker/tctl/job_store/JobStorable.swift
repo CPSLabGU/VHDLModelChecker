@@ -55,38 +55,87 @@
 
 import Foundation
 
+/// A protocol that represents a store of data associated with a particular
+/// `TCTLModelChecker`.
 protocol JobStorable {
 
-    var next: Job? { mutating get throws }
+    /// Fetches (and removes from the queue of pending jobs) the id of the
+    /// next pending job to handle within the model checker.
+    var next: UUID? { mutating get throws }
+    
+    /// Fetches a job in a pending session.
+    var pendingSessionJob: Job? { get throws }
 
-    var nextPendingSession: (UUID, Job)? { get throws }
+    /// Store the id of the given job within the queue of pending jobs.
+    ///
+    /// - Parameter job: The job to store within this store.
+    ///
+    /// - Returns: The unique identifier associated with the job that is now
+    /// stored on the queue of pending jobs.
+    @discardableResult
+    mutating func addJob(job: Job) throws -> UUID
 
-    mutating func addCycle(cycle: CycleData) throws
-
-    mutating func addJob(job: Job) throws
-
-    mutating func addKey(key: SessionKey) throws -> UUID
-
+    /// Store all given jobs into the queue of pending jobs.
+    ///
+    /// - Parameter jobs: The jobs to store.
     mutating func addManyJobs(jobs: [Job]) throws
 
-    mutating func addRevisit(revisit: Revisit) throws -> UUID
+    /// Sets a pending session as completed with a given result.
+    ///
+    /// - Parameter session: The id of the pending session to complete.
+    ///
+    /// - Parameter result: The result (either an error or nil) indicating
+    /// whether the session succeeded (when result is nil) or not (when result
+    /// is an error).
+    func completePendingSession(session: UUID, result: ModelCheckerError?) throws
 
-    mutating func addSessionJob(session: UUID, job: Job) throws
+    /// Fetch id for a particular job, if an id does not exist yet, generate
+    /// one.
+    ///
+    /// - Parameter job: The job associated with the id we are fetching.
+    ///
+    /// - Returns: The id associated with `job`.
+    mutating func id(forJob job: Job) throws -> UUID
 
-    func hasCycle(cycle: CycleData) throws -> Bool
+    /// Have we seen this cycle before?
+    ///
+    /// - Parameter cycle: The data used to identify the cycle.
+    ///
+    /// - Returns: A value of `true` when a cycle has been detected, otherwise
+    /// `false`.
+    mutating func inCycle(_ job: Job) throws -> Bool
 
-    func pendingSession(session: UUID) throws -> Job?
+    /// Is the session associated with the given session id pending?
+    ///
+    /// - Parameter session: The id of the session we are querying.
+    ///
+    /// - Returns: The value `true` if the session is pending, otherwise
+    /// `false`.
+    func isPending(session: UUID) throws -> Bool
 
-    mutating func removePendingSession(session: UUID) throws
+    /// Fetch the job associated with the given id.
+    ///
+    /// - Parameter id: The unique identifier of the job we are fetching.
+    ///
+    /// - Returns: The job associated with `id`.
+    func job(withId id: UUID) throws -> Job
 
+    /// Set `self` to its initial configuration.
     mutating func reset() throws
 
-    func revisit(id: UUID) throws -> Revisit?
+    /// Fetches the session if associated with the given job.
+    ///
+    /// - Parameter job: The job to handle within the session.
+    ///
+    /// - Returns: The id associated with the session containing `job`.
+    func sessionId(forJob job: Job) throws -> UUID
 
-    func revisitID(revisit: Revisit) throws -> UUID?
-
-    func sessionId(key: SessionKey) throws -> UUID?
-
+    /// Fetches the result of a specific session.
+    ///
+    /// - Returns: nil when the session is still pending, otherwise an
+    /// optional error where nil represents that the session evaluated to
+    /// true and when set to an error, indicates that the session evaluated
+    /// to false with the corresponding error.
     func sessionStatus(session: UUID) throws -> ModelCheckerError??
 
 }

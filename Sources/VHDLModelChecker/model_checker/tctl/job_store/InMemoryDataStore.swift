@@ -57,7 +57,11 @@ import Foundation
 
 class InMemoryDataStore: JobStorable {
 
-    private var jobs: [Job] = []
+    private var jobs: [UUID: Job] = [:]
+
+    private var jobIds: [Job: UUID] = [:]
+
+    private var pendingJobs: [UUID] = []
 
     private var cycles: Set<CycleData> = []
 
@@ -69,92 +73,98 @@ class InMemoryDataStore: JobStorable {
 
     // var sessionReferences: [UUID: UInt] = [:]
 
-    private var revisitIds: [Revisit: UUID] = [:]
-
-    private var revisits: [UUID: Revisit] = [:]
-
-    var next: Job? {
-        jobs.popLast()
+    var next: UUID? {
+        pendingJobs.popLast()
     }
 
-    var nextPendingSession: (UUID, Job)? {
-        self.pendingSessions.first
+    var pendingSessionJob: Job? {
+        self.pendingSessions.first?.value
     }
 
     init() {
+        self.jobIds.reserveCapacity(1000000)
         self.jobs.reserveCapacity(1000000)
+        self.pendingJobs.reserveCapacity(1000000)
         self.cycles.reserveCapacity(1000000)
         self.completedSessions.reserveCapacity(1000000)
         self.pendingSessions.reserveCapacity(1000000)
         self.sessionIds.reserveCapacity(1000000)
         // self.sessionReferences.reserveCapacity(1000000)
-        self.revisitIds.reserveCapacity(1000000)
-        self.revisits.reserveCapacity(1000000)
     }
 
-    func addCycle(cycle: CycleData) throws {
-        self.cycles.insert(cycle)
-    }
-
-    func addJob(job: Job) throws {
-        self.jobs.append(job)
-    }
-
-    func addKey(key: SessionKey) throws -> UUID {
-        let id = UUID()
-        self.sessionIds[key] = id
+    @discardableResult
+    func addJob(job: Job) throws -> UUID {
+        let id = try id(forJob: job)
+        self.pendingJobs.append(id)
         return id
     }
 
     func addManyJobs(jobs: [Job]) throws {
-        self.jobs.append(contentsOf: jobs)
+        let ids = try jobs.map(self.id)
+        self.pendingJobs.append(contentsOf: ids)
     }
 
-    func addRevisit(revisit: Revisit) throws -> UUID {
-        let id = UUID()
-        self.revisitIds[revisit] = id
-        self.revisits[id] = revisit
-        return id
-    }
-
-    func addSessionJob(session: UUID, job: Job) throws {
-        self.pendingSessions[session] = job
-    }
-
-    func hasCycle(cycle: CycleData) throws -> Bool {
-        self.cycles.contains(cycle)
-    }
-
-    func pendingSession(session: UUID) throws -> Job? {
-        self.pendingSessions[session]
-    }
-
-    func removePendingSession(session: UUID) throws {
-        self.completedSessions[session] = .some(nil)
+    func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
+        self.completedSessions[session] = .some(result)
         self.pendingSessions[session] = nil
     }
 
+    func id(forJob job: Job) throws -> UUID {
+        if let id = jobIds[job] {
+            return id
+        } else {
+            let id = UUID()
+            jobIds[job] = id
+            jobs[id] = job
+            return id
+        }
+    }
+
+    func inCycle(_ job: Job) throws -> Bool {
+        let cycleData = job.cycleData
+        let inCycle = self.cycles.contains(cycleData)
+        if !inCycle {
+            self.cycles.insert(cycleData)
+        }
+        return inCycle
+    }
+
+    func isPending(session: UUID) throws -> Bool {
+        self.pendingSessions[session] != nil
+    }
+
+    func job(withId id: UUID) throws -> Job {
+        guard let job = jobs[id] else {
+            fatalError("Unable to fetch job.")
+        }
+        return job
+    }
+
     func reset() throws {
+        self.jobIds.removeAll(keepingCapacity: true)
         self.jobs.removeAll(keepingCapacity: true)
+        self.pendingJobs.removeAll(keepingCapacity: true)
         self.cycles.removeAll(keepingCapacity: true)
         self.completedSessions.removeAll(keepingCapacity: true)
         self.pendingSessions.removeAll(keepingCapacity: true)
         self.sessionIds.removeAll(keepingCapacity: true)
         // self.sessionReferences.removeAll(keepingCapacity: true)
-        self.revisitIds.removeAll(keepingCapacity: true)
-        self.revisits.removeAll(keepingCapacity: true)
     }
 
-    func revisit(id: UUID) throws -> Revisit? {
-        self.revisits[id]
-    }
-
-    func revisitID(revisit: Revisit) throws -> UUID? {
-        self.revisitIds[revisit]
-    }
-
-    func sessionId(key: SessionKey) throws -> UUID? {
-        self.sessionIds[key]
+    func sessionId(forJob job: Job) throws -> UUID {
+        let key = job.sessionKey
+        let out: UUID
+        if let id = self.sessionIds[key] {
+            out = id
+        } else {
+            // sessionReferences[id] = 0
+            out = UUID()
+            self.sessionIds[key] = out
+        }
+        if try self.sessionStatus(session: out) == nil {
+            self.pendingSessions[out] = job
+        }
+        return out
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
