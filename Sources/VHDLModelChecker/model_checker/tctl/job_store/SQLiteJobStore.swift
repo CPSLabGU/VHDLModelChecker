@@ -90,7 +90,11 @@ final class SQLiteJobStore: JobStorable {
 
     private let key = Expression<Data>("key")
 
-    private let encoder = JSONEncoder()
+    private let encoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return encoder
+    }()
 
     private let decoder = JSONDecoder()
 
