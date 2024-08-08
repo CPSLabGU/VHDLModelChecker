@@ -20,7 +20,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
         .package(url: "https://github.com/mipalgu/VHDLParsing", from: "2.4.0"),
-        .package(url: "https://github.com/cpslabgu/TCTLParser", from: "1.1.0"),
+        .package(url: "https://github.com/cpslabgu/TCTLParser", from: "1.1.2"),
         .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", from: "1.3.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
         .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.0")
