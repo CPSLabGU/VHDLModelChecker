@@ -74,14 +74,14 @@ final class TCTLModelCheckerTests: XCTestCase {
         super.setUp()
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
         checker = TCTLModelChecker(
-            store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.sqlite3")
+            store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
         )
     }
 
     override func tearDown() {
         super.tearDown()
         let manager = FileManager.default
-        _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.sqlite3")
+        _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.db")
     }
 
     func testSimpleAlwaysNext() throws {
