@@ -119,7 +119,7 @@ final class CycleData: Equatable, Hashable, Codable {
 
 }
 
-final class Job: Equatable, Hashable, Codable {
+final class Job: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var history: Set<UUID>
@@ -217,6 +217,77 @@ final class Job: Equatable, Hashable, Codable {
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
         hasher.combine(allSessionIds)
+    }
+
+}
+
+extension Job: Codable {
+
+    private enum CodingKeys: CodingKey {
+        case nodeId
+        case expression
+        case history
+        case currentBranch
+        case inSession
+        case historyExpression
+        case constraints
+        case session
+        case successRevisit
+        case failRevisit
+        case allSessionIds
+    }
+
+    convenience init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let expressionRawValue = try container.decode(String.self, forKey: .expression)
+        guard let expression = Expression(rawValue: expressionRawValue) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .expression,
+                in: container,
+                debugDescription: "Invalid expression value"
+            )
+        }
+        let historyExpression: Expression?
+        if let historyExpressionRawValue = try container.decode(String?.self, forKey: .historyExpression) {
+            guard let historyExpressionConverted = Expression(rawValue: historyExpressionRawValue) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .historyExpression,
+                    in: container,
+                    debugDescription: "Invalid history expression value"
+                )
+            }
+            historyExpression = historyExpressionConverted
+        } else {
+            historyExpression = nil
+        }
+        self.init(
+            nodeId: try container.decode(UUID.self, forKey: .nodeId),
+            expression: expression,
+            history: Set(try container.decode([UUID].self, forKey: .history)),
+            currentBranch: try container.decode([UUID].self, forKey: .currentBranch),
+            inSession: try container.decode(Bool.self, forKey: .inSession),
+            historyExpression: historyExpression,
+            constraints: try container.decode([PhysicalConstraint].self, forKey: .constraints),
+            session: try container.decode(UUID?.self, forKey: .session),
+            successRevisit: try container.decode(UUID?.self, forKey: .successRevisit),
+            failRevisit: try container.decode(UUID?.self, forKey: .failRevisit),
+            allSessionIds: try container.decode(SessionIdStore.self, forKey: .allSessionIds)
+        )
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(nodeId, forKey: .nodeId)
+        try container.encode(expression.rawValue, forKey: .expression)
+        try container.encode(history.sorted { $0.uuidString < $1.uuidString }, forKey: .history)
+        try container.encode(currentBranch, forKey: .currentBranch)
+        try container.encode(inSession, forKey: .inSession)
+        try container.encode(historyExpression?.rawValue, forKey: .historyExpression)
+        try container.encode(constraints, forKey: .constraints)
+        try container.encode(session, forKey: .session)
+        try container.encode(successRevisit, forKey: .successRevisit)
+        try container.encode(failRevisit, forKey: .failRevisit)
+        try container.encode(allSessionIds, forKey: .allSessionIds)
     }
 
 }
