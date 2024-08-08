@@ -478,7 +478,9 @@ final class TCTLModelCheckerTests: XCTestCase {
             "A X true V true"
         ]
         let specRaw = "// spec:language VHDL"
-        for spec in specs {
+        for (index, spec) in specs.enumerated() {
+            print("Checking \(index + 1) of \(specs.count)")
+            fflush(stdout)
             let specification = Specification(rawValue: specRaw + "\n\n" + spec + "\n")!
             XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
         }
