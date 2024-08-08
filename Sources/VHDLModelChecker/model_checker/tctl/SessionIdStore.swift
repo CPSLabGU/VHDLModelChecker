@@ -1,6 +1,6 @@
 import Foundation
 
-final class SessionIdStore: Equatable, Hashable {
+final class SessionIdStore: Equatable, Hashable, Codable {
 
     var sessionIds: [UUID: UInt]
 

@@ -130,7 +130,7 @@ final class Job: Equatable, Hashable, Codable {
     var session: UUID?
     var successRevisit: UUID?
     var failRevisit: UUID?
-    // var allSessionIds: SessionIdStore
+    var allSessionIds: SessionIdStore
 
     var cycleData: CycleData {
         CycleData(
@@ -159,8 +159,8 @@ final class Job: Equatable, Hashable, Codable {
         constraints: [PhysicalConstraint],
         session: UUID?,
         successRevisit: UUID?,
-        failRevisit: UUID?
-        // allSessionIds: SessionIdStore
+        failRevisit: UUID?,
+        allSessionIds: SessionIdStore
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -172,7 +172,7 @@ final class Job: Equatable, Hashable, Codable {
         self.session = session
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
-        // self.allSessionIds = allSessionIds
+        self.allSessionIds = allSessionIds
     }
 
     convenience init(revisit: Revisit) {
@@ -186,8 +186,8 @@ final class Job: Equatable, Hashable, Codable {
             constraints: revisit.constraints,
             session: revisit.session,
             successRevisit: revisit.successRevisit,
-            failRevisit: revisit.failRevisit
-            // allSessionIds: revisit.allSessionIds
+            failRevisit: revisit.failRevisit,
+            allSessionIds: revisit.allSessionIds
         )
     }
 
@@ -202,7 +202,7 @@ final class Job: Equatable, Hashable, Codable {
             && lhs.session == rhs.session
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
-            // && lhs.allSessionIds == rhs.allSessionIds
+            && lhs.allSessionIds == rhs.allSessionIds
     }
 
     func hash(into hasher: inout Hasher) {
@@ -216,7 +216,7 @@ final class Job: Equatable, Hashable, Codable {
         hasher.combine(session)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
-        // hasher.combine(allSessionIds)
+        hasher.combine(allSessionIds)
     }
 
 }

@@ -476,7 +476,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         ]
         let specRaw = "// spec:language VHDL"
         for spec in specs {
-            let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
+            let specification = Specification(rawValue: specRaw + "\n\n" + spec + "\n")!
             XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
         }
     }
