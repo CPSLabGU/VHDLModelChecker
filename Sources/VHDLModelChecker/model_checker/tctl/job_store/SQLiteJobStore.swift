@@ -118,8 +118,8 @@ final class SQLiteJobStore: JobStorable {
             else {
                 return nil
             }
-            print(String(data: job[jobsData], encoding: .utf8))
-            fflush(stdout)
+            // print(String(data: job[jobsData], encoding: .utf8))
+            // fflush(stdout)
             return try decoder.decode(Job.self, from: job[jobsData])
         }
     }
@@ -219,7 +219,13 @@ final class SQLiteJobStore: JobStorable {
         let data: Data? = try result.map { try encoder.encode($0) }
         try db.transaction {
             try db.run(pendingSessions.filter(uuid == session).delete())
-            try db.run(completedSessions.insert([uuid <- session, self.status <- data]))
+            guard let completed = try db.pluck(completedSessions.filter(uuid == session)) else {
+                try db.run(completedSessions.insert([uuid <- session, self.status <- data]))
+                return
+            }
+            guard completed[self.status] == data else {
+                throw SQLiteError.corruptDatabase
+            }
         }
     }
 
@@ -294,8 +300,8 @@ final class SQLiteJobStore: JobStorable {
         guard let row = try db.pluck(jobs.filter(uuid == id)) else {
             throw SQLiteError.corruptDatabase
         }
-        print(String(data: row[jobsData], encoding: .utf8))
-        fflush(stdout)
+        // print(String(data: row[jobsData], encoding: .utf8))
+        // fflush(stdout)
         return try self.decoder.decode(Job.self, from: row[jobsData])
     }
 
@@ -340,8 +346,8 @@ final class SQLiteJobStore: JobStorable {
         guard let data = row[status] else {
             return .some(nil)
         }
-        print(String(data: data, encoding: .utf8))
-        fflush(stdout)
+        // print(String(data: data, encoding: .utf8))
+        // fflush(stdout)
         return try self.decoder.decode(ModelCheckerError.self, from: data)
     }
 
