@@ -156,48 +156,6 @@ final class SQLiteJobStore: JobStorable {
         self.db = db
     }
 
-    private func clearDatabase() throws {
-        try db.run(currentJobs.drop(ifExists: true))
-        try db.run(sessionKeys.drop(ifExists: true))
-        try db.run(completedSessions.drop(ifExists: true))
-        try db.run(pendingSessions.drop(ifExists: true))
-        try db.run(cycles.drop(ifExists: true))
-        try db.run(jobs.drop(ifExists: true))
-    }
-
-    private func createSchema() throws {
-        try db.run(jobs.create {
-            $0.column(uuid, primaryKey: true)
-            $0.column(jobsData)
-        })
-        try db.run(jobs.createIndex(jobsData))
-        try db.run(cycles.create {
-            $0.column(id, primaryKey: .autoincrement)
-            $0.column(cycleData)
-        })
-        try db.run(cycles.createIndex(cycleData))
-        try db.run(completedSessions.create {
-            $0.column(uuid, primaryKey: true)
-            $0.column(status)
-        })
-        try db.run(pendingSessions.create {
-            $0.column(uuid, primaryKey: true)
-            $0.column(jobId)
-            $0.foreignKey(jobId, references: jobs, uuid, update: .cascade, delete: .cascade)
-        })
-        try db.run(sessionKeys.create {
-            $0.column(uuid, primaryKey: true)
-            $0.column(key)
-        })
-        try db.run(sessionKeys.createIndex(key))
-        try db.run(currentJobs.create {
-            $0.column(id, primaryKey: .autoincrement)
-            $0.column(jobId)
-            $0.foreignKey(jobId, references: jobs, uuid, update: .cascade, delete: .cascade)
-        })
-        try db.run(currentJobs.createIndex(jobId))
-    }
-
     func addJob(job: Job) throws -> UUID {
         try tx {
             let id = try _id(forJob: job)
@@ -232,7 +190,40 @@ final class SQLiteJobStore: JobStorable {
     func id(forJob job: Job) throws -> UUID {
         try tx { try _id(forJob: job) }
     }
-    
+
+    func inCycle(_ job: Job) throws -> Bool {
+        try tx { try _inCycle(job) }
+    }
+
+    func isPending(session: UUID) throws -> Bool {
+        try db.pluck(pendingSessions.filter(uuid == session)) != nil
+    }
+
+    func job(withId id: UUID) throws -> Job {
+        guard let row = try db.pluck(jobs.filter(uuid == id)) else {
+            throw SQLiteError.corruptDatabase
+        }
+        // print(String(data: row[jobsData], encoding: .utf8))
+        // fflush(stdout)
+        return try self.decoder.decode(Job.self, from: row[jobsData])
+    }
+
+    func sessionId(forJob job: Job) throws -> UUID {
+        try tx { try _sessionId(forJob: job) }
+    }
+
+    func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
+        guard let row = try db.pluck(completedSessions.filter(uuid == session)) else {
+            return nil
+        }
+        guard let data = row[status] else {
+            return .some(nil)
+        }
+        // print(String(data: data, encoding: .utf8))
+        // fflush(stdout)
+        return try self.decoder.decode(ModelCheckerError.self, from: data)
+    }
+
     private func _id(forJob job: Job) throws -> UUID {
         let data = try encoder.encode(job)
         if let row = try db.pluck(jobs.filter(jobsData == data)) {
@@ -242,6 +233,48 @@ final class SQLiteJobStore: JobStorable {
             try db.run(jobs.insert(uuid <- id, jobsData <- data))
             return id
         }
+    }
+
+    private func clearDatabase() throws {
+        try db.run(currentJobs.drop(ifExists: true))
+        try db.run(sessionKeys.drop(ifExists: true))
+        try db.run(completedSessions.drop(ifExists: true))
+        try db.run(pendingSessions.drop(ifExists: true))
+        try db.run(cycles.drop(ifExists: true))
+        try db.run(jobs.drop(ifExists: true))
+    }
+
+    private func createSchema() throws {
+        try db.run(jobs.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(jobsData, unique: true)
+        })
+        try db.run(jobs.createIndex(jobsData))
+        try db.run(cycles.create {
+            $0.column(id, primaryKey: .autoincrement)
+            $0.column(cycleData)
+        })
+        try db.run(cycles.createIndex(cycleData))
+        try db.run(completedSessions.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(status)
+        })
+        try db.run(pendingSessions.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(jobId)
+            $0.foreignKey(jobId, references: jobs, uuid, update: .cascade, delete: .cascade)
+        })
+        try db.run(sessionKeys.create {
+            $0.column(uuid, primaryKey: true)
+            $0.column(key)
+        })
+        try db.run(sessionKeys.createIndex(key))
+        try db.run(currentJobs.create {
+            $0.column(id, primaryKey: .autoincrement)
+            $0.column(jobId)
+            $0.foreignKey(jobId, references: jobs, uuid, update: .cascade, delete: .cascade)
+        })
+        try db.run(currentJobs.createIndex(jobId))
     }
 
     // func revisitID(revisit: Revisit) throws -> UUID? {
@@ -288,23 +321,6 @@ final class SQLiteJobStore: JobStorable {
         return inCycle
     }
 
-    func inCycle(_ job: Job) throws -> Bool {
-        try tx { try _inCycle(job) }
-    }
-
-    func isPending(session: UUID) throws -> Bool {
-        try db.pluck(pendingSessions.filter(uuid == session)) != nil
-    }
-
-    func job(withId id: UUID) throws -> Job {
-        guard let row = try db.pluck(jobs.filter(uuid == id)) else {
-            throw SQLiteError.corruptDatabase
-        }
-        // print(String(data: row[jobsData], encoding: .utf8))
-        // fflush(stdout)
-        return try self.decoder.decode(Job.self, from: row[jobsData])
-    }
-
     private func _reset() throws {
         try self.clearDatabase()
         try self.createSchema()
@@ -333,22 +349,6 @@ final class SQLiteJobStore: JobStorable {
             try self.db.run(pendingSessions.insert(uuid <- out, self.jobId <- jobId))
         }
         return out
-    }
-
-    func sessionId(forJob job: Job) throws -> UUID {
-        try tx { try _sessionId(forJob: job) }
-    }
-
-    func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
-        guard let row = try db.pluck(completedSessions.filter(uuid == session)) else {
-            return nil
-        }
-        guard let data = row[status] else {
-            return .some(nil)
-        }
-        // print(String(data: data, encoding: .utf8))
-        // fflush(stdout)
-        return try self.decoder.decode(ModelCheckerError.self, from: data)
     }
 
     private func tx<T>(_ body: () throws -> T) throws -> T {
