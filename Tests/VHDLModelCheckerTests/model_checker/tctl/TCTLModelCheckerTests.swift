@@ -87,6 +87,39 @@ final class TCTLModelCheckerTests: XCTestCase {
         _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.db")
     }
 
+    /// Test true.
+    func testTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    /// Always true.
+    func testAlwaysTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    /// Eventually true.
+    func testEventuallyTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E G true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
     func testSimpleAlwaysNext() throws {
         let specRaw = """
         // spec:language VHDL
