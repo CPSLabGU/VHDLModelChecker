@@ -121,4 +121,13 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(result, try store.sessionStatus(session: session2))
     }
 
+    func _testAddJobPerformance() throws {
+        measure {
+            for _ in 0..<100 {
+                let job = try! self.newJob
+                _ = try! store.addJob(job: job)
+            }
+        }
+    }
+
 }

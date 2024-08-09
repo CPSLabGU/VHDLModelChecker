@@ -36,4 +36,8 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         try super._testSessionStatus()
     }
 
+    func testAddJobPerformance() throws {
+        try super._testAddJobPerformance()
+    }
+
 }

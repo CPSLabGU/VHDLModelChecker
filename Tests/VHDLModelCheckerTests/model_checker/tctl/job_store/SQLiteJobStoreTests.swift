@@ -10,6 +10,11 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         super.store = try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
     }
 
+    override func tearDown() {
+        super.tearDown()
+        _ = try? FileManager.default.removeItem(atPath: FileManager.default.currentDirectoryPath + "/test.db")
+    }
+
     func testCanAddJobs() throws {
         try super._testCanAddJobs()
     }
@@ -32,6 +37,10 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
 
     func testSessionStatus() throws {
         try super._testSessionStatus()
+    }
+
+    func testAddJobPerformance() throws {
+        try super._testAddJobPerformance()
     }
 
 }
