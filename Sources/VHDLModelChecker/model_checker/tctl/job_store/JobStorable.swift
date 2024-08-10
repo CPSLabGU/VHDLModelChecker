@@ -73,12 +73,12 @@ protocol JobStorable {
     /// - Returns: The unique identifier associated with the job that is now
     /// stored on the queue of pending jobs.
     @discardableResult
-    mutating func addJob(job: Job) throws -> UUID
+    mutating func addJob(data: JobData) throws -> UUID
 
     /// Store all given jobs into the queue of pending jobs.
     ///
     /// - Parameter jobs: The jobs to store.
-    mutating func addManyJobs(jobs: [Job]) throws
+    mutating func addManyJobs(jobs: [JobData]) throws
 
     /// Sets a pending session as completed with a given result.
     ///
@@ -88,14 +88,6 @@ protocol JobStorable {
     /// whether the session succeeded (when result is nil) or not (when result
     /// is an error).
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws
-
-    /// Fetch id for a particular job, if an id does not exist yet, generate
-    /// one.
-    ///
-    /// - Parameter job: The job associated with the id we are fetching.
-    ///
-    /// - Returns: The id associated with `job`.
-    mutating func id(forJob job: Job) throws -> UUID
 
     /// Have we seen this cycle before?
     ///
@@ -112,6 +104,14 @@ protocol JobStorable {
     /// - Returns: The value `true` if the session is pending, otherwise
     /// `false`.
     func isPending(session: UUID) throws -> Bool
+
+    /// Fetch id for a particular job, if an id does not exist yet, generate
+    /// one.
+    ///
+    /// - Parameter job: The job associated with the id we are fetching.
+    ///
+    /// - Returns: The id associated with `job`.
+    mutating func job(forData data: JobData) throws -> Job
 
     /// Fetch the job associated with the given id.
     ///

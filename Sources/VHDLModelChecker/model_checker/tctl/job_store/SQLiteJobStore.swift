@@ -120,7 +120,7 @@ final class SQLiteJobStore: JobStorable {
             }
             // print(String(data: job[jobsData], encoding: .utf8))
             // fflush(stdout)
-            return try decoder.decode(Job.self, from: job[jobsData])
+            return Job(id: job[uuid], data: try decoder.decode(JobData.self, from: job[jobsData]))
         }
     }
 
@@ -156,18 +156,18 @@ final class SQLiteJobStore: JobStorable {
         self.db = db
     }
 
-    func addJob(job: Job) throws -> UUID {
+    func addJob(data: JobData) throws -> UUID {
         try tx {
-            let id = try _id(forJob: job)
+            let id = try _id(forJob: data).id
             try db.run(currentJobs.insert([jobId <- id]))
             return id
         }
     }
 
-    func addManyJobs(jobs: [Job]) throws {
+    func addManyJobs(jobs: [JobData]) throws {
         try db.transaction {
             let data = try jobs.map {
-                [self.jobId <- try self._id(forJob: $0)]
+                [self.jobId <- try self._id(forJob: $0).id]
             }
             try db.run(self.currentJobs.insertMany(data))
         }
@@ -187,10 +187,6 @@ final class SQLiteJobStore: JobStorable {
         }
     }
 
-    func id(forJob job: Job) throws -> UUID {
-        try tx { try _id(forJob: job) }
-    }
-
     func inCycle(_ job: Job) throws -> Bool {
         try tx { try _inCycle(job) }
     }
@@ -199,13 +195,21 @@ final class SQLiteJobStore: JobStorable {
         try db.pluck(pendingSessions.filter(uuid == session)) != nil
     }
 
+    func job(forData data: JobData) throws -> Job {
+        try tx { try _id(forJob: data) }
+    }
+
     func job(withId id: UUID) throws -> Job {
         guard let row = try db.pluck(jobs.filter(uuid == id)) else {
             throw SQLiteError.corruptDatabase
         }
         // print(String(data: row[jobsData], encoding: .utf8))
         // fflush(stdout)
-        return try self.decoder.decode(Job.self, from: row[jobsData])
+        return Job(id: id, data: try self.decoder.decode(JobData.self, from: row[jobsData]))
+    }
+
+    func reset() throws {
+        try tx { try _reset() }
     }
 
     func sessionId(forJob job: Job) throws -> UUID {
@@ -224,14 +228,14 @@ final class SQLiteJobStore: JobStorable {
         return try self.decoder.decode(ModelCheckerError.self, from: data)
     }
 
-    private func _id(forJob job: Job) throws -> UUID {
+    private func _id(forJob job: JobData) throws -> Job {
         let data = try encoder.encode(job)
         if let row = try db.pluck(jobs.filter(jobsData == data)) {
-            return row[uuid]
+            return Job(id: row[uuid], data: job)
         } else {
             let id = UUID()
             try db.run(jobs.insert(uuid <- id, jobsData <- data))
-            return id
+            return Job(id: id, data: job)
         }
     }
 
@@ -326,10 +330,6 @@ final class SQLiteJobStore: JobStorable {
         try self.createSchema()
     }
 
-    func reset() throws {
-        try tx { try _reset() }
-    }
-
     private func _sessionId(forJob job: Job) throws -> UUID {
         let key = try self.encoder.encode(job.sessionKey)
         let out: UUID
@@ -342,7 +342,7 @@ final class SQLiteJobStore: JobStorable {
         guard try self.sessionStatus(session: out) == nil else {
             return out
         }
-        let jobId = try _id(forJob: job)
+        let jobId = job.id
         if try self.db.pluck(pendingSessions.filter(uuid == out)) != nil {
             try self.db.run(pendingSessions.filter(uuid == out).update(self.jobId <- jobId))
         } else {

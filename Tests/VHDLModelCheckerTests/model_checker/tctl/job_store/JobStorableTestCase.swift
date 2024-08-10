@@ -9,11 +9,11 @@ class JobStorableTestCase: XCTestCase {
 
     var store: JobStorable!
 
-    var revisit: Job!
+    var revisit: JobData!
 
-    var newJob: Job {
+    var newJob: JobData {
         get throws {
-            Job(
+            JobData(
                 nodeId: UUID(),
                 expression: Expression.language(expression: .vhdl(expression: .true)),
                 history: [UUID(), UUID()],
@@ -22,14 +22,14 @@ class JobStorableTestCase: XCTestCase {
                 historyExpression: Expression.language(expression: .vhdl(expression: .false)),
                 constraints: [PhysicalConstraint(cost: Cost(time: 12, energy: 12), constraint: .lessThan(constraint: .time(amount: 20, unit: .s)))],
                 session: UUID(),
-                successRevisit: try store.id(forJob: revisit),
-                failRevisit: try store.id(forJob: revisit)
+                successRevisit: try store.job(forData: revisit).id,
+                failRevisit: try store.job(forData: revisit).id
             )
         }
     }
 
     override func setUp() {
-        self.revisit = Job(
+        self.revisit = JobData(
             nodeId: UUID(),
             expression: Expression.language(expression: .vhdl(expression: .true)),
             history: [],
@@ -45,10 +45,10 @@ class JobStorableTestCase: XCTestCase {
 
     func _testCanAddJobs() throws {
         let job = try self.newJob
-        let jobId = try store.addJob(job: job)
+        let jobId = try store.addJob(data: job)
         let result = try store.job(withId: jobId)
-        XCTAssertEqual(job, result)
-        let resultId = try store.id(forJob: result)
+        XCTAssertEqual(Job(id: jobId, data: job), result)
+        let resultId = try store.job(forData: result.data).id
         XCTAssertEqual(jobId, resultId)
         let nextJobId = try store.next
         XCTAssertEqual(jobId, nextJobId)
@@ -59,14 +59,14 @@ class JobStorableTestCase: XCTestCase {
         let jobs = try Array(repeating: 0, count: 10).map { _ in try self.newJob }
         try store.addManyJobs(jobs: jobs)
         try jobs.reversed().forEach {
-            let id = try store.id(forJob: $0)
+            let id = try store.job(forData: $0).id
             XCTAssertEqual(id, try store.next)
         }
         XCTAssertNil(try store.next)
     }
 
     func _testInCycle() throws {
-        let job = try newJob
+        let job = Job(id: UUID(), data: try newJob)
         XCTAssertFalse(try store.inCycle(job))
         XCTAssertTrue(try store.inCycle(job))
     }
@@ -74,27 +74,27 @@ class JobStorableTestCase: XCTestCase {
     func _testReset() throws {
         let job1 = try newJob
         let job2 = try newJob
-        let job1Id = try store.addJob(job: job1)
-        let job2Id = try store.addJob(job: job2)
-        let session1 = try store.sessionId(forJob: job1)
-        let session2 = try store.sessionId(forJob: job2)
+        let job1Id = try store.addJob(data: job1)
+        let job2Id = try store.addJob(data: job2)
+        let session1 = try store.sessionId(forJob: Job(id: job1Id, data: job1))
+        let session2 = try store.sessionId(forJob: Job(id: job2Id, data: job2))
         try store.completePendingSession(session: session1, result: nil)
-        XCTAssertEqual(try store.pendingSessionJob, job2)
+        XCTAssertEqual(try store.pendingSessionJob, Job(id: job2Id, data: job2))
         try store.reset()
         XCTAssertNil(try store.next)
         XCTAssertNil(try store.pendingSessionJob)
-        let job1Id_2 = try store.id(forJob: job1)
-        let job2Id_2 = try store.id(forJob: job2)
+        let job1Id_2 = try store.job(forData: job1).id
+        let job2Id_2 = try store.job(forData: job2).id
         XCTAssertNotEqual(job1Id, job1Id_2)
         XCTAssertNotEqual(job2Id, job2Id_2)
-        let session1_2 = try store.sessionId(forJob: job1)
-        let session2_2 = try store.sessionId(forJob: job2)
+        let session1_2 = try store.sessionId(forJob: Job(id: job1Id, data: job1))
+        let session2_2 = try store.sessionId(forJob: Job(id: job2Id, data: job2))
         XCTAssertNotEqual(session1, session1_2)
         XCTAssertNotEqual(session2, session2_2)
     }
 
     func _testSessions() throws {
-        let job = try newJob
+        let job = try store.job(forData: try newJob)
         let session = try store.sessionId(forJob: job)
         XCTAssertTrue(try store.isPending(session: session))
         XCTAssertEqual(try store.sessionStatus(session: session), .none)
@@ -111,8 +111,8 @@ class JobStorableTestCase: XCTestCase {
     }
 
     func _testSessionStatus() throws {
-        let job1 = try newJob
-        let job2 = try newJob
+        let job1 = try store.job(forData: try newJob)
+        let job2 = try store.job(forData: try newJob)
         let session1 = try store.sessionId(forJob: job1)
         let session2 = try store.sessionId(forJob: job2)
         try store.completePendingSession(session: session1, result: nil)
@@ -125,7 +125,7 @@ class JobStorableTestCase: XCTestCase {
         measure {
             for _ in 0..<100 {
                 let job = try! self.newJob
-                _ = try! store.addJob(job: job)
+                _ = try! store.addJob(data: job)
             }
         }
     }

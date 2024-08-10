@@ -73,12 +73,12 @@ final class TCTLModelCheckerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
-        checker = TCTLModelChecker(
-            store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
-        )
         // checker = TCTLModelChecker(
-        //     store: InMemoryDataStore()
+        //     store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
         // )
+        checker = TCTLModelChecker(
+            store: InMemoryDataStore()
+        )
     }
 
     override func tearDown() {

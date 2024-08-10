@@ -59,7 +59,7 @@ class InMemoryDataStore: JobStorable {
 
     private var jobs: [UUID: Job] = [:]
 
-    private var jobIds: [Job: UUID] = [:]
+    private var jobIds: [JobData: UUID] = [:]
 
     private var pendingJobs: [UUID] = []
 
@@ -93,31 +93,22 @@ class InMemoryDataStore: JobStorable {
     }
 
     @discardableResult
-    func addJob(job: Job) throws -> UUID {
-        let id = try id(forJob: job)
+    func addJob(data: JobData) throws -> UUID {
+        let id = try job(forData: data).id
         self.pendingJobs.append(id)
         return id
     }
 
-    func addManyJobs(jobs: [Job]) throws {
-        let ids = try jobs.map(self.id)
+    func addManyJobs(jobs: [JobData]) throws {
+        let ids = try jobs.map {
+            try self.job(forData: $0).id
+        }
         self.pendingJobs.append(contentsOf: ids)
     }
 
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
         self.completedSessions[session] = .some(result)
         self.pendingSessions[session] = nil
-    }
-
-    func id(forJob job: Job) throws -> UUID {
-        if let id = jobIds[job] {
-            return id
-        } else {
-            let id = UUID()
-            jobIds[job] = id
-            jobs[id] = job
-            return id
-        }
     }
 
     func inCycle(_ job: Job) throws -> Bool {
@@ -131,6 +122,18 @@ class InMemoryDataStore: JobStorable {
 
     func isPending(session: UUID) throws -> Bool {
         self.pendingSessions[session] != nil
+    }
+
+    func job(forData data: JobData) throws -> Job {
+        if let id = jobIds[data] {
+            return jobs[id]!
+        } else {
+            let id = UUID()
+            let newJob = Job(id: id, data: data)
+            jobIds[data] = id
+            jobs[id] = newJob
+            return newJob
+        }
     }
 
     func job(withId id: UUID) throws -> Job {
