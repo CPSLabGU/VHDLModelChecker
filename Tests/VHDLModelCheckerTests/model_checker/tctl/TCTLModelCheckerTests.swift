@@ -73,19 +73,17 @@ final class TCTLModelCheckerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
+        checker = TCTLModelChecker(store: try! SQLiteJobStore())
         // checker = TCTLModelChecker(
-        //     store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
+        //     store: InMemoryDataStore()
         // )
-        checker = TCTLModelChecker(
-            store: InMemoryDataStore()
-        )
     }
 
-    override func tearDown() {
-        super.tearDown()
-        let manager = FileManager.default
-        _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.db")
-    }
+    // override func tearDown() {
+    //     super.tearDown()
+    //     let manager = FileManager.default
+    //     _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.db")
+    // }
 
     /// Test true.
     func testTrue() throws {

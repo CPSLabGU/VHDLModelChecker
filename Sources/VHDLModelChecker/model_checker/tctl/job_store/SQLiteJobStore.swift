@@ -130,6 +130,13 @@ final class SQLiteJobStore: JobStorable {
         }
     }
 
+    /// Create an `in-memory` database.
+    convenience init() throws {
+        let db = try Connection(.inMemory, readonly: false)
+        self.init(db: db)
+        try self.createSchema()
+    }
+
     convenience init(path: String) throws {
         try self.init(url: URL(fileURLWithPath: path, isDirectory: false))
     }
