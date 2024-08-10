@@ -62,19 +62,27 @@ protocol JobStorable {
     /// Fetches (and removes from the queue of pending jobs) the id of the
     /// next pending job to handle within the model checker.
     var next: UUID? { mutating get throws }
-    
+
     /// Fetches a job in a pending session.
     var pendingSessionJob: Job? { get throws }
 
     /// Store the id of the given job within the queue of pending jobs.
+    /// 
+    /// This method first checks the existence of the job within the queue before adding it to the pending
+    /// jobs. If the data already exists, then the ID of the existing job is used.
     ///
-    /// - Parameter job: The job to store within this store.
+    /// - Parameter data: The data to store within this store.
     ///
     /// - Returns: The unique identifier associated with the job that is now
     /// stored on the queue of pending jobs.
     @discardableResult
     mutating func addJob(data: JobData) throws -> UUID
 
+    /// Stores a job into the queue of pending jobs.
+    /// 
+    /// This method assumes that the job already exists within the store but is not currently on the queue
+    /// of pending jobs.
+    /// - Parameter job: The job to place on the queue of pending jobs. 
     mutating func addJob(job: Job) throws
 
     /// Store all given jobs into the queue of pending jobs.
@@ -107,12 +115,12 @@ protocol JobStorable {
     /// `false`.
     func isPending(session: UUID) throws -> Bool
 
-    /// Fetch id for a particular job, if an id does not exist yet, generate
+    /// Fetch a job containg the given data, if a job does not exist yet, generate
     /// one.
     ///
-    /// - Parameter job: The job associated with the id we are fetching.
+    /// - Parameter data: The data associated with the job we are fetching.
     ///
-    /// - Returns: The id associated with `job`.
+    /// - Returns: The job associated with `data`.
     mutating func job(forData data: JobData) throws -> Job
 
     /// Fetch the job associated with the given id.
