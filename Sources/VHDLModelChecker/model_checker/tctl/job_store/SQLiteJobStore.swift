@@ -156,12 +156,17 @@ final class SQLiteJobStore: JobStorable {
         self.db = db
     }
 
+    @discardableResult
     func addJob(data: JobData) throws -> UUID {
         try tx {
-            let id = try _id(forJob: data).id
-            try db.run(currentJobs.insert([jobId <- id]))
-            return id
+            let job = try _id(forJob: data)
+            try self.addJob(job: job)
+            return job.id
         }
+    }
+
+    func addJob(job: Job) throws {
+        try db.run(currentJobs.insert([jobId <- job.id]))
     }
 
     func addManyJobs(jobs: [JobData]) throws {

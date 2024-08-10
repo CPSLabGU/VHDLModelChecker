@@ -75,6 +75,8 @@ protocol JobStorable {
     @discardableResult
     mutating func addJob(data: JobData) throws -> UUID
 
+    mutating func addJob(job: Job) throws
+
     /// Store all given jobs into the queue of pending jobs.
     ///
     /// - Parameter jobs: The jobs to store.

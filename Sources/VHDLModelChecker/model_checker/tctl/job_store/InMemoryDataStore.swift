@@ -94,9 +94,13 @@ class InMemoryDataStore: JobStorable {
 
     @discardableResult
     func addJob(data: JobData) throws -> UUID {
-        let id = try job(forData: data).id
-        self.pendingJobs.append(id)
-        return id
+        let job = try job(forData: data)
+        try self.addJob(job: job)
+        return job.id
+    }
+
+    func addJob(job: Job) throws {
+        self.pendingJobs.append(job.id)
     }
 
     func addManyJobs(jobs: [JobData]) throws {
