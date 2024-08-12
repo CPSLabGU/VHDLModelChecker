@@ -221,4 +221,29 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    func _testSessionIdPerformance() throws {
+        let datas = try (0..<10000).map { _ in try self.newJob }
+        let jobs = (try datas.map { try self.store.job(forData: $0) }).shuffled()
+        var index = 0
+        measure {
+            try! jobs[index..<(index + 1000)].forEach {
+                _ = try self.store.sessionId(forJob: $0)
+            }
+            index += 1000
+        }
+    }
+
+    func _testSessionStatusPerformance() throws {
+        let datas = try (0..<10000).map { _ in try self.newJob }
+        let jobs = (try datas.map { try self.store.job(forData: $0) })
+        let sessions = (try jobs.map { try self.store.sessionId(forJob: $0) })
+        try sessions.forEach { try self.store.completePendingSession(session: $0, result: nil) }
+        let shuffledSessions = sessions.shuffled()
+        measure {
+            try! shuffledSessions.forEach {
+                _ = try self.store.sessionStatus(session: $0)
+            }
+        }
+    }
+
 }

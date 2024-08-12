@@ -76,4 +76,12 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         try super._testJobFromIDPerformance()
     }
 
+    func testSessionIdPerformance() throws {
+        try super._testSessionIdPerformance()
+    }
+
+    func testSessionStatusPerformance() throws {
+        try super._testSessionStatusPerformance()
+    }
+
 }
