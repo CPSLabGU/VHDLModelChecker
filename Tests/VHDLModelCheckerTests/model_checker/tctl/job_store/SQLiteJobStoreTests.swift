@@ -43,4 +43,8 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         try super._testAddJobPerformance()
     }
 
+    func testInCyclePerformance() throws {
+        try super._testInCyclePerformance()
+    }
+
 }

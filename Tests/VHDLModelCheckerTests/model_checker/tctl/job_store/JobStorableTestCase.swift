@@ -130,4 +130,13 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    func _testInCyclePerformance() throws {
+        measure {
+            for _ in 0..<100 {
+                let job = try! self.newJob
+                _ = try! store.inCycle(Job(id: UUID(), data: job))
+            }
+        }
+    }
+
 }
