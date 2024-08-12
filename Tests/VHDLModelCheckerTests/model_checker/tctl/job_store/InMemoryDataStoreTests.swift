@@ -44,12 +44,36 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         try super._testPendingSessionJob()
     }
 
+    func testAddJobDataPerformance() throws {
+        try super._testAddJobDataPerformance()
+    }
+
     func testAddJobPerformance() throws {
         try super._testAddJobPerformance()
     }
 
+    func testAddManyJobPerformance() throws {
+        try super._testAddManyJobPerformance()
+    }
+
+    func testCompletePendingSessionPerformance() throws {
+        try super._testCompletePendingSessionPerformance()
+    }
+
     func testInCyclePerformance() throws {
         try super._testInCyclePerformance()
+    }
+
+    func testIsPendingPerformance() throws {
+        try super._testIsPendingPerformance()
+    }
+
+    func testJobFromDataPerformance() throws {
+        try super._testJobFromDataPerformance()
+    }
+
+    func testJobFromIDPerformance() throws {
+        try super._testJobFromIDPerformance()
     }
 
 }

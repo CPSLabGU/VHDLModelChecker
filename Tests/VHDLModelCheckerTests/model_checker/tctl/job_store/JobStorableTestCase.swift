@@ -144,12 +144,41 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
-    func _testAddJobPerformance() throws {
+    func _testAddJobDataPerformance() throws {
         measure {
             for _ in 0..<1000 {
                 let job = try! self.newJob
                 _ = try! store.addJob(data: job)
             }
+        }
+    }
+
+    func _testAddJobPerformance() throws {
+        measure {
+            for _ in 0..<1000 {
+                let job = try! self.newJob
+                _ = try! store.addJob(job: Job(id: UUID(), data: job))
+            }
+        }
+    }
+
+    func _testAddManyJobPerformance() throws {
+        let jobs = try (0..<1000).map { _ in try self.newJob }
+        measure {
+            try! self.store.reset()
+            try! store.addManyJobs(jobs: jobs)
+        }
+    }
+
+    func _testCompletePendingSessionPerformance() throws {
+        let jobs = try (0..<10000).map { _ in Job(id: UUID(), data: try self.newJob) }
+        let sessions = (try jobs.map { try self.store.sessionId(forJob: $0) }).shuffled()
+        var index = 0
+        measure {
+            sessions[index..<(index + 999)].forEach {
+                try! self.store.completePendingSession(session: $0, result: nil)
+            }
+            index += 1000
         }
     }
 
@@ -159,6 +188,36 @@ class JobStorableTestCase: XCTestCase {
                 let job = try! self.newJob
                 _ = try! store.inCycle(Job(id: UUID(), data: job))
             }
+        }
+    }
+
+    func _testIsPendingPerformance() throws {
+        let jobs = try (0..<1000).map { _ in Job(id: UUID(), data: try self.newJob) }
+        let sessions = (try jobs.map { try self.store.sessionId(forJob: $0) }).shuffled()
+        measure {
+            sessions.forEach {
+                _ = try! self.store.isPending(session: $0)
+            }
+        }
+    }
+
+    func _testJobFromDataPerformance() throws {
+        let jobs = try (0..<1000).map { _ in try self.newJob }
+        try jobs.forEach { _ = try self.store.addJob(data: $0) }
+        let shuffledJobs = jobs.shuffled()
+        measure {
+            try! shuffledJobs.forEach {
+                _ = try self.store.job(forData: $0)
+            }
+        }
+    }
+
+    func _testJobFromIDPerformance() throws {
+        let jobs = try (0..<1000).map { _ in try self.newJob }
+        let fetchedJobs = try jobs.map { try self.store.job(forData: $0) }
+        let shuffledJobs = fetchedJobs.shuffled()
+        measure {
+            try! shuffledJobs.forEach { _ = try self.store.job(withId: $0.id) }
         }
     }
 
