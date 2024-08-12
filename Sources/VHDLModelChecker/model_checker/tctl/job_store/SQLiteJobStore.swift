@@ -280,7 +280,21 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func _inCycle(_ job: Job) throws -> Bool {
-        let data = try encoder.encode(job.cycleData)
+        let cycle = job.cycleData
+        let expression = self.getExpression(expression: cycle.expression)
+        let historyExpression = cycle.historyExpression.map(self.getExpression)
+        let constraints = self.getConstraints(constraint: cycle.constraints)
+        let encodedCycle = EncodedCycleData(
+            nodeId: cycle.nodeId,
+            expression: expression,
+            inCycle: cycle.inCycle,
+            historyExpression: historyExpression,
+            session: cycle.session,
+            constraints: constraints,
+            successRevisit: cycle.successRevisit,
+            failRevisit: cycle.failRevisit
+        )
+        let data = try encoder.encode(encodedCycle)
         let inCycle = try db.pluck(cycles.select(id).filter(cycleData == data)) != nil
         if !inCycle {
             try db.run(cycles.insert(cycleData <- data))
@@ -548,6 +562,46 @@ extension JobData {
             successRevisit: job.successRevisit,
             failRevisit: job.failRevisit
         )
+    }
+
+}
+
+private struct EncodedCycleData: Equatable, Hashable, Codable {
+
+    let nodeId: UUID
+
+    let expression: UUID
+
+    let inCycle: Bool
+
+    let historyExpression: UUID?
+
+    let session: UUID?
+
+    let constraints: UUID
+
+    let successRevisit: UUID?
+
+    let failRevisit: UUID?
+
+    init(
+        nodeId: UUID,
+        expression: UUID,
+        inCycle: Bool,
+        historyExpression: UUID?,
+        session: UUID?,
+        constraints: UUID,
+        successRevisit: UUID?,
+        failRevisit: UUID?
+    ) {
+        self.nodeId = nodeId
+        self.expression = expression
+        self.inCycle = inCycle
+        self.historyExpression = historyExpression
+        self.session = session
+        self.constraints = constraints
+        self.successRevisit = successRevisit
+        self.failRevisit = failRevisit
     }
 
 }
