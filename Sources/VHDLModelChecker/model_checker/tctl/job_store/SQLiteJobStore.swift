@@ -99,9 +99,9 @@ final class SQLiteJobStore: JobStorable {
 
     private var expressionKeys: [TCTLParser.Expression: UUID] = [:]
 
-    private var constraints: [[PhysicalConstraint]: UUID] = [:]
+    private var constraintsKeys: [[PhysicalConstraint]: UUID] = [:]
 
-    private var constraintKeys: [UUID: [PhysicalConstraint]] = [:]
+    private var constraints: [UUID: [PhysicalConstraint]] = [:]
 
     private var _next: UUID? {
         get throws {
@@ -129,7 +129,10 @@ final class SQLiteJobStore: JobStorable {
             }
             // print(String(data: job[jobsData], encoding: .utf8))
             // fflush(stdout)
-            return Job(id: job[uuid], data: try decoder.decode(JobData.self, from: job[jobsData]))
+            let encodedJob = try decoder.decode(EncodedJob.self, from: job[jobsData])
+            return try Job(
+                id: job[uuid], job: encodedJob, expressions: self.expressions, constraints: self.constraints
+            )
         }
     }
 
@@ -226,7 +229,8 @@ final class SQLiteJobStore: JobStorable {
         }
         // print(String(data: row[jobsData], encoding: .utf8))
         // fflush(stdout)
-        return Job(id: id, data: try self.decoder.decode(JobData.self, from: row[jobsData]))
+        let encodedJob = try self.decoder.decode(EncodedJob.self, from: row[jobsData])
+        return try Job(id: id, job: encodedJob, expressions: self.expressions, constraints: self.constraints)
     }
 
     func reset() throws {
@@ -250,7 +254,22 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func _id(forJob job: JobData) throws -> Job {
-        let data = try encoder.encode(job)
+        let expressionId = self.getExpression(expression: job.expression)
+        let constraintId = self.getConstraints(constraint: job.constraints)
+        let historyExpressionId = job.historyExpression.map(self.getExpression)
+        let encodedJob = EncodedJob(
+            nodeId: job.nodeId,
+            expression: expressionId,
+            history: job.history,
+            currentBranch: job.currentBranch,
+            inSession: job.inSession,
+            historyExpression: historyExpressionId,
+            constraints: constraintId,
+            session: job.session,
+            successRevisit: job.successRevisit,
+            failRevisit: job.failRevisit
+        )
+        let data = try encoder.encode(encodedJob)
         if let row = try db.pluck(jobs.filter(jobsData == data)) {
             return Job(id: row[uuid], data: job)
         } else {
@@ -259,6 +278,76 @@ final class SQLiteJobStore: JobStorable {
             return Job(id: id, data: job)
         }
     }
+
+    private func _inCycle(_ job: Job) throws -> Bool {
+        let data = try encoder.encode(job.cycleData)
+        let inCycle = try db.pluck(cycles.select(id).filter(cycleData == data)) != nil
+        if !inCycle {
+            try db.run(cycles.insert(cycleData <- data))
+        }
+        return inCycle
+    }
+
+    private func _reset() throws {
+        try self.clearDatabase()
+        try self.createSchema()
+    }
+
+    private func _sessionId(forJob job: Job) throws -> UUID {
+        let key = try self.encoder.encode(job.sessionKey)
+        let out: UUID
+        if let row = try self.db.pluck(sessionKeys.filter(self.key == key)) {
+            out = row[uuid]
+        } else {
+            out = UUID()
+            try self.db.run(sessionKeys.insert([uuid <- out, self.key <- key]))
+        }
+        guard try self.sessionStatus(session: out) == nil else {
+            return out
+        }
+        let jobId = job.id
+        if try self.db.pluck(pendingSessions.filter(uuid == out)) != nil {
+            try self.db.run(pendingSessions.filter(uuid == out).update(self.jobId <- jobId))
+        } else {
+            try self.db.run(pendingSessions.insert(uuid <- out, self.jobId <- jobId))
+        }
+        return out
+    }
+
+    // func revisitID(revisit: Revisit) throws -> UUID? {
+    //     let data = try encoder.encode(revisit)
+    //     guard let row = try db.prepare(revisits).first(where: { $0[self.revisit] == data }) else {
+    //         return nil
+    //     }
+    //     return row[uuid]
+    // }
+
+    // func addKey(key: SessionKey) throws -> UUID {
+    //     let id = UUID()
+    //     let data = try encoder.encode(key)
+    //     try db.run(sessionKeys.insert(uuid <- id, self.key <- data))
+    //     return id
+    // }
+
+    // func addRevisit(revisit: Revisit) throws -> UUID {
+    //     let id = UUID()
+    //     try db.run(revisits.insert([uuid <- id, self.revisit <- try encoder.encode(revisit)]))
+    //     return id
+    // }
+
+    // func addSessionJob(session: UUID, job: Job) throws {
+    //     let data = try encoder.encode(job)
+    //     try db.transaction {
+    //         let jobId: Int64
+    //         if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
+    //             jobId = selectedJob[id]
+    //         } else {
+    //             jobId = try db.run(jobs.insert([jobsData <- data]))
+    //         }
+    //         try db.run(pendingSessions.filter(uuid == session).delete())
+    //         try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
+    //     }
+    // }
 
     private func clearDatabase() throws {
         try db.run(currentJobs.drop(ifExists: true))
@@ -302,74 +391,24 @@ final class SQLiteJobStore: JobStorable {
         try db.run(currentJobs.createIndex(jobId))
     }
 
-    // func revisitID(revisit: Revisit) throws -> UUID? {
-    //     let data = try encoder.encode(revisit)
-    //     guard let row = try db.prepare(revisits).first(where: { $0[self.revisit] == data }) else {
-    //         return nil
-    //     }
-    //     return row[uuid]
-    // }
-
-    // func addKey(key: SessionKey) throws -> UUID {
-    //     let id = UUID()
-    //     let data = try encoder.encode(key)
-    //     try db.run(sessionKeys.insert(uuid <- id, self.key <- data))
-    //     return id
-    // }
-
-    // func addRevisit(revisit: Revisit) throws -> UUID {
-    //     let id = UUID()
-    //     try db.run(revisits.insert([uuid <- id, self.revisit <- try encoder.encode(revisit)]))
-    //     return id
-    // }
-
-    // func addSessionJob(session: UUID, job: Job) throws {
-    //     let data = try encoder.encode(job)
-    //     try db.transaction {
-    //         let jobId: Int64
-    //         if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
-    //             jobId = selectedJob[id]
-    //         } else {
-    //             jobId = try db.run(jobs.insert([jobsData <- data]))
-    //         }
-    //         try db.run(pendingSessions.filter(uuid == session).delete())
-    //         try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
-    //     }
-    // }
-
-    private func _inCycle(_ job: Job) throws -> Bool {
-        let data = try encoder.encode(job.cycleData)
-        let inCycle = try db.pluck(cycles.select(id).filter(cycleData == data)) != nil
-        if !inCycle {
-            try db.run(cycles.insert(cycleData <- data))
+    private func getConstraints(constraint: [PhysicalConstraint]) -> UUID {
+        guard let key = self.constraintsKeys[constraint] else {
+            let constraintId = UUID()
+            self.constraintsKeys[constraint] = constraintId
+            self.constraints[constraintId] = constraint
+            return constraintId
         }
-        return inCycle
+        return key
     }
 
-    private func _reset() throws {
-        try self.clearDatabase()
-        try self.createSchema()
-    }
-
-    private func _sessionId(forJob job: Job) throws -> UUID {
-        let key = try self.encoder.encode(job.sessionKey)
-        let out: UUID
-        if let row = try self.db.pluck(sessionKeys.filter(self.key == key)) {
-            out = row[uuid]
-        } else {
-            out = UUID()
-            try self.db.run(sessionKeys.insert([uuid <- out, self.key <- key]))
+    private func getExpression(expression: TCTLParser.Expression) -> UUID {
+        guard let key = self.expressionKeys[expression] else {
+            let expressionId = UUID()
+            self.expressionKeys[expression] = expressionId
+            self.expressions[expressionId] = expression
+            return expressionId
         }
-        guard try self.sessionStatus(session: out) == nil else {
-            return out
-        }
-        let jobId = job.id
-        if try self.db.pluck(pendingSessions.filter(uuid == out)) != nil {
-            try self.db.run(pendingSessions.filter(uuid == out).update(self.jobId <- jobId))
-        } else {
-            try self.db.run(pendingSessions.insert(uuid <- out, self.jobId <- jobId))
-        }
-        return out
+        return key
     }
 
     private func tx<T>(_ body: () throws -> T) throws -> T {
