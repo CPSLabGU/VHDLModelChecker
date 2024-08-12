@@ -55,6 +55,7 @@
 
 import Foundation
 import SQLite
+import TCTLParser
 
 final class SQLiteJobStore: JobStorable {
 
@@ -72,19 +73,19 @@ final class SQLiteJobStore: JobStorable {
 
     private let currentJobs = Table("current_jobs")
 
-    private let id = Expression<Int64>("id")
+    private let id = SQLite.Expression<Int64>("id")
 
-    private let uuid = Expression<UUID>("id")
+    private let uuid = SQLite.Expression<UUID>("id")
 
-    private let jobsData = Expression<Data>("job")
+    private let jobsData = SQLite.Expression<Data>("job")
 
-    private let cycleData = Expression<Data>("cycle")
+    private let cycleData = SQLite.Expression<Data>("cycle")
 
-    private let status = Expression<Data?>("status")
+    private let status = SQLite.Expression<Data?>("status")
 
-    private let jobId = Expression<UUID>("job")
+    private let jobId = SQLite.Expression<UUID>("job")
 
-    private let key = Expression<Data>("key")
+    private let key = SQLite.Expression<Data>("key")
 
     private let encoder = {
         let encoder = JSONEncoder()
@@ -93,6 +94,14 @@ final class SQLiteJobStore: JobStorable {
     }()
 
     private let decoder = JSONDecoder()
+
+    private var expressions: [UUID: TCTLParser.Expression] = [:]
+
+    private var expressionKeys: [TCTLParser.Expression: UUID] = [:]
+
+    private var constraints: [[PhysicalConstraint]: UUID] = [:]
+
+    private var constraintKeys: [UUID: [PhysicalConstraint]] = [:]
 
     private var _next: UUID? {
         get throws {
@@ -369,6 +378,140 @@ final class SQLiteJobStore: JobStorable {
             out = try body()
         }
         return out!
+    }
+
+}
+
+private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
+
+    let id: UUID
+
+    let nodeId: UUID
+
+    let expression: UUID
+
+    let history: Set<UUID>
+
+    let currentBranch: [UUID]
+
+    let inSession: Bool
+
+    let historyExpression: UUID?
+
+    let constraints: UUID
+
+    let session: UUID?
+
+    let successRevisit: UUID?
+
+    let failRevisit: UUID?
+
+    init(
+        job: Job, expressions: [TCTLParser.Expression: UUID], constraints: [[PhysicalConstraint]: UUID]
+    ) throws {
+        try self.init(id: job.id, data: job.data, expressions: expressions, constraints: constraints)
+    }
+
+    init(
+        id: UUID,
+        data: JobData,
+        expressions: [TCTLParser.Expression: UUID],
+        constraints: [[PhysicalConstraint]: UUID]
+    ) throws {
+        guard
+            let expression = expressions[data.expression],
+            let constraint = constraints[data.constraints]
+        else {
+            throw SQLiteError.corruptDatabase
+        }
+        let historyExpression = try data.historyExpression.map {
+            guard let exp = expressions[$0] else {
+                throw SQLiteError.corruptDatabase
+            }
+            return exp
+        }
+        self.init(
+            id: id,
+            nodeId: data.nodeId,
+            expression: expression,
+            history: data.history,
+            currentBranch: data.currentBranch,
+            inSession: data.inSession,
+            historyExpression: historyExpression,
+            constraints: constraint,
+            session: data.session,
+            successRevisit: data.successRevisit,
+            failRevisit: data.failRevisit
+        )
+    }
+
+    init(
+        id: UUID,
+        nodeId: UUID,
+        expression: UUID,
+        history: Set<UUID>,
+        currentBranch: [UUID],
+        inSession: Bool,
+        historyExpression: UUID?,
+        constraints: UUID,
+        session: UUID?,
+        successRevisit: UUID?,
+        failRevisit: UUID?
+    ) {
+        self.id = id
+        self.nodeId = nodeId
+        self.expression = expression
+        self.history = history
+        self.currentBranch = currentBranch
+        self.inSession = inSession
+        self.historyExpression = historyExpression
+        self.constraints = constraints
+        self.session = session
+        self.successRevisit = successRevisit
+        self.failRevisit = failRevisit
+    }
+
+}
+
+extension Job {
+
+    fileprivate convenience init(
+        job: EncodedJob, expressions: [UUID: TCTLParser.Expression], constraints: [UUID: [PhysicalConstraint]]
+    ) throws {
+        self.init(id: job.id, data: try JobData(job: job, expressions: expressions, constraints: constraints))
+    }
+
+}
+
+extension JobData {
+
+    fileprivate convenience init(
+        job: EncodedJob, expressions: [UUID: TCTLParser.Expression], constraints: [UUID: [PhysicalConstraint]]
+    ) throws {
+        guard
+            let expression = expressions[job.expression],
+            let constraints = constraints[job.constraints]
+        else {
+            throw SQLiteError.corruptDatabase
+        }
+        let historyExpression = try job.historyExpression.map {
+            guard let exp = expressions[$0] else {
+                throw SQLiteError.corruptDatabase
+            }
+            return exp
+        }
+        self.init(
+            nodeId: job.nodeId,
+            expression: expression,
+            history: job.history,
+            currentBranch: job.currentBranch,
+            inSession: job.inSession,
+            historyExpression: historyExpression,
+            constraints: constraints,
+            session: job.session,
+            successRevisit: job.successRevisit,
+            failRevisit: job.failRevisit
+        )
     }
 
 }
