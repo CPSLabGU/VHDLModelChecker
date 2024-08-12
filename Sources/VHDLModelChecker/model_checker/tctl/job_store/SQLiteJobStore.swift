@@ -382,9 +382,7 @@ final class SQLiteJobStore: JobStorable {
 
 }
 
-private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
-
-    let id: UUID
+private struct EncodedJob: Equatable, Hashable, Codable {
 
     let nodeId: UUID
 
@@ -409,11 +407,10 @@ private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
     init(
         job: Job, expressions: [TCTLParser.Expression: UUID], constraints: [[PhysicalConstraint]: UUID]
     ) throws {
-        try self.init(id: job.id, data: job.data, expressions: expressions, constraints: constraints)
+        try self.init(data: job.data, expressions: expressions, constraints: constraints)
     }
 
     init(
-        id: UUID,
         data: JobData,
         expressions: [TCTLParser.Expression: UUID],
         constraints: [[PhysicalConstraint]: UUID]
@@ -431,7 +428,6 @@ private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
             return exp
         }
         self.init(
-            id: id,
             nodeId: data.nodeId,
             expression: expression,
             history: data.history,
@@ -446,7 +442,6 @@ private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
     }
 
     init(
-        id: UUID,
         nodeId: UUID,
         expression: UUID,
         history: Set<UUID>,
@@ -458,7 +453,6 @@ private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
         successRevisit: UUID?,
         failRevisit: UUID?
     ) {
-        self.id = id
         self.nodeId = nodeId
         self.expression = expression
         self.history = history
@@ -476,9 +470,12 @@ private struct EncodedJob: Equatable, Hashable, Identifiable, Codable {
 extension Job {
 
     fileprivate convenience init(
-        job: EncodedJob, expressions: [UUID: TCTLParser.Expression], constraints: [UUID: [PhysicalConstraint]]
+        id: UUID,
+        job: EncodedJob,
+        expressions: [UUID: TCTLParser.Expression],
+        constraints: [UUID: [PhysicalConstraint]]
     ) throws {
-        self.init(id: job.id, data: try JobData(job: job, expressions: expressions, constraints: constraints))
+        self.init(id: id, data: try JobData(job: job, expressions: expressions, constraints: constraints))
     }
 
 }
