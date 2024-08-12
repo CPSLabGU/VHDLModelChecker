@@ -34,6 +34,14 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         try super._testSessionStatus()
     }
 
+    func testNextPerformance() throws {
+        try super._testNextPerformance()
+    }
+
+    func testPendingSessionJob() throws {
+        try super._testPendingSessionJob()
+    }
+
     func testAddJobPerformance() throws {
         try super._testAddJobPerformance()
     }

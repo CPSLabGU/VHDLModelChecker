@@ -121,6 +121,29 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(result, try store.sessionStatus(session: session2))
     }
 
+    func _testNextPerformance() throws {
+        for _ in 0..<1000 {
+            let job = try! self.newJob
+            _ = try! store.addJob(data: job)
+        }
+        measure {
+            for _ in 0..<1000 {
+                _ = try! store.next
+            }
+        }
+    }
+
+    func _testPendingSessionJob() throws {
+        let pendingJobs = (0..<10000).map { _ in
+            try! store.sessionId(forJob: Job(id: UUID(), data: try! self.newJob))
+        }
+        measure {
+            try! pendingJobs.forEach { _ in
+                _ = try self.store.pendingSessionJob
+            }
+        }
+    }
+
     func _testAddJobPerformance() throws {
         measure {
             for _ in 0..<1000 {
