@@ -103,6 +103,22 @@ final class SQLiteJobStore: JobStorable {
 
     private var constraints: [UUID: [PhysicalConstraint]] = [:]
 
+    private let nodeId = SQLite.Expression<UUID>("node_id")
+
+    private let expression = SQLite.Expression<UUID>("expression")
+
+    private let inCycle = SQLite.Expression<Bool>("in_cycle")
+
+    private let historyExpression = SQLite.Expression<UUID?>("history_expression")
+
+    private let session = SQLite.Expression<UUID?>("session")
+
+    private let constraint = SQLite.Expression<UUID>("constraints")
+
+    private let successRevisit = SQLite.Expression<UUID?>("success_revisit")
+
+    private let failRevisit = SQLite.Expression<UUID?>("fail_revisit")
+
     private var _next: UUID? {
         get throws {
             guard let row = try db.pluck(currentJobs.order(id.desc)) else {
@@ -284,20 +300,18 @@ final class SQLiteJobStore: JobStorable {
         let expression = self.getExpression(expression: cycle.expression)
         let historyExpression = cycle.historyExpression.map(self.getExpression)
         let constraints = self.getConstraints(constraint: cycle.constraints)
-        let encodedCycle = EncodedCycleData(
-            nodeId: cycle.nodeId,
-            expression: expression,
-            inCycle: cycle.inCycle,
-            historyExpression: historyExpression,
-            session: cycle.session,
-            constraints: constraints,
-            successRevisit: cycle.successRevisit,
-            failRevisit: cycle.failRevisit
-        )
-        let data = try encoder.encode(encodedCycle)
-        let inCycle = try db.pluck(cycles.select(id).filter(cycleData == data)) != nil
+        let query = nodeId == cycle.nodeId && self.expression == expression && self.inCycle == cycle.inCycle
+            && self.historyExpression == historyExpression && self.session == cycle.session
+            && self.constraint == constraints && self.successRevisit == cycle.successRevisit
+            && self.failRevisit == cycle.failRevisit
+        let inCycle = try db.pluck(cycles.select(id).filter(query)) != nil
         if !inCycle {
-            try db.run(cycles.insert(cycleData <- data))
+            try db.run(cycles.insert([
+                nodeId <- cycle.nodeId, self.expression <- expression, self.inCycle <- cycle.inCycle,
+                self.historyExpression <- historyExpression, session <- cycle.session,
+                constraint <- constraints, successRevisit <- cycle.successRevisit,
+                failRevisit <- cycle.failRevisit
+            ]))
         }
         return inCycle
     }
@@ -380,9 +394,18 @@ final class SQLiteJobStore: JobStorable {
         try db.run(jobs.createIndex(jobsData))
         try db.run(cycles.create {
             $0.column(id, primaryKey: .autoincrement)
-            $0.column(cycleData)
+            $0.column(nodeId)
+            $0.column(expression)
+            $0.column(inCycle)
+            $0.column(historyExpression)
+            $0.column(session)
+            $0.column(constraint)
+            $0.column(successRevisit)
+            $0.column(failRevisit)
         })
-        try db.run(cycles.createIndex(cycleData))
+        try db.run(cycles.createIndex(
+            nodeId, expression, inCycle, historyExpression, session, constraint, successRevisit, failRevisit
+        ))
         try db.run(completedSessions.create {
             $0.column(uuid, primaryKey: true)
             $0.column(status)
