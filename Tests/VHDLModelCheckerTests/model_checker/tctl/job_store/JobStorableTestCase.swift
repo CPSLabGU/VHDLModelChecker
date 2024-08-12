@@ -123,7 +123,7 @@ class JobStorableTestCase: XCTestCase {
 
     func _testAddJobPerformance() throws {
         measure {
-            for _ in 0..<100 {
+            for _ in 0..<1000 {
                 let job = try! self.newJob
                 _ = try! store.addJob(data: job)
             }
@@ -132,7 +132,7 @@ class JobStorableTestCase: XCTestCase {
 
     func _testInCyclePerformance() throws {
         measure {
-            for _ in 0..<100 {
+            for _ in 0..<1000 {
                 let job = try! self.newJob
                 _ = try! store.inCycle(Job(id: UUID(), data: job))
             }

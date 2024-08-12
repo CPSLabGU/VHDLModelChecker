@@ -119,6 +119,12 @@ final class SQLiteJobStore: JobStorable {
 
     private let failRevisit = SQLite.Expression<UUID?>("fail_revisit")
 
+    private let inSession = SQLite.Expression<Bool>("in_session")
+
+    private let history = SQLite.Expression<Data>("history")
+
+    private let currentBranch = SQLite.Expression<Data>("current_branch")
+
     private var _next: UUID? {
         get throws {
             guard let row = try db.pluck(currentJobs.order(id.desc)) else {
@@ -145,10 +151,7 @@ final class SQLiteJobStore: JobStorable {
             }
             // print(String(data: job[jobsData], encoding: .utf8))
             // fflush(stdout)
-            let encodedJob = try decoder.decode(EncodedJob.self, from: job[jobsData])
-            return try Job(
-                id: job[uuid], job: encodedJob, expressions: self.expressions, constraints: self.constraints
-            )
+            return try self.createJob(job: job)
         }
     }
 
@@ -245,8 +248,7 @@ final class SQLiteJobStore: JobStorable {
         }
         // print(String(data: row[jobsData], encoding: .utf8))
         // fflush(stdout)
-        let encodedJob = try self.decoder.decode(EncodedJob.self, from: row[jobsData])
-        return try Job(id: id, job: encodedJob, expressions: self.expressions, constraints: self.constraints)
+        return try self.createJob(job: row)
     }
 
     func reset() throws {
@@ -273,24 +275,23 @@ final class SQLiteJobStore: JobStorable {
         let expressionId = self.getExpression(expression: job.expression)
         let constraintId = self.getConstraints(constraint: job.constraints)
         let historyExpressionId = job.historyExpression.map(self.getExpression)
-        let encodedJob = EncodedJob(
-            nodeId: job.nodeId,
-            expression: expressionId,
-            history: job.history,
-            currentBranch: job.currentBranch,
-            inSession: job.inSession,
-            historyExpression: historyExpressionId,
-            constraints: constraintId,
-            session: job.session,
-            successRevisit: job.successRevisit,
-            failRevisit: job.failRevisit
-        )
-        let data = try encoder.encode(encodedJob)
-        if let row = try db.pluck(jobs.filter(jobsData == data)) {
+        let history = try encoder.encode(job.history)
+        let currentBranch = try encoder.encode(job.currentBranch)
+        let query = nodeId == job.nodeId && expression == expressionId && self.history == history
+            && self.currentBranch == currentBranch && inSession == job.inSession
+            && historyExpression == historyExpressionId && self.constraint == constraintId
+            && session == job.session && successRevisit == job.successRevisit
+            && failRevisit == job.failRevisit
+        if let row = try db.pluck(jobs.filter(query)) {
             return Job(id: row[uuid], data: job)
         } else {
             let id = UUID()
-            try db.run(jobs.insert(uuid <- id, jobsData <- data))
+            try db.run(jobs.insert([
+                uuid <- id, nodeId <- job.nodeId, self.expression <- expressionId, self.history <- history,
+                self.currentBranch <- currentBranch, inSession <- job.inSession,
+                historyExpression <- historyExpressionId, self.constraint <- constraintId,
+                session <- job.session, successRevisit <- job.successRevisit, failRevisit <- job.failRevisit
+            ]))
             return Job(id: id, data: job)
         }
     }
@@ -386,12 +387,63 @@ final class SQLiteJobStore: JobStorable {
         try db.run(jobs.drop(ifExists: true))
     }
 
+    private func createJob(job: Row) throws -> Job {
+        guard
+            let expression = self.expressions[job[expression]],
+            let constraints = self.constraints[job[constraint]]
+        else {
+            throw SQLiteError.corruptDatabase
+        }
+        let historyExpression = try job[historyExpression].map {
+            guard let exp = self.expressions[$0] else {
+                throw SQLiteError.corruptDatabase
+            }
+            return exp
+        }
+        let history = try decoder.decode(Set<UUID>.self, from: job[history])
+        let currentBranch = try decoder.decode([UUID].self, from: job[currentBranch])
+        return Job(
+            id: job[uuid],
+            nodeId: job[nodeId],
+            expression: expression,
+            history: history,
+            currentBranch: currentBranch,
+            inSession: job[inSession],
+            historyExpression: historyExpression,
+            constraints: constraints,
+            session: job[session],
+            successRevisit: job[successRevisit],
+            failRevisit: job[failRevisit]
+        )
+    }
+
     private func createSchema() throws {
         try db.run(jobs.create {
             $0.column(uuid, primaryKey: true)
-            $0.column(jobsData, unique: true)
+            $0.column(nodeId)
+            $0.column(expression)
+            $0.column(history)
+            $0.column(currentBranch)
+            $0.column(inSession)
+            $0.column(historyExpression)
+            $0.column(constraint)
+            $0.column(session)
+            $0.column(successRevisit)
+            $0.column(failRevisit)
         })
-        try db.run(jobs.createIndex(jobsData))
+        try db.run(jobs.createIndex(
+            nodeId,
+            expression,
+            history,
+            currentBranch,
+            inSession,
+            historyExpression,
+            constraint,
+            session,
+            successRevisit,
+            failRevisit,
+            unique: true
+        ))
         try db.run(cycles.create {
             $0.column(id, primaryKey: .autoincrement)
             $0.column(nodeId)
