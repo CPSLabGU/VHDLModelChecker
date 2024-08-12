@@ -91,25 +91,25 @@ final class SQLiteJobStore: JobStorable {
 
     private let decoder = JSONDecoder()
 
-    private var expressions: [UUID: TCTLParser.Expression] = [:]
+    private var expressions: [TCTLParser.Expression] = []
 
-    private var expressionKeys: [TCTLParser.Expression: UUID] = [:]
+    private var expressionKeys: [TCTLParser.Expression: Int] = [:]
 
-    private var constraintsKeys: [[PhysicalConstraint]: UUID] = [:]
+    private var constraintsKeys: [[PhysicalConstraint]: Int] = [:]
 
-    private var constraints: [UUID: [PhysicalConstraint]] = [:]
+    private var constraints: [[PhysicalConstraint]] = []
 
     private let nodeId = SQLite.Expression<UUID>("node_id")
 
-    private let expression = SQLite.Expression<UUID>("expression")
+    private let expression = SQLite.Expression<Int>("expression")
 
     private let inCycle = SQLite.Expression<Bool>("in_cycle")
 
-    private let historyExpression = SQLite.Expression<UUID?>("history_expression")
+    private let historyExpression = SQLite.Expression<Int?>("history_expression")
 
     private let session = SQLite.Expression<UUID?>("session")
 
-    private let constraint = SQLite.Expression<UUID>("constraints")
+    private let constraint = SQLite.Expression<Int>("constraints")
 
     private let successRevisit = SQLite.Expression<UUID?>("success_revisit")
 
@@ -339,41 +339,6 @@ final class SQLiteJobStore: JobStorable {
         return out
     }
 
-    // func revisitID(revisit: Revisit) throws -> UUID? {
-    //     let data = try encoder.encode(revisit)
-    //     guard let row = try db.prepare(revisits).first(where: { $0[self.revisit] == data }) else {
-    //         return nil
-    //     }
-    //     return row[uuid]
-    // }
-
-    // func addKey(key: SessionKey) throws -> UUID {
-    //     let id = UUID()
-    //     let data = try encoder.encode(key)
-    //     try db.run(sessionKeys.insert(uuid <- id, self.key <- data))
-    //     return id
-    // }
-
-    // func addRevisit(revisit: Revisit) throws -> UUID {
-    //     let id = UUID()
-    //     try db.run(revisits.insert([uuid <- id, self.revisit <- try encoder.encode(revisit)]))
-    //     return id
-    // }
-
-    // func addSessionJob(session: UUID, job: Job) throws {
-    //     let data = try encoder.encode(job)
-    //     try db.transaction {
-    //         let jobId: Int64
-    //         if let selectedJob = try db.prepare(jobs).first(where: { $0[jobsData] == data }) {
-    //             jobId = selectedJob[id]
-    //         } else {
-    //             jobId = try db.run(jobs.insert([jobsData <- data]))
-    //         }
-    //         try db.run(pendingSessions.filter(uuid == session).delete())
-    //         try db.run(pendingSessions.insert([uuid <- session, self.jobId <- jobId]))
-    //     }
-    // }
-
     private func clearDatabase() throws {
         try db.run(currentJobs.drop(ifExists: true))
         try db.run(sessionKeys.drop(ifExists: true))
@@ -384,18 +349,9 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func createJob(job: Row) throws -> Job {
-        guard
-            let expression = self.expressions[job[expression]],
-            let constraints = self.constraints[job[constraint]]
-        else {
-            throw SQLiteError.corruptDatabase
-        }
-        let historyExpression = try job[historyExpression].map {
-            guard let exp = self.expressions[$0] else {
-                throw SQLiteError.corruptDatabase
-            }
-            return exp
-        }
+        let expression = self.expressions[job[expression]]
+        let constraints = self.constraints[job[constraint]]
+        let historyExpression = job[historyExpression].map { self.expressions[$0] }
         let history = try decoder.decode(Set<UUID>.self, from: job[history])
         let currentBranch = try decoder.decode([UUID].self, from: job[currentBranch])
         return Job(
@@ -476,21 +432,21 @@ final class SQLiteJobStore: JobStorable {
         try db.run(currentJobs.createIndex(jobId))
     }
 
-    private func getConstraints(constraint: [PhysicalConstraint]) -> UUID {
+    private func getConstraints(constraint: [PhysicalConstraint]) -> Int {
         guard let key = self.constraintsKeys[constraint] else {
-            let constraintId = UUID()
+            let constraintId = self.constraints.count
             self.constraintsKeys[constraint] = constraintId
-            self.constraints[constraintId] = constraint
+            self.constraints.append(constraint)
             return constraintId
         }
         return key
     }
 
-    private func getExpression(expression: TCTLParser.Expression) -> UUID {
+    private func getExpression(expression: TCTLParser.Expression) -> Int {
         guard let key = self.expressionKeys[expression] else {
-            let expressionId = UUID()
+            let expressionId = self.expressions.count
             self.expressionKeys[expression] = expressionId
-            self.expressions[expressionId] = expression
+            self.expressions.append(expression)
             return expressionId
         }
         return key
