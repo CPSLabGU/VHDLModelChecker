@@ -105,16 +105,16 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         )
     }
 
-    func testAddJobData() throws {
+    func testAddJob() throws {
         let performanceFactor = try self.compare {
-            _ = try $0.addJob(data: $1)
+            try _ = $0.addJob(job: $1)
         }
         XCTAssertLessThan(performanceFactor, 10.0)
     }
 
-    func testAddJob() throws {
+    func testAddJobData() throws {
         let performanceFactor = try self.compare {
-            try _ = $0.addJob(job: $1)
+            _ = try $0.addJob(data: $1)
         }
         XCTAssertLessThan(performanceFactor, 10.0)
     }
