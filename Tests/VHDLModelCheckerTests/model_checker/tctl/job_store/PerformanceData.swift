@@ -63,6 +63,10 @@ struct PerformanceData: Comparable {
         durations.reduce(Duration.zero, +) / durations.count
     }
 
+    var performanceFactor: Double {
+        self.max / self.min
+    }
+
     var stdDev: Double {
         let average = average.microseconds
         let std = sqrt(
