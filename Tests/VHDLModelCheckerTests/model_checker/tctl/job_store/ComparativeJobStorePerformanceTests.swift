@@ -106,31 +106,57 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
     }
 
     func testAddJobData() throws {
-        try self.compare(maxPerformanceFactor: 10.0) {
+        let performanceFactor = try self.compare {
             _ = try $0.addJob(data: $1)
         }
+        XCTAssertLessThan(performanceFactor, 10.0)
     }
 
     func testAddJob() throws {
-        try self.compare(maxPerformanceFactor: 10.0) {
+        let performanceFactor = try self.compare {
             try _ = $0.addJob(job: $1)
         }
+        XCTAssertLessThan(performanceFactor, 10.0)
+    }
+
+    func testAddManyJobs() throws {
+        let performanceFactor = try self.compare {
+            try $0.addManyJobs(jobs: $1)
+        }
+        XCTAssertLessThan(performanceFactor, 10.0)
     }
 
     func testInCycle() throws {
-        try self.compare(maxPerformanceFactor: 10.0) {
+        let performanceFactor = try self.compare {
             _ = try $0.inCycle($1)
         }
+        XCTAssertLessThan(performanceFactor, 10.0)
     }
 
-    func compare(maxPerformanceFactor: Double, fn: (inout any JobStorable, Job) throws -> Void) throws {
+    func testJob() throws {
+        let performanceFactor = try self.compare {
+            _ = try $0.job(forData: $1)
+        }
+        XCTAssertLessThan(performanceFactor, 10.0)
+    }
+
+    func testSessionID() throws {
+        let performanceFactor = try self.compare {
+            _ = try $0.sessionId(forJob: $1)
+        }
+        XCTAssertLessThan(performanceFactor, 10.0)
+    }
+
+    func compare(_ fn: (inout any JobStorable, Job) throws -> Void) throws -> Double {
         let durations = try stores.map { storeFn in
             var store = storeFn()
             let durations: [Duration] = try (0..<10).map { _ in
                 let datas = try (0..<1000).map { _ in try self.newJob(store: &store) }
-                let jobs = (try datas.map { try store.job(forData: $0) }).shuffled()
+                let jobs = (try datas.map { try store.job(forData: $0) })
+                try jobs.forEach { _ = try store.sessionId(forJob: $0) }
+                let shuffledJobs = jobs.shuffled()
                 let duration = try clock.measure {
-                    try jobs.forEach { try fn(&store, $0) }
+                    try shuffledJobs.forEach { try fn(&store, $0) }
                 }
                 try store.reset()
                 return duration
@@ -139,13 +165,12 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         }
         guard let minDuration = durations.min(), let maxDuration = durations.max() else {
             XCTFail("Failed to get durations.")
-            return
+            return Double.infinity
         }
-        let performanceFactor = maxDuration / minDuration
-        XCTAssertLessThan(performanceFactor, maxPerformanceFactor)
+        return maxDuration / minDuration
     }
 
-    func compare(maxPerformanceFactor: Double, fn: (inout any JobStorable, JobData) throws -> Void) throws {
+    func compare(_ fn: (inout any JobStorable, JobData) throws -> Void) throws -> Double {
         let durations = try stores.map { storeFn in
             var store = storeFn()
             let durations: [Duration] = try (0..<10).map { _ in
@@ -160,10 +185,29 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         }
         guard let minDuration = durations.min(), let maxDuration = durations.max() else {
             XCTFail("Failed to get durations.")
-            return
+            return Double.infinity
         }
-        let performanceFactor = maxDuration / minDuration
-        XCTAssertLessThan(performanceFactor, maxPerformanceFactor)
+        return maxDuration / minDuration
+    }
+
+    func compare(_ fn: (inout any JobStorable, [JobData]) throws -> Void) throws -> Double {
+        let durations = try stores.map { storeFn in
+            var store = storeFn()
+            let durations: [Duration] = try (0..<10).map { _ in
+                let datas = try (0..<1000).map { _ in try self.newJob(store: &store) }
+                let duration = try clock.measure {
+                    try fn(&store, datas)
+                }
+                try store.reset()
+                return duration
+            }
+            return durations.reduce(Duration.zero, +) / 10.0
+        }
+        guard let minDuration = durations.min(), let maxDuration = durations.max() else {
+            XCTFail("Failed to get durations.")
+            return Double.infinity
+        }
+        return maxDuration / minDuration
     }
 
 }
