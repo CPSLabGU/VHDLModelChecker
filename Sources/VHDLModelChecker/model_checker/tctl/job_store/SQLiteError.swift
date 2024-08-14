@@ -59,6 +59,8 @@ enum SQLiteError: Error {
 
     case invalidPath(url: URL)
 
+    case connectionError(message: String)
+
     case corruptDatabase
 
 }
