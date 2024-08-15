@@ -166,7 +166,10 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func job(withId id: UUID) throws -> Job {
-        throw SQLiteError.corruptDatabase
+        guard let job = try self.pluckJob(id: id) else {
+            throw SQLiteError.corruptDatabase
+        }
+        return job
     }
 
     func reset() throws {
@@ -279,17 +282,11 @@ final class SQLiteJobStore: JobStorable {
         var statement: OpaquePointer?
         var tail: UnsafePointer<CChar>?
         try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        defer { try? exec { sqlite3_finalize(statement) } }
         guard let tail, String(cString: tail).isEmpty else {
-            try exec { sqlite3_finalize(statement) }
             throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
         }
-        do {
-            try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
-        } catch let error {
-            try exec { sqlite3_finalize(statement) }
-            throw error
-        }
-        try exec { sqlite3_finalize(statement) }
+        try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
         return id
     }
 
@@ -324,21 +321,90 @@ final class SQLiteJobStore: JobStorable {
         guard let tail, String(cString: tail).isEmpty else {
             throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
         }
-        do {
-            let stepResult = sqlite3_step(statement)
-            guard stepResult == SQLITE_ROW else {
-                return nil
-            }
+        let stepResult = sqlite3_step(statement)
+        guard stepResult == SQLITE_ROW else {
+            return nil
+        }
+        guard
+            let id = sqlite3_column_text(statement, 0).flatMap(String.init(cString:)),
+            let uuid = UUID(uuidString: id)
+        else {
+            throw SQLiteError.corruptDatabase
+        }
+        return Job(id: uuid, data: data)
+    }
+
+    private func pluckJob(id: UUID) throws -> Job? {
+        let query = """
+        SELECT
+            *
+        FROM
+            jobs
+        WHERE
+            id = '\(id.uuidString)';
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        defer { try? exec { sqlite3_finalize(statement) } }
+        guard let tail, String(cString: tail).isEmpty else {
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        let stepResult = sqlite3_step(statement)
+        guard stepResult == SQLITE_ROW else {
+            return nil
+        }
+        let endExpressionsIndex = self.expressions.count
+        let endConstraintsIndex = self.constraints.count
+        let expressionIndex = Int(sqlite3_column_int(statement, 2))
+        let constraintsIndex = Int(sqlite3_column_int(statement, 7))
+        guard
+            expressionIndex >= 0,
+            expressionIndex < endExpressionsIndex,
+            constraintsIndex >= 0,
+            constraintsIndex < endConstraintsIndex
+        else {
+            throw SQLiteError.corruptDatabase
+        }
+        let nodeId = try UUID(statement: statement, offset: 1)
+        let inSession = try sqlite3_column_int(statement, 5).boolValue
+        let historyRaw = Data(try String(statement: statement, offset: 3).utf8)
+        let history = try self.decoder.decode([UUID].self, from: historyRaw)
+        let currentBranchRaw = Data(try String(statement: statement, offset: 4).utf8)
+        let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
+        let historyExpression: Expression?
+        if sqlite3_column_type(statement, 6) != SQLITE_NULL {
+            let expressionIndex = Int(sqlite3_column_int(statement, 6))
             guard
-                let id = sqlite3_column_text(statement, 0).flatMap(String.init(cString:)),
-                let uuid = UUID(uuidString: id)
+                expressionIndex >= 0,
+                expressionIndex < endExpressionsIndex
             else {
                 throw SQLiteError.corruptDatabase
             }
-            return Job(id: uuid, data: data)
-        } catch let error {
-            throw error
+            historyExpression = self.expressions[expressionIndex]
+        } else {
+            historyExpression = nil
         }
+        let session = sqlite3_column_type(statement, 8) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 8) : nil
+        let successRevisit = sqlite3_column_type(statement, 9) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 9) : nil
+        let failRevisit = sqlite3_column_type(statement, 10) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 10) : nil
+        let data = JobData(
+            nodeId: nodeId,
+            expression: self.expressions[expressionIndex],
+            history: Set(history),
+            currentBranch: currentBranch,
+            inSession: inSession,
+            historyExpression: historyExpression,
+            constraints: self.constraints[constraintsIndex],
+            session: session,
+            successRevisit: successRevisit,
+            failRevisit: failRevisit
+        )
+        return Job(id: id, data: data)
     }
 
     deinit {
@@ -347,10 +413,50 @@ final class SQLiteJobStore: JobStorable {
 
 }
 
+private extension UUID {
+
+    init(statement: OpaquePointer?, offset: Int32) throws {
+        let id = try String(statement: statement, offset: offset)
+        guard let uuid = UUID(uuidString: id) else {
+            throw SQLiteError.corruptDatabase
+        }
+        self = uuid
+    }
+
+}
+
+private extension String {
+
+    init(statement: OpaquePointer?, offset: Int32) throws {
+        guard let cString = sqlite3_column_text(statement, offset) else {
+            throw SQLiteError.corruptDatabase
+        }
+        self.init(cString: cString)
+    }
+
+}
+
 private extension Bool {
 
     var sqlVal: Int32 {
         self ? 1 : 0
+    }
+
+}
+
+private extension Int32 {
+
+    var boolValue: Bool {
+        get throws {
+            switch self {
+            case 1:
+                return true
+            case 0:
+                return false
+            default:
+                throw SQLiteError.corruptDatabase
+            }
+        }
     }
 
 }
