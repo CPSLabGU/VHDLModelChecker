@@ -201,7 +201,69 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func inCycle(_ job: Job) throws -> Bool {
-        throw SQLiteError.corruptDatabase
+        let data = job.cycleData
+        let historyExpression = data.historyExpression.map { "\(getExpression(expression: $0))" } ?? "NULL"
+        let nodeStr = data.nodeId.uuidString
+        let expressionIndex = getExpression(expression: data.expression)
+        let inCycle = data.inCycle.sqlVal
+        let constraintIndex = getConstraints(constraint: data.constraints)
+        let sessionStr = data.session.map { "\'\($0.uuidString)\'" } ?? "NULL"
+        let successStr = data.successRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL"
+        let failStr = data.failRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL"
+        let query = """
+        SELECT
+            in_cycle
+        FROM
+            cycles
+        WHERE
+            node_id = '\(nodeStr)' AND
+            expression = \(expressionIndex) AND
+            in_cycle = \(inCycle) AND
+            history_expression = \(historyExpression) AND
+            constraints = \(constraintIndex) AND
+            session = \(sessionStr) AND
+            success_revisit = \(successStr) AND
+            fail_revisit = \(failStr);
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        guard let tail, String(cString: tail).isEmpty else {
+            try exec { sqlite3_finalize(statement) }
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        let stepResult = sqlite3_step(statement)
+        try exec { sqlite3_finalize(statement) }
+        guard stepResult == SQLITE_DONE else {
+            guard stepResult == SQLITE_ROW else {
+                throw SQLiteError.connectionError(message: self.errorMessage)
+            }
+            return true
+        }
+        let insertQuery = """
+        INSERT INTO cycles(
+            node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+            fail_revisit
+        ) VALUES(
+            '\(nodeStr)', \(expressionIndex), \(inCycle), \(historyExpression),
+            \(constraintIndex), \(sessionStr), \(successStr), \(failStr)
+        );
+        """
+        let insertQueryC = insertQuery.cString(using: .utf8)
+        var insertStatement: OpaquePointer?
+        var insertTail: UnsafePointer<CChar>?
+        try exec {
+            sqlite3_prepare_v2(
+                self.db, insertQueryC, Int32(insertQueryC?.count ?? 0), &insertStatement, &insertTail
+            )
+        }
+        defer { try? exec { sqlite3_finalize(insertStatement) } }
+        guard let insertTail, String(cString: insertTail).isEmpty else {
+            throw SQLiteError.incompleteStatement(statement: insertQuery, tail: String(cString: insertTail!))
+        }
+        try exec(result: SQLITE_DONE) { sqlite3_step(insertStatement) }
+        return false
     }
 
     func isPending(session: UUID) throws -> Bool {
@@ -393,56 +455,79 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func createSchema() throws {
-        let query = """
-        CREATE TABLE IF NOT EXISTS jobs(
-            id VARCHAR(36) PRIMARY KEY,
-            node_id VARCHAR(36) NOT NULL,
-            expression INTEGER NOT NULL,
-            history TEXT NOT NULL,
-            current_branch TEXT NOT NULL,
-            in_session INTEGER NOT NULL,
-            history_expression INTEGER,
-            constraints INTEGER NOT NULL,
-            session VARCHAR(36),
-            success_revisit VARCHAR(36),
-            fail_revisit VARCHAR(36)
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
-            node_id, expression, history, current_branch, in_session, history_expression, constraints,
-            session, success_revisit, fail_revisit
-        );
-        CREATE TABLE IF NOT EXISTS sessions(
-            id VARCHAR(36) PRIMARY KEY,
-            job_id VARCHAR(36) NOT NULL,
-            node_id VARCHAR(36) NOT NULL,
-            expression INTEGER NOT NULL,
-            constraints INTEGER NOT NULL,
-            is_completed INTEGER NOT NULL,
-            status TEXT,
-            FOREIGN KEY(job_id) REFERENCES jobs(id)
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
-        """
-        var queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        repeat {
-            try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-            do {
-                try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
-            } catch let error {
-                try exec { sqlite3_finalize(statement) }
-                throw error
+        let queries = [
+            """
+            CREATE TABLE IF NOT EXISTS jobs(
+                id VARCHAR(36) PRIMARY KEY,
+                node_id VARCHAR(36) NOT NULL,
+                expression INTEGER NOT NULL,
+                history TEXT NOT NULL,
+                current_branch TEXT NOT NULL,
+                in_session INTEGER NOT NULL,
+                history_expression INTEGER,
+                constraints INTEGER NOT NULL,
+                session VARCHAR(36),
+                success_revisit VARCHAR(36),
+                fail_revisit VARCHAR(36)
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
+                node_id, expression, history, current_branch, in_session, history_expression, constraints,
+                session, success_revisit, fail_revisit
+            );
+            CREATE TABLE IF NOT EXISTS sessions(
+                id VARCHAR(36) PRIMARY KEY,
+                job_id VARCHAR(36) NOT NULL,
+                node_id VARCHAR(36) NOT NULL,
+                expression INTEGER NOT NULL,
+                constraints INTEGER NOT NULL,
+                is_completed INTEGER NOT NULL,
+                status TEXT,
+                FOREIGN KEY(job_id) REFERENCES jobs(id)
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS session_is_completed_index ON sessions(job_id, is_completed);
+            CREATE TABLE IF NOT EXISTS cycles(
+                node_id VARCHAR(36) NOT NULL,
+                expression INTEGER NOT NULL,
+                in_cycle INTEGER NOT NULL,
+                history_expression INTEGER,
+                constraints INTEGER NOT NULL,
+                session VARCHAR(36),
+                success_revisit VARCHAR(36),
+                fail_revisit VARCHAR(36),
+                PRIMARY KEY (
+                    node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                    fail_revisit
+                )
+            );
+            """
+        ]
+        for query in queries {
+            var queryC = query.cString(using: .utf8)
+            var statement: OpaquePointer?
+            var tail: UnsafePointer<CChar>?
+            repeat {
+                try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+                do {
+                    try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
+                } catch let error {
+                    try exec { sqlite3_finalize(statement) }
+                    throw error
+                }
+                queryC = tail.flatMap { String(cString: $0).cString(using: .utf8) }
+            } while (tail.map { String(cString: $0) }?.isEmpty == false)
+            guard tail != nil else {
+                throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
             }
-            queryC = tail.flatMap { String(cString: $0).cString(using: .utf8) }
-        } while (tail.map { String(cString: $0) }?.isEmpty == false)
-        guard tail != nil else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
         }
     }
 
     private func dropSchema() throws {
         let query = """
+        DROP TABLE IF EXISTS cycles;
+        DROP INDEX IF EXISTS session_is_completed_index;
         DROP INDEX IF EXISTS session_key;
         DROP TABLE IF EXISTS sessions;
         DROP INDEX IF EXISTS job_data_index;
