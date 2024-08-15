@@ -185,7 +185,43 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func sessionId(forJob job: Job) throws -> UUID {
-        throw SQLiteError.corruptDatabase
+        let query = """
+        SELECT id FROM pending_sessions WHERE job_id = '\(job.id.uuidString)' LIMIT 1;
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        guard let tail, String(cString: tail).isEmpty else {
+            try exec { sqlite3_finalize(statement) }
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        let stepResult = sqlite3_step(statement)
+        guard stepResult == SQLITE_ROW else {
+            try exec { sqlite3_finalize(statement) }
+            let id = UUID()
+            let insertQuery = """
+            INSERT INTO pending_sessions(id, job_id) VALUES('\(id.uuidString)', '\(job.id.uuidString)');
+            """
+            let insertQueryC = insertQuery.cString(using: .utf8)
+            var insertStatement: OpaquePointer?
+            var insertTail: UnsafePointer<CChar>?
+            try exec {
+                sqlite3_prepare_v2(
+                    self.db, insertQueryC, Int32(insertQueryC?.count ?? 0), &insertStatement, &insertTail
+                )
+            }
+            defer { try? exec { sqlite3_finalize(insertStatement) } }
+            guard let insertTail, String(cString: insertTail).isEmpty else {
+                throw SQLiteError.incompleteStatement(
+                    statement: insertQuery, tail: String(cString: insertTail!)
+                )
+            }
+            try exec(result: SQLITE_DONE) { sqlite3_step(insertStatement) }
+            return id
+        }
+        defer { try? exec { sqlite3_finalize(statement) } }
+        return try UUID(statement: statement, offset: 0)
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
@@ -211,6 +247,11 @@ final class SQLiteJobStore: JobStorable {
             node_id, expression, history, current_branch, in_session, history_expression, constraints,
             session, success_revisit, fail_revisit
         );
+        CREATE TABLE IF NOT EXISTS pending_sessions(
+            id VARCHAR(36) PRIMARY KEY,
+            job_id VARCHAR(36) NOT NULL,
+            FOREIGN KEY(job_id) REFERENCES jobs(id)
+        );
         """
         var queryC = query.cString(using: .utf8)
         var statement: OpaquePointer?
@@ -232,6 +273,7 @@ final class SQLiteJobStore: JobStorable {
 
     private func dropSchema() throws {
         let query = """
+        DROP TABLE IF EXISTS pending_sessions;
         DROP INDEX IF EXISTS job_data_index;
         DROP TABLE IF EXISTS jobs;
         """
