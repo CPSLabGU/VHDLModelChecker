@@ -154,7 +154,24 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
-        throw SQLiteError.corruptDatabase
+        let encodedResult = try result.map {
+            "\'" + String(decoding: try self.encoder.encode($0), as: UTF8.self) + "\'"
+        } ?? "NULL"
+        let query = """
+        UPDATE sessions SET is_completed = 1, status = \(encodedResult) WHERE id = '\(session.uuidString)';
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        defer { try? exec { sqlite3_finalize(statement) } }
+        guard let tail, String(cString: tail).isEmpty else {
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
+        guard sqlite3_changes(self.db) == 1 else {
+            throw SQLiteError.corruptDatabase
+        }
     }
 
     func inCycle(_ job: Job) throws -> Bool {
@@ -262,7 +279,38 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
-        throw SQLiteError.corruptDatabase
+        let query = """
+        SELECT
+            is_completed, status
+        FROM
+            sessions
+        WHERE
+            id = '\(session.uuidString)';
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        defer { try? exec { sqlite3_finalize(statement) } }
+        guard let tail, String(cString: tail).isEmpty else {
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        let stepResult = sqlite3_step(statement)
+        guard stepResult != SQLITE_DONE else {
+            return nil
+        }
+        guard stepResult == SQLITE_ROW else {
+            throw SQLiteError.connectionError(message: self.errorMessage)
+        }
+        let isCompleted = try Bool(statement: statement, offset: 0)
+        guard isCompleted else {
+            return nil
+        }
+        guard sqlite3_column_type(statement, 1) != SQLITE_NULL else {
+            return .some(nil)
+        }
+        let statusRaw = Data(try String(statement: statement, offset: 1).utf8)
+        return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
     }
 
     private func createSchema() throws {
