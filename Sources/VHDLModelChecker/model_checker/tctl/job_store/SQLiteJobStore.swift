@@ -541,12 +541,8 @@ final class SQLiteJobStore: JobStorable {
         var tail: UnsafePointer<CChar>?
         repeat {
             try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-            do {
-                try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
-            } catch let error {
-                try exec { sqlite3_finalize(statement) }
-                throw error
-            }
+            defer { try? exec { sqlite3_finalize(statement) } }
+            try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
             queryC = tail.flatMap { String(cString: $0).cString(using: .utf8) }
         } while (tail.map { String(cString: $0) }?.isEmpty == false)
         guard tail != nil else {
