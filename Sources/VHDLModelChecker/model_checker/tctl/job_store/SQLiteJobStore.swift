@@ -306,6 +306,11 @@ final class SQLiteJobStore: JobStorable {
     func reset() throws {
         try self.dropSchema()
         try self.createSchema()
+        self.currentJobs.removeAll(keepingCapacity: true)
+        self.expressions.removeAll()
+        self.expressionKeys.removeAll()
+        self.constraints.removeAll()
+        self.constraintKeys.removeAll()
     }
 
     func sessionId(forJob job: Job) throws -> UUID {
@@ -318,7 +323,6 @@ final class SQLiteJobStore: JobStorable {
         FROM
             sessions
         WHERE
-            job_id = '\(job.id.uuidString)' AND
             node_id = '\(key.nodeId.uuidString)' AND
             expression = \(expressionIndex) AND
             constraints = \(constraintIndex)
@@ -481,8 +485,7 @@ final class SQLiteJobStore: JobStorable {
                 expression INTEGER NOT NULL,
                 constraints INTEGER NOT NULL,
                 is_completed INTEGER NOT NULL,
-                status TEXT,
-                FOREIGN KEY(job_id) REFERENCES jobs(id)
+                status TEXT
             );
             CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
             """,

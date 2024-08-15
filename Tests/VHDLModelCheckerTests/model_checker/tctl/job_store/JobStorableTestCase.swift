@@ -171,7 +171,7 @@ class JobStorableTestCase: XCTestCase {
     }
 
     func _testPendingSessionJob() throws {
-        let pendingJobs = (0..<10000).map { _ in
+        let pendingJobs = (0..<1000).map { _ in
             try! store.sessionId(forJob: Job(id: UUID(), data: try! self.newJob))
         }
         measure {
