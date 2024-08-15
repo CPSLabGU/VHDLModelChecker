@@ -55,10 +55,19 @@
 
 import CSQLite
 import Foundation
+import TCTLParser
 
 final class SQLiteJobStore: JobStorable {
 
     private let db: OpaquePointer
+
+    private let encoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return encoder
+    }()
+
+    private let decoder = JSONDecoder()
 
     var next: UUID? {
         get throws {
@@ -75,6 +84,14 @@ final class SQLiteJobStore: JobStorable {
     private var errorMessage: String {
         String(cString: sqlite3_errmsg(self.db))
     }
+
+    private var expressions: [Expression] = []
+
+    private var expressionKeys: [Expression: Int] = [:]
+
+    private var constraints: [[PhysicalConstraint]] = []
+
+    private var constraintKeys: [[PhysicalConstraint]: Int] = [:]
 
     /// Create an `in-memory` database.
     convenience init() throws {
@@ -141,7 +158,11 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func job(forData data: JobData) throws -> Job {
-        throw SQLiteError.corruptDatabase
+        guard let job = try self.pluckJob(data: data) else {
+            return Job(id: try self.insertJob(data: data), data: data)
+        }
+        return job
+        // try self.insertJob(data: data)
     }
 
     func job(withId id: UUID) throws -> Job {
@@ -165,12 +186,12 @@ final class SQLiteJobStore: JobStorable {
         CREATE TABLE IF NOT EXISTS jobs(
             id TEXT PRIMARY KEY,
             node_id TEXT NOT NULL,
-            expression TEXT NOT NULL,
-            history BLOB NOT NULL,
-            current_branch BLOB NOT NULL,
+            expression INTEGER NOT NULL,
+            history TEXT NOT NULL,
+            current_branch TEXT NOT NULL,
             in_session INTEGER NOT NULL,
-            history_expression TEXT,
-            constraints BLOB NOT NULL,
+            history_expression INTEGER,
+            constraints INTEGER NOT NULL,
             session TEXT,
             success_revisit TEXT,
             fail_revisit TEXT
@@ -201,6 +222,122 @@ final class SQLiteJobStore: JobStorable {
     private func exec(result: Int32 = SQLITE_OK, fn: () -> Int32) throws {
         guard fn() == result else {
             throw SQLiteError.cDriverError(errno: result, message: self.errorMessage)
+        }
+    }
+
+    private func getConstraints(constraint: [PhysicalConstraint]) -> Int {
+        guard let key = self.constraintKeys[constraint] else {
+            let constraintId = self.constraints.count
+            self.constraintKeys[constraint] = constraintId
+            self.constraints.append(constraint)
+            return constraintId
+        }
+        return key
+    }
+
+    private func getExpression(expression: TCTLParser.Expression) -> Int {
+        guard let key = self.expressionKeys[expression] else {
+            let expressionId = self.expressions.count
+            self.expressionKeys[expression] = expressionId
+            self.expressions.append(expression)
+            return expressionId
+        }
+        return key
+    }
+
+    // private func id(data: JobData) throws -> UUID {
+
+    // }
+
+    @discardableResult
+    private func insertJob(data: JobData) throws -> UUID {
+        let id = UUID()
+        let expressionId = getExpression(expression: data.expression)
+        let history = String(
+            decoding: try self.encoder.encode(data.history.map(\.uuidString).sorted()),
+            as: UTF8.self
+        )
+        let currentBranch = String(
+            decoding: try self.encoder.encode(data.currentBranch.map(\.uuidString)), as: UTF8.self
+        )
+        let historyExpression = data.historyExpression.map { getExpression(expression: $0) }
+        let constraints = getConstraints(constraint: data.constraints)
+        let session = data.session.map { "\'\($0.uuidString)\'" } ?? "NULL"
+        let successRevisit = data.successRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL"
+        let failRevisit = data.failRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL"
+        let query: String = """
+        INSERT INTO jobs(
+            id, node_id, expression, history, current_branch, in_session, history_expression, constraints,
+            session, success_revisit, fail_revisit
+        ) VALUES(
+            '\(id.uuidString)', '\(data.nodeId.uuidString)', \(expressionId), '\(history)',
+            '\(currentBranch)', \(data.inSession.sqlVal), \(historyExpression.map { String($0) } ?? "NULL"),
+            \(constraints), \(session), \(successRevisit), \(failRevisit)
+        );
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        guard let tail, String(cString: tail).isEmpty else {
+            try exec { sqlite3_finalize(statement) }
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        do {
+            try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
+        } catch let error {
+            try exec { sqlite3_finalize(statement) }
+            throw error
+        }
+        try exec { sqlite3_finalize(statement) }
+        return id
+    }
+
+    private func pluckJob(data: JobData) throws -> Job? {
+        let query = """
+        SELECT
+            id
+        FROM
+            jobs
+        WHERE
+            node_id = '\(data.nodeId.uuidString)' AND
+            expression = \(getExpression(expression: data.expression)) AND
+            history = '\(String(
+                decoding: try self.encoder.encode(data.history.map(\.uuidString).sorted()),
+                as: UTF8.self
+            ) )' AND
+            current_branch = '\(String(
+                decoding: try self.encoder.encode(data.currentBranch.map(\.uuidString)), as: UTF8.self
+            ) )' AND
+            in_session = \(data.inSession.sqlVal) AND
+            history_expression = \(data.historyExpression.map { String(getExpression(expression: $0)) } ?? "NULL") AND
+            constraints = \(getConstraints(constraint: data.constraints)) AND
+            session = \(data.session.map { "\'\($0.uuidString)\'" } ?? "NULL") AND
+            success_revisit = \(data.successRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL") AND
+            fail_revisit = \(data.failRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL");
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        defer { try? exec { sqlite3_finalize(statement) } }
+        guard let tail, String(cString: tail).isEmpty else {
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        do {
+            let stepResult = sqlite3_step(statement)
+            guard stepResult == SQLITE_ROW else {
+                return nil
+            }
+            guard
+                let id = sqlite3_column_text(statement, 0).flatMap(String.init(cString:)),
+                let uuid = UUID(uuidString: id)
+            else {
+                throw SQLiteError.corruptDatabase
+            }
+            return Job(id: uuid, data: data)
+        } catch let error {
+            throw error
         }
     }
 
