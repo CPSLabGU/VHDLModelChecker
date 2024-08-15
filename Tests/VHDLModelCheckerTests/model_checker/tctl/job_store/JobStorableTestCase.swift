@@ -114,6 +114,14 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNotEqual(session2, session2_2)
     }
 
+    func _testSessionID() throws {
+        let data = try self.newJob
+        let job = try store.job(forData: data)
+        let id = try self.store.sessionId(forJob: job)
+        let id2 = try self.store.sessionId(forJob: job)
+        XCTAssertEqual(id, id2)
+    }
+
     func _testSessions() throws {
         let job = try store.job(forData: try newJob)
         let session = try store.sessionId(forJob: job)
