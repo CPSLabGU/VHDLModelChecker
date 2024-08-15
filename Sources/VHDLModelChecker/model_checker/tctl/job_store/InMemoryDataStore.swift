@@ -142,7 +142,7 @@ class InMemoryDataStore: JobStorable {
 
     func job(withId id: UUID) throws -> Job {
         guard let job = jobs[id] else {
-            fatalError("Unable to fetch job.")
+            throw JobStoreError.missingJob(id: id)
         }
         return job
     }

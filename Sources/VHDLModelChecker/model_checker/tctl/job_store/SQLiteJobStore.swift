@@ -162,7 +162,6 @@ final class SQLiteJobStore: JobStorable {
             return Job(id: try self.insertJob(data: data), data: data)
         }
         return job
-        // try self.insertJob(data: data)
     }
 
     func job(withId id: UUID) throws -> Job {
