@@ -163,7 +163,7 @@ final class SQLiteJobStore: JobStorable {
 
     func isPending(session: UUID) throws -> Bool {
         let query = """
-        SELECT id FROM pending_sessions WHERE id = '\(session.uuidString)';
+        SELECT is_completed FROM sessions WHERE id = '\(session.uuidString)';
         """
         let queryC = query.cString(using: .utf8)
         var statement: OpaquePointer?
@@ -176,7 +176,7 @@ final class SQLiteJobStore: JobStorable {
         let stepResult = sqlite3_step(statement)
         switch stepResult {
         case SQLITE_ROW:
-            return true
+            return !(try Bool(statement: statement, offset: 0))
         case SQLITE_DONE:
             return false
         default:
@@ -204,8 +204,21 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func sessionId(forJob job: Job) throws -> UUID {
+        let key = job.sessionKey
+        let expressionIndex = self.getExpression(expression: key.expression)
+        let constraintIndex = self.getConstraints(constraint: key.constraints)
         let query = """
-        SELECT id FROM pending_sessions WHERE job_id = '\(job.id.uuidString)' LIMIT 1;
+        SELECT
+            id
+        FROM
+            sessions
+        WHERE
+            job_id = '\(job.id.uuidString)' AND
+            node_id = '\(key.nodeId.uuidString)' AND
+            expression = \(expressionIndex) AND
+            constraints = \(constraintIndex) AND
+            is_completed = 0
+        LIMIT 1;
         """
         let queryC = query.cString(using: .utf8)
         var statement: OpaquePointer?
@@ -220,7 +233,12 @@ final class SQLiteJobStore: JobStorable {
             try exec { sqlite3_finalize(statement) }
             let id = UUID()
             let insertQuery = """
-            INSERT INTO pending_sessions(id, job_id) VALUES('\(id.uuidString)', '\(job.id.uuidString)');
+            INSERT INTO sessions(
+                id, job_id, node_id, expression, constraints, is_completed
+            ) VALUES (
+                '\(id.uuidString)', '\(job.id.uuidString)', '\(key.nodeId.uuidString)', \(expressionIndex),
+                \(constraintIndex), 0
+            );
             """
             let insertQueryC = insertQuery.cString(using: .utf8)
             var insertStatement: OpaquePointer?
@@ -266,11 +284,17 @@ final class SQLiteJobStore: JobStorable {
             node_id, expression, history, current_branch, in_session, history_expression, constraints,
             session, success_revisit, fail_revisit
         );
-        CREATE TABLE IF NOT EXISTS pending_sessions(
+        CREATE TABLE IF NOT EXISTS sessions(
             id VARCHAR(36) PRIMARY KEY,
             job_id VARCHAR(36) NOT NULL,
+            node_id VARCHAR(36) NOT NULL,
+            expression INTEGER NOT NULL,
+            constraints INTEGER NOT NULL,
+            is_completed INTEGER NOT NULL,
+            status TEXT,
             FOREIGN KEY(job_id) REFERENCES jobs(id)
         );
+        CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
         """
         var queryC = query.cString(using: .utf8)
         var statement: OpaquePointer?
@@ -292,7 +316,8 @@ final class SQLiteJobStore: JobStorable {
 
     private func dropSchema() throws {
         let query = """
-        DROP TABLE IF EXISTS pending_sessions;
+        DROP INDEX IF EXISTS session_key;
+        DROP TABLE IF EXISTS sessions;
         DROP INDEX IF EXISTS job_data_index;
         DROP TABLE IF EXISTS jobs;
         """
@@ -545,6 +570,11 @@ private extension Bool {
 
     var sqlVal: Int32 {
         self ? 1 : 0
+    }
+
+    init(statement: OpaquePointer?, offset: Int32) throws {
+        let value = sqlite3_column_int(statement, offset)
+        self = try value.boolValue
     }
 
 }
