@@ -66,13 +66,13 @@ import VHDLKripkeStructures
 //              sessions.
 // 5. If no jobs left and no pending sessions, return, otherwise throw error.
 
-final class TCTLModelChecker {
+final class TCTLModelChecker<T> where T: JobStorable {
 
-    private var store: JobStorable
+    private var store: T
 
     private var debug = false
 
-    init(store: JobStorable) {
+    init(store: T) {
         self.store = store
     }
 
