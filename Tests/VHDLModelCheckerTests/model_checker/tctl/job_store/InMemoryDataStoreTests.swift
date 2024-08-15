@@ -24,6 +24,10 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         try super._testInCycle()
     }
 
+    func testIsPending() throws {
+        try super._testIsPending()
+    }
+
     func testJobForData() throws {
         try super._testJobFromData()
     }

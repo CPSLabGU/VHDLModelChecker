@@ -71,6 +71,14 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertTrue(try store.inCycle(job))
     }
 
+    func _testIsPending() throws {
+        XCTAssertFalse(try self.store.isPending(session: UUID()))
+        let data = try self.newJob
+        let job = try store.job(forData: data)
+        let session = try store.sessionId(forJob: job)
+        XCTAssertTrue(try self.store.isPending(session: session))
+    }
+
     func _testJobFromData() throws {
         let data = try newJob
         let job = try store.job(forData: data)
