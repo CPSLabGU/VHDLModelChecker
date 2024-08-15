@@ -91,7 +91,33 @@ final class SQLiteJobStore: JobStorable {
 
     var pendingSessionJob: Job? {
         get throws {
-            throw SQLiteError.corruptDatabase
+            let query = """
+            SELECT
+                j.*
+            FROM
+                jobs j,
+                sessions s
+            WHERE
+                j.id = s.job_id AND
+                s.is_completed = 0
+            LIMIT 1;
+            """
+            let queryC = query.cString(using: .utf8)
+            var statement: OpaquePointer?
+            var tail: UnsafePointer<CChar>?
+            try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+            defer { try? exec { sqlite3_finalize(statement) } }
+            guard let tail, String(cString: tail).isEmpty else {
+                throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+            }
+            let result = sqlite3_step(statement)
+            guard result != SQLITE_DONE else {
+                return nil
+            }
+            guard result == SQLITE_ROW else {
+                throw SQLiteError.connectionError(message: self.errorMessage)
+            }
+            return try self.createJob(statement: statement)
         }
     }
 
@@ -233,8 +259,7 @@ final class SQLiteJobStore: JobStorable {
             job_id = '\(job.id.uuidString)' AND
             node_id = '\(key.nodeId.uuidString)' AND
             expression = \(expressionIndex) AND
-            constraints = \(constraintIndex) AND
-            is_completed = 0
+            constraints = \(constraintIndex)
         LIMIT 1;
         """
         let queryC = query.cString(using: .utf8)
@@ -311,6 +336,60 @@ final class SQLiteJobStore: JobStorable {
         }
         let statusRaw = Data(try String(statement: statement, offset: 1).utf8)
         return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
+    }
+
+    private func createJob(statement: OpaquePointer?) throws -> Job {
+        let endExpressionsIndex = self.expressions.count
+        let endConstraintsIndex = self.constraints.count
+        let expressionIndex = Int(sqlite3_column_int(statement, 2))
+        let constraintsIndex = Int(sqlite3_column_int(statement, 7))
+        guard
+            expressionIndex >= 0,
+            expressionIndex < endExpressionsIndex,
+            constraintsIndex >= 0,
+            constraintsIndex < endConstraintsIndex
+        else {
+            throw SQLiteError.corruptDatabase
+        }
+        let id = try UUID(statement: statement, offset: 0)
+        let nodeId = try UUID(statement: statement, offset: 1)
+        let inSession = try sqlite3_column_int(statement, 5).boolValue
+        let historyRaw = Data(try String(statement: statement, offset: 3).utf8)
+        let history = try self.decoder.decode([UUID].self, from: historyRaw)
+        let currentBranchRaw = Data(try String(statement: statement, offset: 4).utf8)
+        let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
+        let historyExpression: Expression?
+        if sqlite3_column_type(statement, 6) != SQLITE_NULL {
+            let expressionIndex = Int(sqlite3_column_int(statement, 6))
+            guard
+                expressionIndex >= 0,
+                expressionIndex < endExpressionsIndex
+            else {
+                throw SQLiteError.corruptDatabase
+            }
+            historyExpression = self.expressions[expressionIndex]
+        } else {
+            historyExpression = nil
+        }
+        let session = sqlite3_column_type(statement, 8) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 8) : nil
+        let successRevisit = sqlite3_column_type(statement, 9) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 9) : nil
+        let failRevisit = sqlite3_column_type(statement, 10) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 10) : nil
+        let data = JobData(
+            nodeId: nodeId,
+            expression: self.expressions[expressionIndex],
+            history: Set(history),
+            currentBranch: currentBranch,
+            inSession: inSession,
+            historyExpression: historyExpression,
+            constraints: self.constraints[constraintsIndex],
+            session: session,
+            successRevisit: successRevisit,
+            failRevisit: failRevisit
+        )
+        return Job(id: id, data: data)
     }
 
     private func createSchema() throws {
