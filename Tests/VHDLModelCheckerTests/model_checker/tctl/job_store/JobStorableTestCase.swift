@@ -85,6 +85,13 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(job, result)
     }
 
+    func _testNext() throws {
+        XCTAssertNil(try self.store.next)
+        let data = try self.newJob
+        let id = try self.store.addJob(data: data)
+        XCTAssertEqual(id, try self.store.next)
+    }
+
     func _testReset() throws {
         let job1 = try newJob
         let job2 = try newJob

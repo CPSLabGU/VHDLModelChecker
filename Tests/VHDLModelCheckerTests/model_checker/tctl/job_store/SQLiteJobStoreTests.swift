@@ -30,6 +30,10 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         try super._testJobWithID()
     }
 
+    func testNext() throws {
+        try super._testNext()
+    }
+
     func testReset() throws {
         try super._testReset()
     }
