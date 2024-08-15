@@ -124,6 +124,9 @@ protocol JobStorable {
     mutating func job(forData data: JobData) throws -> Job
 
     /// Fetch the job associated with the given id.
+    /// 
+    /// This function assumes that the job exists within the database. If the job does not exist, then an
+    /// error is thrown.
     ///
     /// - Parameter id: The unique identifier of the job we are fetching.
     ///
