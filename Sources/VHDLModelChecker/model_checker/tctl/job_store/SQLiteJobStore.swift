@@ -72,39 +72,44 @@ final class SQLiteJobStore: JobStorable {
         }
     }
 
+    private var errorMessage: String {
+        String(cString: sqlite3_errmsg(self.db))
+    }
+
     /// Create an `in-memory` database.
     convenience init() throws {
+        try self.init(resource: ":memory:")
+    }
+
+    convenience init(path: String) throws {
+        try self.init(url: URL(fileURLWithPath: path, isDirectory: false))
+    }
+
+    convenience init(url: URL) throws {
+        guard url.isFileURL, !url.hasDirectoryPath else {
+            throw SQLiteError.invalidPath(url: url)
+        }
+        let manager = FileManager.default
+        var isDirectory: ObjCBool = false
+        if manager.fileExists(atPath: url.path, isDirectory: &isDirectory) {
+            guard !isDirectory.boolValue else {
+                throw SQLiteError.invalidPath(url: url)
+            }
+            try manager.removeItem(at: url)
+        }
+        try self.init(resource: url.path)
+    }
+
+    private convenience init(resource: String) throws {
         var db: OpaquePointer?
-        let result = sqlite3_open(":memory:".cString(using: .utf8), &db)
+        let result = sqlite3_open(resource.cString(using: .utf8), &db)
         guard result == SQLITE_OK, let db else {
             sqlite3_close(db)
             throw SQLiteError.connectionError(message: String(cString: sqlite3_errmsg(db)))
         }
         self.init(db: db)
-        // try self.createSchema()
+        try self.createSchema()
     }
-
-    // convenience init(path: String) throws {
-    //     try self.init(url: URL(fileURLWithPath: path, isDirectory: false))
-    // }
-
-    // convenience init(url: URL) throws {
-    //     guard url.isFileURL, !url.hasDirectoryPath else {
-    //         throw SQLiteError.invalidPath(url: url)
-    //     }
-    //     let manager = FileManager.default
-    //     var isDirectory: ObjCBool = false
-    //     if manager.fileExists(atPath: url.path, isDirectory: &isDirectory) {
-    //         guard !isDirectory.boolValue else {
-    //             throw SQLiteError.invalidPath(url: url)
-    //         }
-    //         try manager.removeItem(at: url)
-    //         self.init(db: try Connection(url.path, readonly: false))
-    //     } else {
-    //         self.init(db: try Connection(url.path, readonly: false))
-    //     }
-    //     try self.createSchema()
-    // }
 
     private init(db: OpaquePointer) {
         self.db = db
@@ -156,11 +161,59 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func createSchema() throws {
+        let query = """
+        CREATE TABLE IF NOT EXISTS jobs(
+            id TEXT PRIMARY KEY,
+            node_id TEXT NOT NULL,
+            expression TEXT NOT NULL,
+            history BLOB NOT NULL,
+            current_branch BLOB NOT NULL,
+            in_session INTEGER NOT NULL,
+            history_expression TEXT,
+            constraints BLOB NOT NULL,
+            session TEXT,
+            success_revisit TEXT,
+            fail_revisit TEXT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
+            node_id, expression, history, current_branch, in_session, history_expression, constraints,
+            session, success_revisit, fail_revisit
+        );
+        """
+        var queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        repeat {
+            try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+            do {
+                try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
+            } catch let error {
+                try exec { sqlite3_finalize(statement) }
+                throw error
+            }
+            queryC = tail.flatMap { String(cString: $0).cString(using: .utf8) }
+        } while (tail.map { String(cString: $0) }?.isEmpty == false)
+        guard tail != nil else {
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+    }
 
+    private func exec(result: Int32 = SQLITE_OK, fn: () -> Int32) throws {
+        guard fn() == result else {
+            throw SQLiteError.cDriverError(errno: result, message: self.errorMessage)
+        }
     }
 
     deinit {
         sqlite3_close(self.db)
+    }
+
+}
+
+private extension Bool {
+
+    var sqlVal: Int32 {
+        self ? 1 : 0
     }
 
 }
