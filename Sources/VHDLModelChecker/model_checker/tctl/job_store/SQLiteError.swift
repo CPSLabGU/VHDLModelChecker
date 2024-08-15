@@ -61,6 +61,10 @@ enum SQLiteError: Error {
 
     case connectionError(message: String)
 
+    case cDriverError(errno: Int32, message: String)
+
+    case incompleteStatement(statement: String, tail: String)
+
     case corruptDatabase
 
 }
