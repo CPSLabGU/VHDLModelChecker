@@ -7,7 +7,7 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
 
     override func setUp() {
         super.setUp()
-        super.store = try! SQLiteJobStore()
+        super.store = try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
     }
 
     func testCanAddJobs() throws {
@@ -20,6 +20,10 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
 
     func testInCycle() throws {
         try super._testInCycle()
+    }
+
+    func testJobForData() throws {
+        try super._testJobFromData()
     }
 
     func testReset() throws {
