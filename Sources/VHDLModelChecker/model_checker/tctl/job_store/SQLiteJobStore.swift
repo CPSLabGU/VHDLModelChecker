@@ -162,7 +162,26 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func isPending(session: UUID) throws -> Bool {
-        throw SQLiteError.corruptDatabase
+        let query = """
+        SELECT id FROM pending_sessions WHERE id = '\(session.uuidString)';
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
+        defer { try? exec { sqlite3_finalize(statement) } }
+        guard let tail, String(cString: tail).isEmpty else {
+            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        }
+        let stepResult = sqlite3_step(statement)
+        switch stepResult {
+        case SQLITE_ROW:
+            return true
+        case SQLITE_DONE:
+            return false
+        default:
+            throw SQLiteError.connectionError(message: self.errorMessage)
+        }
     }
 
     func job(forData data: JobData) throws -> Job {
