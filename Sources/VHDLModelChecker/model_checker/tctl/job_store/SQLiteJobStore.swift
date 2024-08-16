@@ -769,23 +769,6 @@ final class SQLiteJobStore: JobStorable {
         return key
     }
 
-    private func insertCurrentJob(job: Job) throws -> Int32 {
-        let query = """
-        INSERT INTO current_jobs(job_id) VALUES('\(job.id.uuidString)');
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        guard let tail, String(cString: tail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
-        }
-        try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
-        let id = sqlite3_column_int(statement, 0)
-        return id
-    }
-
     @discardableResult
     private func insertJob(data: JobData) throws -> UUID {
         let id = UUID()
