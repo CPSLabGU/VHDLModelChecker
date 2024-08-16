@@ -77,6 +77,41 @@ final class SQLiteJobStore: JobStorable {
 
     private var constraintKeys: [[PhysicalConstraint]: Int] = [:]
 
+    private lazy var pendingSessionJobStatement: OpaquePointer? = {
+        let query = """
+        SELECT
+            j.*
+        FROM
+            jobs j,
+            sessions s
+        WHERE
+            j.id = s.job_id AND
+            s.is_completed = 0
+        LIMIT 1;
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        _ = sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail)
+        return statement
+    }()
+
+    private lazy var completePendingSessionStatement: OpaquePointer? = {
+        let query = """
+        UPDATE sessions SET is_completed = 1, status = ? WHERE id = ?;
+        """
+        let queryC = query.cString(using: .utf8)
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        guard
+            SQLITE_OK == sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail),
+            tail.flatMap({ String(cString: $0) })?.isEmpty == true
+        else {
+            fatalError("Could not prepare completePendingSession.")
+        }
+        return statement
+    }()
+
     private var currentJobs: [UUID] = {
         var arr: [UUID] = []
         arr.reserveCapacity(1000000)
@@ -91,33 +126,15 @@ final class SQLiteJobStore: JobStorable {
 
     var pendingSessionJob: Job? {
         get throws {
-            let query = """
-            SELECT
-                j.*
-            FROM
-                jobs j,
-                sessions s
-            WHERE
-                j.id = s.job_id AND
-                s.is_completed = 0
-            LIMIT 1;
-            """
-            let queryC = query.cString(using: .utf8)
-            var statement: OpaquePointer?
-            var tail: UnsafePointer<CChar>?
-            try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-            defer { try? exec { sqlite3_finalize(statement) } }
-            guard let tail, String(cString: tail).isEmpty else {
-                throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
-            }
-            let result = sqlite3_step(statement)
+            let result = sqlite3_step(self.pendingSessionJobStatement)
+            defer { sqlite3_reset(self.pendingSessionJobStatement) }
             guard result != SQLITE_DONE else {
                 return nil
             }
             guard result == SQLITE_ROW else {
                 throw SQLiteError.connectionError(message: self.errorMessage)
             }
-            return try self.createJob(statement: statement)
+            return try self.createJob(statement: self.pendingSessionJobStatement)
         }
     }
 
@@ -180,21 +197,41 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
-        let encodedResult = try result.map {
-            "\'" + String(decoding: try self.encoder.encode($0), as: UTF8.self) + "\'"
-        } ?? "NULL"
-        let query = """
-        UPDATE sessions SET is_completed = 1, status = \(encodedResult) WHERE id = '\(session.uuidString)';
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        guard let tail, String(cString: tail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        if let encodedResult = try result.map(
+            { String(decoding: try self.encoder.encode($0), as: UTF8.self) }
+        ) {
+            guard let encodedCString = encodedResult.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec {
+                sqlite3_bind_text(
+                    self.completePendingSessionStatement,
+                    1,
+                    encodedCString,
+                    Int32(MemoryLayout<CChar>.stride * encodedCString.count),
+                    nil
+                )
+            }
+        } else {
+            try exec { sqlite3_bind_null(self.completePendingSessionStatement, 1) }
         }
-        try exec(result: SQLITE_DONE) { sqlite3_step(statement) }
+        defer {
+            sqlite3_clear_bindings(self.completePendingSessionStatement)
+            sqlite3_reset(self.completePendingSessionStatement)
+        }
+        guard let sessionStr = session.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
+        }
+        try exec {
+            sqlite3_bind_text(
+                self.completePendingSessionStatement,
+                2,
+                sessionStr,
+                Int32(MemoryLayout<CChar>.stride * sessionStr.count),
+                nil
+            )
+        }
+        try exec(result: SQLITE_DONE) { sqlite3_step(self.completePendingSessionStatement) }
         guard sqlite3_changes(self.db) == 1 else {
             throw SQLiteError.corruptDatabase
         }
@@ -745,7 +782,9 @@ final class SQLiteJobStore: JobStorable {
     }
 
     deinit {
-        sqlite3_close(self.db)
+        _ = sqlite3_finalize(self.pendingSessionJobStatement)
+        _ = sqlite3_finalize(self.completePendingSessionStatement)
+        _ = sqlite3_close(self.db)
     }
 
 }
