@@ -144,6 +144,15 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         XCTAssertLessThan(performanceFactor, 15.0)
     }
 
+    func testPendingSessionJob() throws {
+        let fn: (inout any JobStorable, Job) throws -> Void = { store, _ in
+            _ = try store.pendingSessionJob
+        }
+        let performanceFactor = try self.compare(fn)
+        print("Performance factor: \(performanceFactor)")
+        XCTAssertLessThan(performanceFactor, 2.0)
+    }
+
     func testSessionID() throws {
         let performanceFactor = try self.compare {
             _ = try $0.sessionId(forJob: $1)
