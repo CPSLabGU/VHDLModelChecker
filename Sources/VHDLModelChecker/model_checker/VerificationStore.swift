@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// VerificationStore.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,54 +53,20 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Foundation
-import TCTLParser
-import VHDLKripkeStructures
-import VHDLParsing
+/// Defines the different types of verification stores that can be used.
+/// 
+/// A verification store represents the mechanism used by a model checker to store and process
+/// verification jobs. For example, the in-memory store simply stores all jobs in memory allowing for
+/// efficient retrieval and processing. The tradeoff is of course that memory is much more limited than
+/// other types of stores and therefore can only be used for small verification tasks. The SQLite store
+/// on the other hand stores all jobs in a SQLite database that exists on disk allowing for a much larger
+/// verification task with reduced processing speeds.
+public enum VerificationStore: String, CaseIterable, Equatable, Hashable, Codable, Sendable {
 
-public struct VHDLModelChecker {
+    /// In-memory verification store.
+    case inMemory = "in-memory"
 
-    public init() {}
-
-    public func verify(
-        structure: KripkeStructure,
-        against specification: [RequirementsSpecification],
-        store: VerificationStore = .inMemory,
-        path: String? = nil
-    ) throws {
-        switch store {
-        case .inMemory:
-            try self.verify(
-                checker: TCTLModelChecker(store: InMemoryDataStore()),
-                structure: structure,
-                specification: specification
-            )
-        case .sqlite:
-            guard let path else {
-                throw ModelCheckerError.internalError
-            }
-            try self.verify(
-                checker: TCTLModelChecker(store: try SQLiteJobStore(path: path)),
-                structure: structure,
-                specification: specification
-            )
-        }
-    }
-
-    func verify<T>(
-        checker: TCTLModelChecker<T>, structure: KripkeStructure, specification: [RequirementsSpecification]
-    ) throws {
-        let iterator = KripkeStructureIterator(structure: structure)
-        let clock = ContinuousClock()
-        let elapsedTime = try clock.measure {
-            try specification.forEach {
-                switch $0 {
-                case .tctl(let specification):
-                    try checker.check(structure: iterator, specification: specification)
-                }
-            }
-        }
-        print("Verification completed in \(elapsedTime) (± \(clock.minimumResolution)).")
-    }
+    /// SQLite verification store.
+    case sqlite = "sqlite"
 
 }
