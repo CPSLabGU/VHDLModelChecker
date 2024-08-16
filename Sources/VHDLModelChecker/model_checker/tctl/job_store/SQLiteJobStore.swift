@@ -91,6 +91,8 @@ final class SQLiteJobStore: JobStorable {
 
     private let inCycleSelectStatement: OpaquePointer
 
+    private let isPendingStatement: OpaquePointer
+
     var next: UUID? {
         get throws {
             self.currentJobs.popLast()
@@ -234,7 +236,7 @@ final class SQLiteJobStore: JobStorable {
             """
         )
         let completePendingSessionStatement = try OpaquePointer(
-            db: db, query: "UPDATE sessions SET is_completed = 1, status = ? WHERE id = ?;"
+            db: db, query: "UPDATE sessions SET is_completed = 1, status = ?1 WHERE id = ?2;"
         )
         let inCycleInsertStatement = try OpaquePointer(
             db: db,
@@ -265,12 +267,16 @@ final class SQLiteJobStore: JobStorable {
                 fail_revisit = ?8;
             """
         )
+        let isPendingStatement = try OpaquePointer(
+            db: db, query: "SELECT is_completed FROM sessions WHERE id = ?1;"
+        )
         self.init(
             db: db,
             pendingSessionJobStatement: pendingSessionJobStatement,
             completePendingSessionStatement: completePendingSessionStatement,
             inCycleInsertStatement: inCycleInsertStatement,
-            inCycleSelectStatement: inCycleSelectStatement
+            inCycleSelectStatement: inCycleSelectStatement,
+            isPendingStatement: isPendingStatement
         )
     }
 
@@ -279,13 +285,15 @@ final class SQLiteJobStore: JobStorable {
         pendingSessionJobStatement: OpaquePointer,
         completePendingSessionStatement: OpaquePointer,
         inCycleInsertStatement: OpaquePointer,
-        inCycleSelectStatement: OpaquePointer
+        inCycleSelectStatement: OpaquePointer,
+        isPendingStatement: OpaquePointer
     ) {
         self.db = db
         self.pendingSessionJobStatement = pendingSessionJobStatement
         self.completePendingSessionStatement = completePendingSessionStatement
         self.inCycleInsertStatement = inCycleInsertStatement
         self.inCycleSelectStatement = inCycleSelectStatement
+        self.isPendingStatement = isPendingStatement
     }
 
     @discardableResult
@@ -304,20 +312,12 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
-        if let encodedResult = try result.map(
-            { String(decoding: try self.encoder.encode($0), as: UTF8.self) }
-        ) {
-            guard let encodedCString = encodedResult.cString(using: .utf8) else {
+        if let encodedResult = try result.map({ try self.encoder.encode($0) }) {
+            guard let cString = String(decoding: encodedResult, as: UTF8.self).cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             try exec {
-                sqlite3_bind_text(
-                    self.completePendingSessionStatement,
-                    1,
-                    encodedCString,
-                    Int32(MemoryLayout<CChar>.stride * encodedCString.count),
-                    nil
-                )
+                sqlite3_bind_text(self.completePendingSessionStatement, 1, cString, cString.bytes, nil)
             }
         } else {
             try exec { sqlite3_bind_null(self.completePendingSessionStatement, 1) }
@@ -334,7 +334,7 @@ final class SQLiteJobStore: JobStorable {
                 self.completePendingSessionStatement,
                 2,
                 sessionStr,
-                Int32(MemoryLayout<CChar>.stride * sessionStr.count),
+                sessionStr.bytes,
                 nil
             )
         }
@@ -442,21 +442,18 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func isPending(session: UUID) throws -> Bool {
-        let query = """
-        SELECT is_completed FROM sessions WHERE id = '\(session.uuidString)';
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        guard let tail, String(cString: tail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        guard let sessionString = session.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
         }
-        let stepResult = sqlite3_step(statement)
+        try exec { sqlite3_bind_text(self.isPendingStatement, 1, sessionString, sessionString.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.isPendingStatement)
+            sqlite3_reset(self.isPendingStatement)
+        }
+        let stepResult = sqlite3_step(self.isPendingStatement)
         switch stepResult {
         case SQLITE_ROW:
-            return !(try Bool(statement: statement, offset: 0))
+            return !(try Bool(statement: self.isPendingStatement, offset: 0))
         case SQLITE_DONE:
             return false
         default:
@@ -922,6 +919,9 @@ final class SQLiteJobStore: JobStorable {
     deinit {
         _ = sqlite3_finalize(self.pendingSessionJobStatement)
         _ = sqlite3_finalize(self.completePendingSessionStatement)
+        _ = sqlite3_finalize(self.inCycleInsertStatement)
+        _ = sqlite3_finalize(self.inCycleSelectStatement)
+        _ = sqlite3_finalize(self.isPendingStatement)
         _ = sqlite3_close(self.db)
     }
 
@@ -983,7 +983,8 @@ private extension Int32 {
 private extension Array where Element == CChar {
 
     var bytes: Int32 {
-        Int32(MemoryLayout<CChar>.stride * self.count)
+        // Don't include null-termination in calculation.
+        Int32(MemoryLayout<CChar>.stride * (self.count - 1))
     }
 
 }
