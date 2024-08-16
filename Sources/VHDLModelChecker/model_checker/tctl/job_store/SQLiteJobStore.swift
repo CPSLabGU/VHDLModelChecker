@@ -648,7 +648,7 @@ final class SQLiteJobStore: JobStorable {
         return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
     }
 
-    private func createJob(statement: OpaquePointer?) throws -> Job {
+    private func createJob(statement: OpaquePointer) throws -> Job {
         let endExpressionsIndex = self.expressions.count
         let endConstraintsIndex = self.constraints.count
         let expressionIndex = Int(sqlite3_column_int(statement, 2))
