@@ -110,7 +110,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             try _ = $0.addJob(job: $1)
         }
         print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 5.0)
+        XCTAssertLessThan(performanceFactor, 2.0)
     }
 
     func testAddJobData() throws {
@@ -142,7 +142,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             _ = try $0.job(forData: $1)
         }
         print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 15.0)
+        XCTAssertLessThan(performanceFactor, 12.0)
     }
 
     func testPendingSessionJob() throws {
@@ -159,7 +159,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             _ = try $0.sessionId(forJob: $1)
         }
         print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 5.0)
+        XCTAssertLessThan(performanceFactor, 4.0)
     }
 
     func compare(_ fn: (inout any JobStorable, Job) throws -> Void) throws -> Double {
