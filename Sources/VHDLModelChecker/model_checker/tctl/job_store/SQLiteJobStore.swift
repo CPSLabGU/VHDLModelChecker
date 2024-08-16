@@ -99,6 +99,10 @@ final class SQLiteJobStore: JobStorable {
 
     private let sessionStatusSelect: OpaquePointer
 
+    private let pluckJobSelect: OpaquePointer
+
+    private let pluckJobSelectID: OpaquePointer
+
     var next: UUID? {
         get throws {
             self.currentJobs.popLast()
@@ -311,6 +315,27 @@ final class SQLiteJobStore: JobStorable {
                 id = ?1;
             """
         )
+        let pluckJobSelect = try OpaquePointer(
+            db: db,
+            query: """
+            SELECT
+                id
+            FROM
+                jobs
+            WHERE
+                node_id = ?1 AND
+                expression = ?2 AND
+                history = ?3 AND
+                current_branch = ?4 AND
+                in_session = ?5 AND
+                history_expression = ?6 AND
+                constraints = ?7 AND
+                session = ?8 AND
+                success_revisit = ?9 AND
+                fail_revisit = ?10;
+            """
+        )
+        let pluckJobSelectID = try OpaquePointer(db: db, query: "SELECT * FROM jobs WHERE id = ?1;")
         self.init(
             db: db,
             pendingSessionJobStatement: pendingSessionJobStatement,
@@ -320,7 +345,9 @@ final class SQLiteJobStore: JobStorable {
             isPendingStatement: isPendingStatement,
             sessionIDSelect: sessionIDSelect,
             sessionIDInsert: sessionIDInsert,
-            sessionStatusSelect: sessionStatusSelect
+            sessionStatusSelect: sessionStatusSelect,
+            pluckJobSelect: pluckJobSelect,
+            pluckJobSelectID: pluckJobSelectID
         )
     }
 
@@ -333,7 +360,9 @@ final class SQLiteJobStore: JobStorable {
         isPendingStatement: OpaquePointer,
         sessionIDSelect: OpaquePointer,
         sessionIDInsert: OpaquePointer,
-        sessionStatusSelect: OpaquePointer
+        sessionStatusSelect: OpaquePointer,
+        pluckJobSelect: OpaquePointer,
+        pluckJobSelectID: OpaquePointer
     ) {
         self.db = db
         self.pendingSessionJobStatement = pendingSessionJobStatement
@@ -344,6 +373,8 @@ final class SQLiteJobStore: JobStorable {
         self.sessionIDSelect = sessionIDSelect
         self.sessionIDInsert = sessionIDInsert
         self.sessionStatusSelect = sessionStatusSelect
+        self.pluckJobSelect = pluckJobSelect
+        self.pluckJobSelectID = pluckJobSelectID
     }
 
     @discardableResult
@@ -808,42 +839,75 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func pluckJob(data: JobData) throws -> Job? {
-        let query = """
-        SELECT
-            id
-        FROM
-            jobs
-        WHERE
-            node_id = '\(data.nodeId.uuidString)' AND
-            expression = \(getExpression(expression: data.expression)) AND
-            history = '\(String(
-                decoding: try self.encoder.encode(data.history.map(\.uuidString).sorted()),
-                as: UTF8.self
-            ) )' AND
-            current_branch = '\(String(
-                decoding: try self.encoder.encode(data.currentBranch.map(\.uuidString)), as: UTF8.self
-            ) )' AND
-            in_session = \(data.inSession.sqlVal) AND
-            history_expression = \(data.historyExpression.map { String(getExpression(expression: $0)) } ?? "NULL") AND
-            constraints = \(getConstraints(constraint: data.constraints)) AND
-            session = \(data.session.map { "\'\($0.uuidString)\'" } ?? "NULL") AND
-            success_revisit = \(data.successRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL") AND
-            fail_revisit = \(data.failRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL");
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        guard let tail, String(cString: tail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        let historyData = String(
+            decoding: try self.encoder.encode(data.history.map(\.uuidString).sorted()),
+            as: UTF8.self
+        )
+        let currentBranchData = String(
+            decoding: try self.encoder.encode(data.currentBranch.map(\.uuidString)), as: UTF8.self
+        )
+        guard
+            let historyString = historyData.cString(using: .utf8),
+            let currentBranchString = currentBranchData.cString(using: .utf8),
+            let nodeIDString = data.nodeId.uuidString.cString(using: .utf8)
+        else {
+            throw ModelCheckerError.internalError
         }
-        let stepResult = sqlite3_step(statement)
+        try exec { sqlite3_bind_text(self.pluckJobSelect, 1, nodeIDString, nodeIDString.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.pluckJobSelect)
+            sqlite3_reset(self.pluckJobSelect)
+        }
+        try exec {
+            sqlite3_bind_int(self.pluckJobSelect, 2, Int32(getExpression(expression: data.expression)))
+        }
+        try exec { sqlite3_bind_text(self.pluckJobSelect, 3, historyString, historyString.bytes, nil) }
+        try exec {
+            sqlite3_bind_text(self.pluckJobSelect, 4, currentBranchString, currentBranchString.bytes, nil)
+        }
+        try exec { sqlite3_bind_int(self.pluckJobSelect, 5, data.inSession.sqlVal) }
+        let historyExpression = data.historyExpression.map { Int32(getExpression(expression: $0)) }
+        if let historyExpression {
+            try exec { sqlite3_bind_int(self.pluckJobSelect, 6, historyExpression) }
+        } else {
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 6) }
+        }
+        try exec {
+            sqlite3_bind_int(self.pluckJobSelect, 7, Int32(getConstraints(constraint: data.constraints)))
+        }
+        let sessionStr = data.session.map { $0.uuidString }
+        if let sessionStr {
+            guard let cStr = sessionStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.pluckJobSelect, 8, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 8) }
+        }
+        let successStr = data.successRevisit.map { $0.uuidString }
+        if let successStr {
+            guard let cStr = successStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.pluckJobSelect, 9, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 9) }
+        }
+        let failStr = data.failRevisit.map { $0.uuidString }
+        if let failStr {
+            guard let cStr = failStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.pluckJobSelect, 10, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 10) }
+        }
+        let stepResult = sqlite3_step(self.pluckJobSelect)
         guard stepResult == SQLITE_ROW else {
             return nil
         }
         guard
-            let id = sqlite3_column_text(statement, 0).flatMap(String.init(cString:)),
+            let id = sqlite3_column_text(self.pluckJobSelect, 0).flatMap(String.init(cString:)),
             let uuid = UUID(uuidString: id)
         else {
             throw SQLiteError.corruptDatabase
@@ -852,30 +916,22 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func pluckJob(id: UUID) throws -> Job? {
-        let query = """
-        SELECT
-            *
-        FROM
-            jobs
-        WHERE
-            id = '\(id.uuidString)';
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        guard let tail, String(cString: tail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        guard let idStr = id.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
         }
-        let stepResult = sqlite3_step(statement)
+        try exec { sqlite3_bind_text(self.pluckJobSelectID, 1, idStr, idStr.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.pluckJobSelectID)
+            sqlite3_reset(self.pluckJobSelectID)
+        }
+        let stepResult = sqlite3_step(self.pluckJobSelectID)
         guard stepResult == SQLITE_ROW else {
             return nil
         }
         let endExpressionsIndex = self.expressions.count
         let endConstraintsIndex = self.constraints.count
-        let expressionIndex = Int(sqlite3_column_int(statement, 2))
-        let constraintsIndex = Int(sqlite3_column_int(statement, 7))
+        let expressionIndex = Int(sqlite3_column_int(self.pluckJobSelectID, 2))
+        let constraintsIndex = Int(sqlite3_column_int(self.pluckJobSelectID, 7))
         guard
             expressionIndex >= 0,
             expressionIndex < endExpressionsIndex,
@@ -884,15 +940,15 @@ final class SQLiteJobStore: JobStorable {
         else {
             throw SQLiteError.corruptDatabase
         }
-        let nodeId = try UUID(statement: statement, offset: 1)
-        let inSession = try sqlite3_column_int(statement, 5).boolValue
-        let historyRaw = Data(try String(statement: statement, offset: 3).utf8)
+        let nodeId = try UUID(statement: self.pluckJobSelectID, offset: 1)
+        let inSession = try sqlite3_column_int(self.pluckJobSelectID, 5).boolValue
+        let historyRaw = Data(try String(statement: self.pluckJobSelectID, offset: 3).utf8)
         let history = try self.decoder.decode([UUID].self, from: historyRaw)
-        let currentBranchRaw = Data(try String(statement: statement, offset: 4).utf8)
+        let currentBranchRaw = Data(try String(statement: self.pluckJobSelectID, offset: 4).utf8)
         let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
         let historyExpression: Expression?
-        if sqlite3_column_type(statement, 6) != SQLITE_NULL {
-            let expressionIndex = Int(sqlite3_column_int(statement, 6))
+        if sqlite3_column_type(self.pluckJobSelectID, 6) != SQLITE_NULL {
+            let expressionIndex = Int(sqlite3_column_int(self.pluckJobSelectID, 6))
             guard
                 expressionIndex >= 0,
                 expressionIndex < endExpressionsIndex
@@ -903,12 +959,12 @@ final class SQLiteJobStore: JobStorable {
         } else {
             historyExpression = nil
         }
-        let session = sqlite3_column_type(statement, 8) != SQLITE_NULL
-            ? try UUID(statement: statement, offset: 8) : nil
-        let successRevisit = sqlite3_column_type(statement, 9) != SQLITE_NULL
-            ? try UUID(statement: statement, offset: 9) : nil
-        let failRevisit = sqlite3_column_type(statement, 10) != SQLITE_NULL
-            ? try UUID(statement: statement, offset: 10) : nil
+        let session = sqlite3_column_type(self.pluckJobSelectID, 8) != SQLITE_NULL
+            ? try UUID(statement: self.pluckJobSelectID, offset: 8) : nil
+        let successRevisit = sqlite3_column_type(self.pluckJobSelectID, 9) != SQLITE_NULL
+            ? try UUID(statement: self.pluckJobSelectID, offset: 9) : nil
+        let failRevisit = sqlite3_column_type(self.pluckJobSelectID, 10) != SQLITE_NULL
+            ? try UUID(statement: self.pluckJobSelectID, offset: 10) : nil
         let data = JobData(
             nodeId: nodeId,
             expression: self.expressions[expressionIndex],
