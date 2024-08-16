@@ -876,27 +876,33 @@ final class SQLiteJobStore: JobStorable {
         try exec {
             sqlite3_bind_int(self.insertJobStatement, 8, Int32(getConstraints(constraint: data.constraints)))
         }
+        var sessionCStr: [CChar] = [0]
         if let session = data.session?.uuidString {
             guard let cStr = session.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.insertJobStatement, 9, cStr, cStr.bytes, nil) }
+            sessionCStr = cStr
+            try exec { sqlite3_bind_text(self.insertJobStatement, 9, &sessionCStr, sessionCStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 9) }
         }
+        var successCStr: [CChar] = [0]
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.insertJobStatement, 10, cStr, cStr.bytes, nil) }
+            successCStr = cStr
+            try exec { sqlite3_bind_text(self.insertJobStatement, 10, &successCStr, successCStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 10) }
         }
+        var failCStr: [CChar] = [0]
         if let fail = data.failRevisit?.uuidString {
             guard let cStr = fail.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.insertJobStatement, 11, cStr, cStr.bytes, nil) }
+            failCStr = cStr
+            try exec { sqlite3_bind_text(self.insertJobStatement, 11, &failCStr, failCStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 11) }
         }
