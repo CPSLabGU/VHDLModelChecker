@@ -97,6 +97,8 @@ final class SQLiteJobStore: JobStorable {
 
     private let sessionIDInsert: OpaquePointer
 
+    private let sessionStatusSelect: OpaquePointer
+
     var next: UUID? {
         get throws {
             self.currentJobs.popLast()
@@ -298,6 +300,17 @@ final class SQLiteJobStore: JobStorable {
             );
             """
         )
+        let sessionStatusSelect = try OpaquePointer(
+            db: db,
+            query: """
+            SELECT
+                is_completed, status
+            FROM
+                sessions
+            WHERE
+                id = ?1;
+            """
+        )
         self.init(
             db: db,
             pendingSessionJobStatement: pendingSessionJobStatement,
@@ -306,7 +319,8 @@ final class SQLiteJobStore: JobStorable {
             inCycleSelectStatement: inCycleSelectStatement,
             isPendingStatement: isPendingStatement,
             sessionIDSelect: sessionIDSelect,
-            sessionIDInsert: sessionIDInsert
+            sessionIDInsert: sessionIDInsert,
+            sessionStatusSelect: sessionStatusSelect
         )
     }
 
@@ -318,7 +332,8 @@ final class SQLiteJobStore: JobStorable {
         inCycleSelectStatement: OpaquePointer,
         isPendingStatement: OpaquePointer,
         sessionIDSelect: OpaquePointer,
-        sessionIDInsert: OpaquePointer
+        sessionIDInsert: OpaquePointer,
+        sessionStatusSelect: OpaquePointer
     ) {
         self.db = db
         self.pendingSessionJobStatement = pendingSessionJobStatement
@@ -328,6 +343,7 @@ final class SQLiteJobStore: JobStorable {
         self.isPendingStatement = isPendingStatement
         self.sessionIDSelect = sessionIDSelect
         self.sessionIDInsert = sessionIDInsert
+        self.sessionStatusSelect = sessionStatusSelect
     }
 
     @discardableResult
@@ -559,37 +575,29 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
-        let query = """
-        SELECT
-            is_completed, status
-        FROM
-            sessions
-        WHERE
-            id = '\(session.uuidString)';
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        guard let tail, String(cString: tail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        guard let sessionString = session.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
         }
-        let stepResult = sqlite3_step(statement)
+        try exec { sqlite3_bind_text(self.sessionStatusSelect, 1, sessionString, sessionString.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.sessionStatusSelect)
+            sqlite3_reset(self.sessionStatusSelect)
+        }
+        let stepResult = sqlite3_step(self.sessionStatusSelect)
         guard stepResult != SQLITE_DONE else {
             return nil
         }
         guard stepResult == SQLITE_ROW else {
             throw SQLiteError.connectionError(message: self.errorMessage)
         }
-        let isCompleted = try Bool(statement: statement, offset: 0)
+        let isCompleted = try Bool(statement: self.sessionStatusSelect, offset: 0)
         guard isCompleted else {
             return nil
         }
-        guard sqlite3_column_type(statement, 1) != SQLITE_NULL else {
+        guard sqlite3_column_type(self.sessionStatusSelect, 1) != SQLITE_NULL else {
             return .some(nil)
         }
-        let statusRaw = Data(try String(statement: statement, offset: 1).utf8)
+        let statusRaw = Data(try String(statement: self.sessionStatusSelect, offset: 1).utf8)
         return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
     }
 
