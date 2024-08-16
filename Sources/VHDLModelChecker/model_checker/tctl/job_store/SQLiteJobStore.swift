@@ -93,6 +93,10 @@ final class SQLiteJobStore: JobStorable {
 
     private let isPendingStatement: OpaquePointer
 
+    private let sessionIDSelect: OpaquePointer
+
+    private let sessionIDInsert: OpaquePointer
+
     var next: UUID? {
         get throws {
             self.currentJobs.popLast()
@@ -270,13 +274,39 @@ final class SQLiteJobStore: JobStorable {
         let isPendingStatement = try OpaquePointer(
             db: db, query: "SELECT is_completed FROM sessions WHERE id = ?1;"
         )
+        let sessionIDSelect = try OpaquePointer(
+            db: db,
+            query: """
+            SELECT
+                id
+            FROM
+                sessions
+            WHERE
+                node_id = ?1 AND
+                expression = ?2 AND
+                constraints = ?3
+            LIMIT 1;
+            """
+        )
+        let sessionIDInsert = try OpaquePointer(
+            db: db,
+            query: """
+            INSERT INTO sessions(
+                id, job_id, node_id, expression, constraints, is_completed
+            ) VALUES (
+                ?1, ?2, ?3, ?4, ?5, 0
+            );
+            """
+        )
         self.init(
             db: db,
             pendingSessionJobStatement: pendingSessionJobStatement,
             completePendingSessionStatement: completePendingSessionStatement,
             inCycleInsertStatement: inCycleInsertStatement,
             inCycleSelectStatement: inCycleSelectStatement,
-            isPendingStatement: isPendingStatement
+            isPendingStatement: isPendingStatement,
+            sessionIDSelect: sessionIDSelect,
+            sessionIDInsert: sessionIDInsert
         )
     }
 
@@ -286,7 +316,9 @@ final class SQLiteJobStore: JobStorable {
         completePendingSessionStatement: OpaquePointer,
         inCycleInsertStatement: OpaquePointer,
         inCycleSelectStatement: OpaquePointer,
-        isPendingStatement: OpaquePointer
+        isPendingStatement: OpaquePointer,
+        sessionIDSelect: OpaquePointer,
+        sessionIDInsert: OpaquePointer
     ) {
         self.db = db
         self.pendingSessionJobStatement = pendingSessionJobStatement
@@ -294,6 +326,8 @@ final class SQLiteJobStore: JobStorable {
         self.inCycleInsertStatement = inCycleInsertStatement
         self.inCycleSelectStatement = inCycleSelectStatement
         self.isPendingStatement = isPendingStatement
+        self.sessionIDSelect = sessionIDSelect
+        self.sessionIDInsert = sessionIDInsert
     }
 
     @discardableResult
@@ -487,58 +521,41 @@ final class SQLiteJobStore: JobStorable {
 
     func sessionId(forJob job: Job) throws -> UUID {
         let key = job.sessionKey
-        let expressionIndex = self.getExpression(expression: key.expression)
-        let constraintIndex = self.getConstraints(constraint: key.constraints)
-        let query = """
-        SELECT
-            id
-        FROM
-            sessions
-        WHERE
-            node_id = '\(key.nodeId.uuidString)' AND
-            expression = \(expressionIndex) AND
-            constraints = \(constraintIndex)
-        LIMIT 1;
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        guard let tail, String(cString: tail).isEmpty else {
-            try exec { sqlite3_finalize(statement) }
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        guard let nodeIDString = key.nodeId.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
         }
-        let stepResult = sqlite3_step(statement)
+        try exec { sqlite3_bind_text(self.sessionIDSelect, 1, nodeIDString, nodeIDString.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.sessionIDSelect)
+            sqlite3_reset(self.sessionIDSelect)
+        }
+        let expressionIndex = Int32(self.getExpression(expression: key.expression))
+        try exec { sqlite3_bind_int(self.sessionIDSelect, 2, expressionIndex) }
+        let constraintIndex = Int32(self.getConstraints(constraint: key.constraints))
+        try exec { sqlite3_bind_int(self.sessionIDSelect, 3, constraintIndex) }
+        let stepResult = sqlite3_step(self.sessionIDSelect)
         guard stepResult == SQLITE_ROW else {
-            try exec { sqlite3_finalize(statement) }
             let id = UUID()
-            let insertQuery = """
-            INSERT INTO sessions(
-                id, job_id, node_id, expression, constraints, is_completed
-            ) VALUES (
-                '\(id.uuidString)', '\(job.id.uuidString)', '\(key.nodeId.uuidString)', \(expressionIndex),
-                \(constraintIndex), 0
-            );
-            """
-            let insertQueryC = insertQuery.cString(using: .utf8)
-            var insertStatement: OpaquePointer?
-            var insertTail: UnsafePointer<CChar>?
-            try exec {
-                sqlite3_prepare_v2(
-                    self.db, insertQueryC, Int32(insertQueryC?.count ?? 0), &insertStatement, &insertTail
-                )
+            guard
+                let idString = id.uuidString.cString(using: .utf8),
+                let jobString = job.id.uuidString.cString(using: .utf8),
+                let nodeID = key.nodeId.uuidString.cString(using: .utf8)
+            else {
+                throw ModelCheckerError.internalError
             }
-            defer { try? exec { sqlite3_finalize(insertStatement) } }
-            guard let insertTail, String(cString: insertTail).isEmpty else {
-                throw SQLiteError.incompleteStatement(
-                    statement: insertQuery, tail: String(cString: insertTail!)
-                )
+            try exec { sqlite3_bind_text(self.sessionIDInsert, 1, idString, idString.bytes, nil) }
+            defer {
+                sqlite3_clear_bindings(self.sessionIDInsert)
+                sqlite3_reset(self.sessionIDInsert)
             }
-            try exec(result: SQLITE_DONE) { sqlite3_step(insertStatement) }
+            try exec { sqlite3_bind_text(self.sessionIDInsert, 2, jobString, jobString.bytes, nil) }
+            try exec { sqlite3_bind_text(self.sessionIDInsert, 3, nodeID, nodeID.bytes, nil) }
+            try exec { sqlite3_bind_int(self.sessionIDInsert, 4, expressionIndex) }
+            try exec { sqlite3_bind_int(self.sessionIDInsert, 5, constraintIndex) }
+            try exec(result: SQLITE_DONE) { sqlite3_step(self.sessionIDInsert) }
             return id
         }
-        defer { try? exec { sqlite3_finalize(statement) } }
-        return try UUID(statement: statement, offset: 0)
+        return try UUID(statement: self.sessionIDSelect, offset: 0)
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
