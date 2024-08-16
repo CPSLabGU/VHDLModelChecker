@@ -93,6 +93,27 @@ struct LLFSMVerify: ParsableCommand {
     )
     var entireStructure = false
 
+    @Option(
+        help: """
+        The store to use for verification jobs. Please make sure libsqlite-dev is installed on your system
+        before choosing the sqlite store.
+        """
+    )
+    var store: VerificationStore = .inMemory
+
+    @Option(
+        help: """
+        The path to the database file when specifying the SQLite store via the --store option. If the
+        --machine flag is present, then this path is ignored and the database will be located in
+        the build/verification folder in the machine.
+        """
+    )
+    var storePath: String = "verification.db"
+
+    var actualStorePath: String {
+        machine ? "build/verification/verification.db" : storePath
+    }
+
     func run() throws {
         let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
         let structureURL = machine
@@ -115,7 +136,9 @@ struct LLFSMVerify: ParsableCommand {
         let structure = try decoder.decode(KripkeStructure.self, from: structureData)
         let modelChecker = VHDLModelChecker()
         do {
-            try modelChecker.verify(structure: structure, against: requirements)
+            try modelChecker.verify(
+                structure: structure, against: requirements, store: self.store, path: self.actualStorePath
+            )
         } catch let error as ModelCheckerError {
             try handleError(error: error, structure: structure)
             throw error
