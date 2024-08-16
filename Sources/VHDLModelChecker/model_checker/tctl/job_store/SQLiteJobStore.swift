@@ -77,46 +77,19 @@ final class SQLiteJobStore: JobStorable {
 
     private var constraintKeys: [[PhysicalConstraint]: Int] = [:]
 
-    private lazy var pendingSessionJobStatement: OpaquePointer? = {
-        let query = """
-        SELECT
-            j.*
-        FROM
-            jobs j,
-            sessions s
-        WHERE
-            j.id = s.job_id AND
-            s.is_completed = 0
-        LIMIT 1;
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        _ = sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail)
-        return statement
-    }()
+    private let pendingSessionJobStatement: OpaquePointer
 
-    private lazy var completePendingSessionStatement: OpaquePointer? = {
-        let query = """
-        UPDATE sessions SET is_completed = 1, status = ? WHERE id = ?;
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        guard
-            SQLITE_OK == sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail),
-            tail.flatMap({ String(cString: $0) })?.isEmpty == true
-        else {
-            fatalError("Could not prepare completePendingSession.")
-        }
-        return statement
-    }()
+    private let completePendingSessionStatement: OpaquePointer
 
     private var currentJobs: [UUID] = {
         var arr: [UUID] = []
         arr.reserveCapacity(1000000)
         return arr
     }()
+
+    private let inCycleInsertStatement: OpaquePointer
+
+    private let inCycleSelectStatement: OpaquePointer
 
     var next: UUID? {
         get throws {
@@ -173,12 +146,146 @@ final class SQLiteJobStore: JobStorable {
             sqlite3_close(db)
             throw SQLiteError.connectionError(message: String(cString: sqlite3_errmsg(db)))
         }
-        self.init(db: db)
-        try self.createSchema()
+        try self.init(db: db)
     }
 
-    private init(db: OpaquePointer) {
+    private convenience init(db: OpaquePointer) throws {
+        let exec: (Int32, () -> Int32) throws -> Void = {
+            guard $1() == $0 else {
+                throw SQLiteError.cDriverError(errno: $0, message: String(cString: sqlite3_errmsg(db)))
+            }
+        }
+        let queries = [
+            """
+            CREATE TABLE IF NOT EXISTS jobs(
+                id VARCHAR(36) PRIMARY KEY,
+                node_id VARCHAR(36) NOT NULL,
+                expression INTEGER NOT NULL,
+                history TEXT NOT NULL,
+                current_branch TEXT NOT NULL,
+                in_session INTEGER NOT NULL,
+                history_expression INTEGER,
+                constraints INTEGER NOT NULL,
+                session VARCHAR(36),
+                success_revisit VARCHAR(36),
+                fail_revisit VARCHAR(36)
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
+                node_id, expression, history, current_branch, in_session, history_expression, constraints,
+                session, success_revisit, fail_revisit
+            );
+            CREATE TABLE IF NOT EXISTS sessions(
+                id VARCHAR(36) PRIMARY KEY,
+                job_id VARCHAR(36) NOT NULL,
+                node_id VARCHAR(36) NOT NULL,
+                expression INTEGER NOT NULL,
+                constraints INTEGER NOT NULL,
+                is_completed INTEGER NOT NULL,
+                status TEXT
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS session_is_completed_index ON sessions(job_id, is_completed);
+            CREATE TABLE IF NOT EXISTS cycles(
+                node_id VARCHAR(36) NOT NULL,
+                expression INTEGER NOT NULL,
+                in_cycle INTEGER NOT NULL,
+                history_expression INTEGER,
+                constraints INTEGER NOT NULL,
+                session VARCHAR(36),
+                success_revisit VARCHAR(36),
+                fail_revisit VARCHAR(36),
+                PRIMARY KEY (
+                    node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                    fail_revisit
+                )
+            );
+            """
+        ]
+        for query in queries {
+            var queryC = query.cString(using: .utf8)
+            var statement: OpaquePointer?
+            var tail: UnsafePointer<CChar>?
+            repeat {
+                try exec(SQLITE_OK) {
+                    sqlite3_prepare_v2(db, queryC, Int32(queryC?.count ?? 0), &statement, &tail)
+                }
+                defer { try? exec(SQLITE_OK) { sqlite3_finalize(statement) } }
+                try exec(SQLITE_DONE) { sqlite3_step(statement) }
+                queryC = tail.flatMap { String(cString: $0).cString(using: .utf8) }
+            } while (tail.map { String(cString: $0) }?.isEmpty == false)
+            guard tail != nil else {
+                throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+            }
+        }
+        let pendingSessionJobStatement = try OpaquePointer(
+            db: db,
+            query: """
+            SELECT
+                j.*
+            FROM
+                jobs j,
+                sessions s
+            WHERE
+                j.id = s.job_id AND
+                s.is_completed = 0
+            LIMIT 1;
+            """
+        )
+        let completePendingSessionStatement = try OpaquePointer(
+            db: db, query: "UPDATE sessions SET is_completed = 1, status = ? WHERE id = ?;"
+        )
+        let inCycleInsertStatement = try OpaquePointer(
+            db: db,
+            query: """
+            INSERT INTO cycles(
+                node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                fail_revisit
+            ) VALUES(
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+            );
+            """
+        )
+        let inCycleSelectStatement = try OpaquePointer(
+            db: db,
+            query: """
+            SELECT
+                in_cycle
+            FROM
+                cycles
+            WHERE
+                node_id = ?1 AND
+                expression = ?2 AND
+                in_cycle = ?3 AND
+                history_expression = ?4 AND
+                constraints = ?5 AND
+                session = ?6 AND
+                success_revisit = ?7 AND
+                fail_revisit = ?8;
+            """
+        )
+        self.init(
+            db: db,
+            pendingSessionJobStatement: pendingSessionJobStatement,
+            completePendingSessionStatement: completePendingSessionStatement,
+            inCycleInsertStatement: inCycleInsertStatement,
+            inCycleSelectStatement: inCycleSelectStatement
+        )
+    }
+
+    private init(
+        db: OpaquePointer,
+        pendingSessionJobStatement: OpaquePointer,
+        completePendingSessionStatement: OpaquePointer,
+        inCycleInsertStatement: OpaquePointer,
+        inCycleSelectStatement: OpaquePointer
+    ) {
         self.db = db
+        self.pendingSessionJobStatement = pendingSessionJobStatement
+        self.completePendingSessionStatement = completePendingSessionStatement
+        self.inCycleInsertStatement = inCycleInsertStatement
+        self.inCycleSelectStatement = inCycleSelectStatement
     }
 
     @discardableResult
@@ -239,67 +346,98 @@ final class SQLiteJobStore: JobStorable {
 
     func inCycle(_ job: Job) throws -> Bool {
         let data = job.cycleData
-        let historyExpression = data.historyExpression.map { "\(getExpression(expression: $0))" } ?? "NULL"
-        let nodeStr = data.nodeId.uuidString
-        let expressionIndex = getExpression(expression: data.expression)
-        let inCycle = data.inCycle.sqlVal
-        let constraintIndex = getConstraints(constraint: data.constraints)
-        let sessionStr = data.session.map { "\'\($0.uuidString)\'" } ?? "NULL"
-        let successStr = data.successRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL"
-        let failStr = data.failRevisit.map { "\'\($0.uuidString)\'" } ?? "NULL"
-        let query = """
-        SELECT
-            in_cycle
-        FROM
-            cycles
-        WHERE
-            node_id = '\(nodeStr)' AND
-            expression = \(expressionIndex) AND
-            in_cycle = \(inCycle) AND
-            history_expression = \(historyExpression) AND
-            constraints = \(constraintIndex) AND
-            session = \(sessionStr) AND
-            success_revisit = \(successStr) AND
-            fail_revisit = \(failStr);
-        """
-        let queryC = query.cString(using: .utf8)
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        try exec { sqlite3_prepare_v2(self.db, queryC, Int32(queryC?.count ?? 0), &statement, &tail) }
-        guard let tail, String(cString: tail).isEmpty else {
-            try exec { sqlite3_finalize(statement) }
-            throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
+        guard let nodeStr = data.nodeId.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
         }
-        let stepResult = sqlite3_step(statement)
-        try exec { sqlite3_finalize(statement) }
+        try exec { sqlite3_bind_text(self.inCycleSelectStatement, 1, nodeStr, nodeStr.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.inCycleSelectStatement)
+            sqlite3_reset(self.inCycleSelectStatement)
+        }
+        let expressionIndex = Int32(getExpression(expression: data.expression))
+        try exec { sqlite3_bind_int(self.inCycleSelectStatement, 2, expressionIndex) }
+        let inCycle = data.inCycle.sqlVal
+        try exec { sqlite3_bind_int(self.inCycleSelectStatement, 3, inCycle) }
+        let historyExpression = data.historyExpression.map { Int32(getExpression(expression: $0)) }
+        if let historyExpression {
+            try exec { sqlite3_bind_int(self.inCycleSelectStatement, 4, historyExpression) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 4) }
+        }
+        let constraintIndex = Int32(getConstraints(constraint: data.constraints))
+        try exec { sqlite3_bind_int(self.inCycleSelectStatement, 5, constraintIndex) }
+        let sessionStr = data.session.map { $0.uuidString }
+        if let sessionStr {
+            guard let cStr = sessionStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 6, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 6) }
+        }
+        let successStr = data.successRevisit.map { $0.uuidString }
+        if let successStr {
+            guard let cStr = successStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 7, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 7) }
+        }
+        let failStr = data.failRevisit.map { $0.uuidString }
+        if let failStr {
+            guard let cStr = failStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 8, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 8) }
+        }
+        let stepResult = sqlite3_step(self.inCycleSelectStatement)
         guard stepResult == SQLITE_DONE else {
             guard stepResult == SQLITE_ROW else {
                 throw SQLiteError.connectionError(message: self.errorMessage)
             }
             return true
         }
-        let insertQuery = """
-        INSERT INTO cycles(
-            node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
-            fail_revisit
-        ) VALUES(
-            '\(nodeStr)', \(expressionIndex), \(inCycle), \(historyExpression),
-            \(constraintIndex), \(sessionStr), \(successStr), \(failStr)
-        );
-        """
-        let insertQueryC = insertQuery.cString(using: .utf8)
-        var insertStatement: OpaquePointer?
-        var insertTail: UnsafePointer<CChar>?
-        try exec {
-            sqlite3_prepare_v2(
-                self.db, insertQueryC, Int32(insertQueryC?.count ?? 0), &insertStatement, &insertTail
-            )
+        try exec { sqlite3_bind_text(self.inCycleInsertStatement, 1, nodeStr, nodeStr.bytes, nil) }
+        defer {
+            sqlite3_clear_bindings(self.inCycleInsertStatement)
+            sqlite3_reset(self.inCycleInsertStatement)
         }
-        defer { try? exec { sqlite3_finalize(insertStatement) } }
-        guard let insertTail, String(cString: insertTail).isEmpty else {
-            throw SQLiteError.incompleteStatement(statement: insertQuery, tail: String(cString: insertTail!))
+        try exec { sqlite3_bind_int(self.inCycleInsertStatement, 2, expressionIndex) }
+        try exec { sqlite3_bind_int(self.inCycleInsertStatement, 3, inCycle) }
+        if let historyExpression {
+            try exec { sqlite3_bind_int(self.inCycleInsertStatement, 4, historyExpression) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 4) }
         }
-        try exec(result: SQLITE_DONE) { sqlite3_step(insertStatement) }
+        try exec { sqlite3_bind_int(self.inCycleInsertStatement, 5, constraintIndex) }
+        if let sessionStr {
+            guard let cStr = sessionStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.inCycleInsertStatement, 6, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 6) }
+        }
+        if let successStr {
+            guard let cStr = successStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.inCycleInsertStatement, 7, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 7) }
+        }
+        if let failStr {
+            guard let cStr = failStr.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            try exec { sqlite3_bind_text(self.inCycleInsertStatement, 8, cStr, cStr.bytes, nil) }
+        } else {
+            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 8) }
+        }
+        try exec(result: SQLITE_DONE) { sqlite3_step(self.inCycleInsertStatement) }
         return false
     }
 
@@ -838,6 +976,40 @@ private extension Int32 {
                 throw SQLiteError.corruptDatabase
             }
         }
+    }
+
+}
+
+private extension Array where Element == CChar {
+
+    var bytes: Int32 {
+        Int32(MemoryLayout<CChar>.stride * self.count)
+    }
+
+}
+
+private extension OpaquePointer {
+
+    init(db: OpaquePointer, query: String) throws {
+        guard let queryC = query.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
+        }
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        let result = sqlite3_prepare_v2(db, queryC, queryC.bytes, &statement, &tail)
+        guard result == SQLITE_OK else {
+            throw SQLiteError.cDriverError(errno: result, message: String(cString: sqlite3_errmsg(db)))
+        }
+        guard let tail, String(cString: tail).isEmpty else {
+            if let tail {
+                throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail))
+            }
+            throw SQLiteError.corruptDatabase
+        }
+        guard let statement else {
+            throw SQLiteError.corruptDatabase
+        }
+        self = statement
     }
 
 }
