@@ -986,6 +986,11 @@ final class SQLiteJobStore: JobStorable {
         _ = sqlite3_finalize(self.inCycleInsertStatement)
         _ = sqlite3_finalize(self.inCycleSelectStatement)
         _ = sqlite3_finalize(self.isPendingStatement)
+        _ = sqlite3_finalize(self.sessionIDSelect)
+        _ = sqlite3_finalize(self.sessionIDInsert)
+        _ = sqlite3_finalize(self.sessionStatusSelect)
+        _ = sqlite3_finalize(self.pluckJobSelect)
+        _ = sqlite3_finalize(self.pluckJobSelectID)
         _ = sqlite3_close(self.db)
     }
 
