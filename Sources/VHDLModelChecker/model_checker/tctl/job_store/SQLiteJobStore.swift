@@ -77,33 +77,33 @@ final class SQLiteJobStore: JobStorable {
 
     private var constraintKeys: [[PhysicalConstraint]: Int] = [:]
 
-    private let pendingSessionJobStatement: OpaquePointer
-
-    private let completePendingSessionStatement: OpaquePointer
-
     private var currentJobs: [UUID] = {
         var arr: [UUID] = []
         arr.reserveCapacity(1000000)
         return arr
     }()
 
-    private let inCycleInsertStatement: OpaquePointer
+    private var pendingSessionJobStatement: OpaquePointer
 
-    private let inCycleSelectStatement: OpaquePointer
+    private var completePendingSessionStatement: OpaquePointer
 
-    private let isPendingStatement: OpaquePointer
+    private var inCycleInsertStatement: OpaquePointer
 
-    private let sessionIDSelect: OpaquePointer
+    private var inCycleSelectStatement: OpaquePointer
 
-    private let sessionIDInsert: OpaquePointer
+    private var isPendingStatement: OpaquePointer
 
-    private let sessionStatusSelect: OpaquePointer
+    private var sessionIDSelect: OpaquePointer
 
-    private let pluckJobSelect: OpaquePointer
+    private var sessionIDInsert: OpaquePointer
 
-    private let pluckJobSelectID: OpaquePointer
+    private var sessionStatusSelect: OpaquePointer
 
-    private let insertJobStatement: OpaquePointer
+    private var pluckJobSelect: OpaquePointer
+
+    private var pluckJobSelectID: OpaquePointer
+
+    private var insertJobStatement: OpaquePointer
 
     var next: UUID? {
         get throws {
@@ -573,8 +573,10 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func reset() throws {
+        try self.finalizeStatements()
         try self.dropSchema()
         try self.createSchema()
+        try self.prepareStatements()
         self.currentJobs.removeAll(keepingCapacity: true)
         self.expressions.removeAll()
         self.expressionKeys.removeAll()
@@ -794,6 +796,20 @@ final class SQLiteJobStore: JobStorable {
         guard fn() == result else {
             throw SQLiteError.cDriverError(errno: result, message: self.errorMessage)
         }
+    }
+
+    private func finalizeStatements() throws {
+        try exec { sqlite3_finalize(self.pendingSessionJobStatement) }
+        try exec { sqlite3_finalize(self.completePendingSessionStatement) }
+        try exec { sqlite3_finalize(self.inCycleInsertStatement) }
+        try exec { sqlite3_finalize(self.inCycleSelectStatement) }
+        try exec { sqlite3_finalize(self.isPendingStatement) }
+        try exec { sqlite3_finalize(self.sessionIDSelect) }
+        try exec { sqlite3_finalize(self.sessionIDInsert) }
+        try exec { sqlite3_finalize(self.sessionStatusSelect) }
+        try exec { sqlite3_finalize(self.pluckJobSelect) }
+        try exec { sqlite3_finalize(self.pluckJobSelectID) }
+        try exec { sqlite3_finalize(self.insertJobStatement) }
     }
 
     private func getConstraints(constraint: [PhysicalConstraint]) -> Int {
@@ -1028,6 +1044,118 @@ final class SQLiteJobStore: JobStorable {
             failRevisit: failRevisit
         )
         return Job(id: id, data: data)
+    }
+
+    private func prepareStatements() throws {
+        self.pendingSessionJobStatement = try OpaquePointer(
+            db: self.db,
+            query: """
+            SELECT
+                j.*
+            FROM
+                jobs j,
+                sessions s
+            WHERE
+                j.id = s.job_id AND
+                s.is_completed = 0
+            LIMIT 1;
+            """
+        )
+        self.completePendingSessionStatement = try OpaquePointer(
+            db: self.db, query: "UPDATE sessions SET is_completed = 1, status = ?1 WHERE id = ?2;"
+        )
+        self.inCycleInsertStatement = try OpaquePointer(
+            db: self.db,
+            query: """
+            INSERT INTO cycles(
+                node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                fail_revisit
+            ) VALUES(
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+            );
+            """
+        )
+        self.inCycleSelectStatement = try OpaquePointer(
+            db: self.db,
+            query: """
+            SELECT
+                in_cycle
+            FROM
+                cycles
+            WHERE
+                node_id = ?1 AND
+                expression = ?2 AND
+                in_cycle = ?3 AND
+                history_expression = ?4 AND
+                constraints = ?5 AND
+                session = ?6 AND
+                success_revisit = ?7 AND
+                fail_revisit = ?8;
+            """
+        )
+        self.isPendingStatement = try OpaquePointer(
+            db: self.db, query: "SELECT is_completed FROM sessions WHERE id = ?1;"
+        )
+        self.sessionIDSelect = try OpaquePointer(
+            db: self.db,
+            query: """
+            SELECT
+                id
+            FROM
+                sessions
+            WHERE
+                node_id = ?1 AND
+                expression = ?2 AND
+                constraints = ?3
+            LIMIT 1;
+            """
+        )
+        self.sessionIDInsert = try OpaquePointer(
+            db: self.db,
+            query: """
+            INSERT INTO sessions(
+                id, job_id, node_id, expression, constraints, is_completed
+            ) VALUES (
+                ?1, ?2, ?3, ?4, ?5, 0
+            );
+            """
+        )
+        self.sessionStatusSelect = try OpaquePointer(
+            db: self.db,
+            query: "SELECT is_completed, status FROM sessions WHERE id = ?1;"
+        )
+        self.pluckJobSelect = try OpaquePointer(
+            db: self.db,
+            query: """
+            SELECT
+                id
+            FROM
+                jobs
+            WHERE
+                node_id = ?1 AND
+                expression = ?2 AND
+                history = ?3 AND
+                current_branch = ?4 AND
+                in_session = ?5 AND
+                history_expression = ?6 AND
+                constraints = ?7 AND
+                session = ?8 AND
+                success_revisit = ?9 AND
+                fail_revisit = ?10;
+            """
+        )
+        self.pluckJobSelectID = try OpaquePointer(db: self.db, query: "SELECT * FROM jobs WHERE id = ?1;")
+        self.insertJobStatement = try OpaquePointer(
+            db: db,
+            query: """
+            INSERT INTO jobs(
+                id, node_id, expression, history, current_branch, in_session, history_expression, constraints,
+                session, success_revisit, fail_revisit
+            ) VALUES(
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+            );
+            """
+        )
     }
 
     deinit {
