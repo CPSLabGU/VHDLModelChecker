@@ -409,12 +409,16 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
+        var encodedCStr: [CChar] = [0]
         if let encodedResult = try result.map({ try self.encoder.encode($0) }) {
             guard let cString = String(decoding: encodedResult, as: UTF8.self).cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
+            encodedCStr = cString
             try exec {
-                sqlite3_bind_text(self.completePendingSessionStatement, 1, cString, cString.bytes, nil)
+                sqlite3_bind_text(
+                    self.completePendingSessionStatement, 1, &encodedCStr, encodedCStr.bytes, nil
+                )
             }
         } else {
             try exec { sqlite3_bind_null(self.completePendingSessionStatement, 1) }
@@ -464,29 +468,39 @@ final class SQLiteJobStore: JobStorable {
         let constraintIndex = Int32(getConstraints(constraint: data.constraints))
         try exec { sqlite3_bind_int(self.inCycleSelectStatement, 5, constraintIndex) }
         let sessionStr = data.session.map { $0.uuidString }
+        var sessionCStr: [CChar] = [0]
         if let sessionStr {
             guard let cStr = sessionStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 6, cStr, cStr.bytes, nil) }
+            sessionCStr = cStr
+            try exec {
+                sqlite3_bind_text(self.inCycleSelectStatement, 6, &sessionCStr, sessionCStr.bytes, nil)
+            }
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 6) }
         }
         let successStr = data.successRevisit.map { $0.uuidString }
+        var successCStr: [CChar] = [0]
         if let successStr {
             guard let cStr = successStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 7, cStr, cStr.bytes, nil) }
+            successCStr = cStr
+            try exec {
+                sqlite3_bind_text(self.inCycleSelectStatement, 7, &successCStr, successCStr.bytes, nil)
+            }
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 7) }
         }
         let failStr = data.failRevisit.map { $0.uuidString }
+        var failCStr: [CChar] = [0]
         if let failStr {
             guard let cStr = failStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 8, cStr, cStr.bytes, nil) }
+            failCStr = cStr
+            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 8, &failCStr, failCStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 8) }
         }
@@ -510,27 +524,43 @@ final class SQLiteJobStore: JobStorable {
             try exec { sqlite3_bind_null(self.inCycleInsertStatement, 4) }
         }
         try exec { sqlite3_bind_int(self.inCycleInsertStatement, 5, constraintIndex) }
+        var insertSessionCStr: [CChar] = [0]
         if let sessionStr {
             guard let cStr = sessionStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.inCycleInsertStatement, 6, cStr, cStr.bytes, nil) }
+            insertSessionCStr = cStr
+            try exec {
+                sqlite3_bind_text(
+                    self.inCycleInsertStatement, 6, &insertSessionCStr, insertSessionCStr.bytes, nil
+                )
+            }
         } else {
             try exec { sqlite3_bind_null(self.inCycleInsertStatement, 6) }
         }
+        var insertSuccessCStr: [CChar] = [0]
         if let successStr {
             guard let cStr = successStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.inCycleInsertStatement, 7, cStr, cStr.bytes, nil) }
+            insertSuccessCStr = cStr
+            try exec {
+                sqlite3_bind_text(
+                    self.inCycleInsertStatement, 7, &insertSuccessCStr, insertSuccessCStr.bytes, nil
+                )
+            }
         } else {
             try exec { sqlite3_bind_null(self.inCycleInsertStatement, 7) }
         }
+        var insertFailCStr: [CChar] = [0]
         if let failStr {
             guard let cStr = failStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.inCycleInsertStatement, 8, cStr, cStr.bytes, nil) }
+            insertFailCStr = cStr
+            try exec {
+                sqlite3_bind_text(self.inCycleInsertStatement, 8, &insertFailCStr, insertFailCStr.bytes, nil)
+            }
         } else {
             try exec { sqlite3_bind_null(self.inCycleInsertStatement, 8) }
         }
@@ -947,30 +977,33 @@ final class SQLiteJobStore: JobStorable {
         try exec {
             sqlite3_bind_int(self.pluckJobSelect, 7, Int32(getConstraints(constraint: data.constraints)))
         }
-        let sessionStr = data.session.map { $0.uuidString }
-        if let sessionStr {
-            guard let cStr = sessionStr.cString(using: .utf8) else {
+        var sessionStr: [CChar] = [0]
+        if let session = data.session?.uuidString {
+            guard let cStr = session.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.pluckJobSelect, 8, cStr, cStr.bytes, nil) }
+            sessionStr = cStr
+            try exec { sqlite3_bind_text(self.pluckJobSelect, 8, &sessionStr, sessionStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 8) }
         }
-        let successStr = data.successRevisit.map { $0.uuidString }
-        if let successStr {
-            guard let cStr = successStr.cString(using: .utf8) else {
+        var successStr: [CChar] = [0]
+        if let success = data.successRevisit?.uuidString {
+            guard let cStr = success.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.pluckJobSelect, 9, cStr, cStr.bytes, nil) }
+            successStr = cStr
+            try exec { sqlite3_bind_text(self.pluckJobSelect, 9, &successStr, successStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 9) }
         }
-        let failStr = data.failRevisit.map { $0.uuidString }
-        if let failStr {
-            guard let cStr = failStr.cString(using: .utf8) else {
+        var failStr: [CChar] = [0]
+        if let fail = data.failRevisit?.uuidString {
+            guard let cStr = fail.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.pluckJobSelect, 10, cStr, cStr.bytes, nil) }
+            failStr = cStr
+            try exec { sqlite3_bind_text(self.pluckJobSelect, 10, &failStr, failStr.bytes, nil) }
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 10) }
         }
