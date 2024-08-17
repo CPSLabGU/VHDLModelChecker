@@ -572,19 +572,17 @@ final class SQLiteJobStore: JobStorable {
         guard let sessionString = session.uuidString.cString(using: .utf8) else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.isPendingStatement, 1, sessionString, sessionString.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.isPendingStatement)
-            sqlite3_reset(self.isPendingStatement)
-        }
-        let stepResult = sqlite3_step(self.isPendingStatement)
-        switch stepResult {
-        case SQLITE_ROW:
-            return !(try Bool(statement: self.isPendingStatement, offset: 0))
-        case SQLITE_DONE:
-            return false
-        default:
-            throw SQLiteError.connectionError(message: self.errorMessage)
+        return try self.bind(
+            data: sessionString, offsets: [0], parameters: [1], statement: self.isPendingStatement
+        ) {
+            switch $1 {
+            case SQLITE_ROW:
+                return !(try Bool(statement: $0, offset: 0))
+            case SQLITE_DONE:
+                return false
+            default:
+                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+            }
         }
     }
 
