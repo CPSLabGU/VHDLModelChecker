@@ -619,17 +619,16 @@ final class SQLiteJobStore: JobStorable {
         guard let nodeIDString = key.nodeId.uuidString.cString(using: .utf8) else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.sessionIDSelect, 1, nodeIDString, nodeIDString.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.sessionIDSelect)
-            sqlite3_reset(self.sessionIDSelect)
-        }
         let expressionIndex = Int32(self.getExpression(expression: key.expression))
         try exec { sqlite3_bind_int(self.sessionIDSelect, 2, expressionIndex) }
         let constraintIndex = Int32(self.getConstraints(constraint: key.constraints))
         try exec { sqlite3_bind_int(self.sessionIDSelect, 3, constraintIndex) }
-        let stepResult = sqlite3_step(self.sessionIDSelect)
-        guard stepResult == SQLITE_ROW else {
+        return try self.bind(
+            data: nodeIDString, offsets: [0], parameters: [1], statement: self.sessionIDSelect
+        ) {
+            guard $1 != SQLITE_ROW else {
+                return try UUID(statement: $0, offset: 0)
+            }
             let id = UUID()
             guard
                 let idString = id.uuidString.cString(using: .utf8),
@@ -638,46 +637,110 @@ final class SQLiteJobStore: JobStorable {
             else {
                 throw ModelCheckerError.internalError
             }
-            try exec { sqlite3_bind_text(self.sessionIDInsert, 1, idString, idString.bytes, nil) }
-            defer {
-                sqlite3_clear_bindings(self.sessionIDInsert)
-                sqlite3_reset(self.sessionIDInsert)
-            }
-            try exec { sqlite3_bind_text(self.sessionIDInsert, 2, jobString, jobString.bytes, nil) }
-            try exec { sqlite3_bind_text(self.sessionIDInsert, 3, nodeID, nodeID.bytes, nil) }
             try exec { sqlite3_bind_int(self.sessionIDInsert, 4, expressionIndex) }
             try exec { sqlite3_bind_int(self.sessionIDInsert, 5, constraintIndex) }
-            try exec(result: SQLITE_DONE) { sqlite3_step(self.sessionIDInsert) }
+            try self.bind(
+                data: [idString, jobString, nodeID], parameters: [1, 2, 3], statement: self.sessionIDInsert
+            ) {
+                guard SQLITE_DONE == $1 else {
+                    throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+                }
+            }
             return id
         }
-        return try UUID(statement: self.sessionIDSelect, offset: 0)
     }
 
     func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
         guard let sessionString = session.uuidString.cString(using: .utf8) else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.sessionStatusSelect, 1, sessionString, sessionString.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.sessionStatusSelect)
-            sqlite3_reset(self.sessionStatusSelect)
+        return try self.bind(
+            data: sessionString, offsets: [0], parameters: [1], statement: self.sessionStatusSelect
+        ) {
+            guard $1 != SQLITE_DONE else {
+                return nil
+            }
+            guard $1 == SQLITE_ROW else {
+                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+            }
+            let isCompleted = try Bool(statement: $0, offset: 0)
+            guard isCompleted else {
+                return nil
+            }
+            guard sqlite3_column_type($0, 1) != SQLITE_NULL else {
+                return .some(nil)
+            }
+            let statusRaw = Data(try String(statement: $0, offset: 1).utf8)
+            return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
         }
-        let stepResult = sqlite3_step(self.sessionStatusSelect)
-        guard stepResult != SQLITE_DONE else {
-            return nil
+    }
+
+    private func bind<T>(
+        data: [[CChar]],
+        parameters: [Int32],
+        statement: OpaquePointer,
+        _ callback: (OpaquePointer, Int32) throws -> T
+    ) throws -> T {
+        guard !data.isEmpty, data.count == parameters.count else {
+            throw ModelCheckerError.internalError
         }
-        guard stepResult == SQLITE_ROW else {
-            throw SQLiteError.connectionError(message: self.errorMessage)
+        guard data.count != 1 else {
+            return try self.bind(
+                data: data[0], offsets: [0], parameters: parameters, statement: statement, callback
+            )
         }
-        let isCompleted = try Bool(statement: self.sessionStatusSelect, offset: 0)
-        guard isCompleted else {
-            return nil
+        var offsets: [Int] = []
+        for index in data.indices {
+            guard index != 0 else {
+                offsets.append(0)
+                continue
+            }
+            offsets.append(offsets[index - 1] + data[index - 1].count * MemoryLayout<CChar>.stride)
         }
-        guard sqlite3_column_type(self.sessionStatusSelect, 1) != SQLITE_NULL else {
-            return .some(nil)
+        return try self.bind(
+            data: data.flatMap { $0 },
+            offsets: offsets,
+            parameters: parameters,
+            statement: statement,
+            callback
+        )
+    }
+
+    private func bind<T>(
+        data: [CChar],
+        offsets: [Int] = [0],
+        parameters: [Int32] = [1],
+        statement: OpaquePointer,
+        _ callback: (OpaquePointer, Int32) throws -> T
+    ) throws -> T {
+        guard !data.isEmpty, !offsets.isEmpty, offsets.count == parameters.count else {
+            throw ModelCheckerError.internalError
         }
-        let statusRaw = Data(try String(statement: self.sessionStatusSelect, offset: 1).utf8)
-        return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
+        guard let result: T = try data.withContiguousStorageIfAvailable({
+            defer {
+                sqlite3_clear_bindings(statement)
+                sqlite3_reset(statement)
+            }
+            let lastIndex = offsets.count - 1
+            let stride = MemoryLayout<CChar>.stride
+            for index in offsets.indices {
+                let offset = offsets[index]
+                guard let pointer = $0.baseAddress?.advanced(by: offset) else {
+                    throw ModelCheckerError.internalError
+                }
+                let totalBytes = index == lastIndex ? data.count * stride - offset
+                    : offsets[index + 1] - offset
+                // Don't include null-termination in size.
+                let size = Int32(totalBytes - stride)
+                try exec {
+                    sqlite3_bind_text(statement, parameters[index], pointer, size, nil)
+                }
+            }
+            return try callback(statement, sqlite3_step(statement))
+        }) else {
+            throw ModelCheckerError.internalError
+        }
+        return result
     }
 
     private func createJob(statement: OpaquePointer) throws -> Job {
