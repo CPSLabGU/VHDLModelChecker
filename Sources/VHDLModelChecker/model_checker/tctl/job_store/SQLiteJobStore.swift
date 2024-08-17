@@ -495,8 +495,8 @@ final class SQLiteJobStore: JobStorable {
                 }
                 return true
             }
-            var insertStrings: [[CChar]] = []
-            var insertParameters: [Int32] = []
+            var insertStrings: [[CChar]] = [nodeStr]
+            var insertParameters: [Int32] = [1]
             try exec { sqlite3_bind_int(self.inCycleInsertStatement, 2, expressionIndex) }
             try exec { sqlite3_bind_int(self.inCycleInsertStatement, 3, inCycle) }
             if let historyExpression {
@@ -505,8 +505,6 @@ final class SQLiteJobStore: JobStorable {
                 try exec { sqlite3_bind_null(self.inCycleInsertStatement, 4) }
             }
             try exec { sqlite3_bind_int(self.inCycleInsertStatement, 5, constraintIndex) }
-            insertStrings.append(nodeStr)
-            insertParameters.append(1)
             if let sessionStr {
                 guard let cStr = sessionStr.cString(using: .utf8) else {
                     throw ModelCheckerError.internalError
@@ -918,18 +916,10 @@ final class SQLiteJobStore: JobStorable {
         else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.insertJobStatement, 1, idStr, idStr.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.insertJobStatement)
-            sqlite3_reset(self.insertJobStatement)
-        }
-        try exec { sqlite3_bind_text(self.insertJobStatement, 2, nodeIDStr, nodeIDStr.bytes, nil) }
+        var strings = [idStr, nodeIDStr, historyStr, currentBranchStr]
+        var parameters: [Int32] = [1, 2, 4, 5]
         try exec {
             sqlite3_bind_int(self.insertJobStatement, 3, Int32(getExpression(expression: data.expression)))
-        }
-        try exec { sqlite3_bind_text(self.insertJobStatement, 4, historyStr, historyStr.bytes, nil) }
-        try exec {
-            sqlite3_bind_text(self.insertJobStatement, 5, currentBranchStr, currentBranchStr.bytes, nil)
         }
         try exec { sqlite3_bind_int(self.insertJobStatement, 6, data.inSession.sqlVal) }
         if let historyExpression = data.historyExpression {
@@ -944,37 +934,38 @@ final class SQLiteJobStore: JobStorable {
         try exec {
             sqlite3_bind_int(self.insertJobStatement, 8, Int32(getConstraints(constraint: data.constraints)))
         }
-        var sessionCStr: [CChar] = [0]
         if let session = data.session?.uuidString {
             guard let cStr = session.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            sessionCStr = cStr
-            try exec { sqlite3_bind_text(self.insertJobStatement, 9, &sessionCStr, sessionCStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(9)
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 9) }
         }
-        var successCStr: [CChar] = [0]
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            successCStr = cStr
-            try exec { sqlite3_bind_text(self.insertJobStatement, 10, &successCStr, successCStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(10)
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 10) }
         }
-        var failCStr: [CChar] = [0]
         if let fail = data.failRevisit?.uuidString {
             guard let cStr = fail.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            failCStr = cStr
-            try exec { sqlite3_bind_text(self.insertJobStatement, 11, &failCStr, failCStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(11)
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 11) }
         }
-        try exec(result: SQLITE_DONE) { sqlite3_step(self.insertJobStatement) }
+        try self.bind(data: strings, parameters: parameters, statement: self.insertJobStatement) {
+            guard $1 == SQLITE_DONE else {
+                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+            }
+        }
         return id
     }
 
