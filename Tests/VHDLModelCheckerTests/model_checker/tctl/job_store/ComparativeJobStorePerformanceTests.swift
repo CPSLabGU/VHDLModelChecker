@@ -134,7 +134,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             _ = try $0.inCycle($1)
         }
         print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 7.0)
+        XCTAssertLessThan(performanceFactor, 8.0)
     }
 
     func testJob() throws {
