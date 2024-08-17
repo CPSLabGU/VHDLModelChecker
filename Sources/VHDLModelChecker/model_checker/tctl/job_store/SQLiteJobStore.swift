@@ -439,14 +439,13 @@ final class SQLiteJobStore: JobStorable {
 
     func inCycle(_ job: Job) throws -> Bool {
         let data = job.cycleData
+        var strings: [[CChar]] = []
+        var parameters: [Int32] = []
         guard let nodeStr = data.nodeId.uuidString.cString(using: .utf8) else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.inCycleSelectStatement, 1, nodeStr, nodeStr.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.inCycleSelectStatement)
-            sqlite3_reset(self.inCycleSelectStatement)
-        }
+        strings.append(nodeStr)
+        parameters.append(1)
         let expressionIndex = Int32(getExpression(expression: data.expression))
         try exec { sqlite3_bind_int(self.inCycleSelectStatement, 2, expressionIndex) }
         let inCycle = data.inCycle.sqlVal
@@ -460,104 +459,90 @@ final class SQLiteJobStore: JobStorable {
         let constraintIndex = Int32(getConstraints(constraint: data.constraints))
         try exec { sqlite3_bind_int(self.inCycleSelectStatement, 5, constraintIndex) }
         let sessionStr = data.session.map { $0.uuidString }
-        var sessionCStr: [CChar] = [0]
         if let sessionStr {
             guard let cStr = sessionStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            sessionCStr = cStr
-            try exec {
-                sqlite3_bind_text(self.inCycleSelectStatement, 6, &sessionCStr, sessionCStr.bytes, nil)
-            }
+            strings.append(cStr)
+            parameters.append(6)
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 6) }
         }
         let successStr = data.successRevisit.map { $0.uuidString }
-        var successCStr: [CChar] = [0]
         if let successStr {
             guard let cStr = successStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            successCStr = cStr
-            try exec {
-                sqlite3_bind_text(self.inCycleSelectStatement, 7, &successCStr, successCStr.bytes, nil)
-            }
+            strings.append(cStr)
+            parameters.append(7)
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 7) }
         }
         let failStr = data.failRevisit.map { $0.uuidString }
-        var failCStr: [CChar] = [0]
         if let failStr {
             guard let cStr = failStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            failCStr = cStr
-            try exec { sqlite3_bind_text(self.inCycleSelectStatement, 8, &failCStr, failCStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(8)
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 8) }
         }
-        let stepResult = sqlite3_step(self.inCycleSelectStatement)
-        guard stepResult == SQLITE_DONE else {
-            guard stepResult == SQLITE_ROW else {
-                throw SQLiteError.connectionError(message: self.errorMessage)
+        return try self.bind(data: strings, parameters: parameters, statement: self.inCycleSelectStatement) {
+            guard $1 == SQLITE_DONE else {
+                guard $1 == SQLITE_ROW else {
+                    throw SQLiteError.connectionError(message: self.errorMessage)
+                }
+                return true
             }
-            return true
+            var insertStrings: [[CChar]] = []
+            var insertParameters: [Int32] = []
+            try exec { sqlite3_bind_int(self.inCycleInsertStatement, 2, expressionIndex) }
+            try exec { sqlite3_bind_int(self.inCycleInsertStatement, 3, inCycle) }
+            if let historyExpression {
+                try exec { sqlite3_bind_int(self.inCycleInsertStatement, 4, historyExpression) }
+            } else {
+                try exec { sqlite3_bind_null(self.inCycleInsertStatement, 4) }
+            }
+            try exec { sqlite3_bind_int(self.inCycleInsertStatement, 5, constraintIndex) }
+            insertStrings.append(nodeStr)
+            insertParameters.append(1)
+            if let sessionStr {
+                guard let cStr = sessionStr.cString(using: .utf8) else {
+                    throw ModelCheckerError.internalError
+                }
+                insertStrings.append(cStr)
+                insertParameters.append(6)
+            } else {
+                try exec { sqlite3_bind_null(self.inCycleInsertStatement, 6) }
+            }
+            if let successStr {
+                guard let cStr = successStr.cString(using: .utf8) else {
+                    throw ModelCheckerError.internalError
+                }
+                insertStrings.append(cStr)
+                insertParameters.append(7)
+            } else {
+                try exec { sqlite3_bind_null(self.inCycleInsertStatement, 7) }
+            }
+            if let failStr {
+                guard let cStr = failStr.cString(using: .utf8) else {
+                    throw ModelCheckerError.internalError
+                }
+                insertStrings.append(cStr)
+                insertParameters.append(8)
+            } else {
+                try exec { sqlite3_bind_null(self.inCycleInsertStatement, 8) }
+            }
+            try self.bind(
+                data: insertStrings, parameters: insertParameters, statement: self.inCycleInsertStatement
+            ) {
+                guard $1 == SQLITE_DONE else {
+                    throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+                }
+            }
+            return false
         }
-        try exec { sqlite3_bind_text(self.inCycleInsertStatement, 1, nodeStr, nodeStr.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.inCycleInsertStatement)
-            sqlite3_reset(self.inCycleInsertStatement)
-        }
-        try exec { sqlite3_bind_int(self.inCycleInsertStatement, 2, expressionIndex) }
-        try exec { sqlite3_bind_int(self.inCycleInsertStatement, 3, inCycle) }
-        if let historyExpression {
-            try exec { sqlite3_bind_int(self.inCycleInsertStatement, 4, historyExpression) }
-        } else {
-            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 4) }
-        }
-        try exec { sqlite3_bind_int(self.inCycleInsertStatement, 5, constraintIndex) }
-        var insertSessionCStr: [CChar] = [0]
-        if let sessionStr {
-            guard let cStr = sessionStr.cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            insertSessionCStr = cStr
-            try exec {
-                sqlite3_bind_text(
-                    self.inCycleInsertStatement, 6, &insertSessionCStr, insertSessionCStr.bytes, nil
-                )
-            }
-        } else {
-            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 6) }
-        }
-        var insertSuccessCStr: [CChar] = [0]
-        if let successStr {
-            guard let cStr = successStr.cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            insertSuccessCStr = cStr
-            try exec {
-                sqlite3_bind_text(
-                    self.inCycleInsertStatement, 7, &insertSuccessCStr, insertSuccessCStr.bytes, nil
-                )
-            }
-        } else {
-            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 7) }
-        }
-        var insertFailCStr: [CChar] = [0]
-        if let failStr {
-            guard let cStr = failStr.cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            insertFailCStr = cStr
-            try exec {
-                sqlite3_bind_text(self.inCycleInsertStatement, 8, &insertFailCStr, insertFailCStr.bytes, nil)
-            }
-        } else {
-            try exec { sqlite3_bind_null(self.inCycleInsertStatement, 8) }
-        }
-        try exec(result: SQLITE_DONE) { sqlite3_step(self.inCycleInsertStatement) }
-        return false
     }
 
     func isPending(session: UUID) throws -> Bool {
