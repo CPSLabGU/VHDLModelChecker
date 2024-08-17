@@ -409,39 +409,31 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
-        var encodedCStr: [CChar] = [0]
+        var strings: [[CChar]] = []
+        var parameters: [Int32] = []
         if let encodedResult = try result.map({ try self.encoder.encode($0) }) {
             guard let cString = String(decoding: encodedResult, as: UTF8.self).cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            encodedCStr = cString
-            try exec {
-                sqlite3_bind_text(
-                    self.completePendingSessionStatement, 1, &encodedCStr, encodedCStr.bytes, nil
-                )
-            }
+            strings.append(cString)
+            parameters.append(1)
         } else {
             try exec { sqlite3_bind_null(self.completePendingSessionStatement, 1) }
-        }
-        defer {
-            sqlite3_clear_bindings(self.completePendingSessionStatement)
-            sqlite3_reset(self.completePendingSessionStatement)
         }
         guard let sessionStr = session.uuidString.cString(using: .utf8) else {
             throw ModelCheckerError.internalError
         }
-        try exec {
-            sqlite3_bind_text(
-                self.completePendingSessionStatement,
-                2,
-                sessionStr,
-                sessionStr.bytes,
-                nil
-            )
-        }
-        try exec(result: SQLITE_DONE) { sqlite3_step(self.completePendingSessionStatement) }
-        guard sqlite3_changes(self.db) == 1 else {
-            throw SQLiteError.corruptDatabase
+        strings.append(sessionStr)
+        parameters.append(2)
+        try self.bind(
+            data: strings, parameters: parameters, statement: self.completePendingSessionStatement
+        ) {
+            guard $1 == SQLITE_DONE else {
+                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+            }
+            guard sqlite3_changes(self.db) == 1 else {
+                throw SQLiteError.corruptDatabase
+            }
         }
     }
 
