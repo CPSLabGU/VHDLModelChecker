@@ -1044,65 +1044,61 @@ final class SQLiteJobStore: JobStorable {
         guard let idStr = id.uuidString.cString(using: .utf8) else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.pluckJobSelectID, 1, idStr, idStr.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.pluckJobSelectID)
-            sqlite3_reset(self.pluckJobSelectID)
-        }
-        let stepResult = sqlite3_step(self.pluckJobSelectID)
-        guard stepResult == SQLITE_ROW else {
-            return nil
-        }
-        let endExpressionsIndex = self.expressions.count
-        let endConstraintsIndex = self.constraints.count
-        let expressionIndex = Int(sqlite3_column_int(self.pluckJobSelectID, 2))
-        let constraintsIndex = Int(sqlite3_column_int(self.pluckJobSelectID, 7))
-        guard
-            expressionIndex >= 0,
-            expressionIndex < endExpressionsIndex,
-            constraintsIndex >= 0,
-            constraintsIndex < endConstraintsIndex
-        else {
-            throw SQLiteError.corruptDatabase
-        }
-        let nodeId = try UUID(statement: self.pluckJobSelectID, offset: 1)
-        let inSession = try sqlite3_column_int(self.pluckJobSelectID, 5).boolValue
-        let historyRaw = Data(try String(statement: self.pluckJobSelectID, offset: 3).utf8)
-        let history = try self.decoder.decode([UUID].self, from: historyRaw)
-        let currentBranchRaw = Data(try String(statement: self.pluckJobSelectID, offset: 4).utf8)
-        let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
-        let historyExpression: Expression?
-        if sqlite3_column_type(self.pluckJobSelectID, 6) != SQLITE_NULL {
-            let expressionIndex = Int(sqlite3_column_int(self.pluckJobSelectID, 6))
+        return try self.bind(data: idStr, offsets: [0], parameters: [1], statement: self.pluckJobSelectID) {
+            guard $1 == SQLITE_ROW else {
+                return nil
+            }
+            let endExpressionsIndex = self.expressions.count
+            let endConstraintsIndex = self.constraints.count
+            let expressionIndex = Int(sqlite3_column_int($0, 2))
+            let constraintsIndex = Int(sqlite3_column_int($0, 7))
             guard
                 expressionIndex >= 0,
-                expressionIndex < endExpressionsIndex
+                expressionIndex < endExpressionsIndex,
+                constraintsIndex >= 0,
+                constraintsIndex < endConstraintsIndex
             else {
                 throw SQLiteError.corruptDatabase
             }
-            historyExpression = self.expressions[expressionIndex]
-        } else {
-            historyExpression = nil
+            let nodeId = try UUID(statement: $0, offset: 1)
+            let inSession = try sqlite3_column_int($0, 5).boolValue
+            let historyRaw = Data(try String(statement: $0, offset: 3).utf8)
+            let history = try self.decoder.decode([UUID].self, from: historyRaw)
+            let currentBranchRaw = Data(try String(statement: $0, offset: 4).utf8)
+            let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
+            let historyExpression: Expression?
+            if sqlite3_column_type($0, 6) != SQLITE_NULL {
+                let expressionIndex = Int(sqlite3_column_int($0, 6))
+                guard
+                    expressionIndex >= 0,
+                    expressionIndex < endExpressionsIndex
+                else {
+                    throw SQLiteError.corruptDatabase
+                }
+                historyExpression = self.expressions[expressionIndex]
+            } else {
+                historyExpression = nil
+            }
+            let session = sqlite3_column_type($0, 8) != SQLITE_NULL
+                ? try UUID(statement: $0, offset: 8) : nil
+            let successRevisit = sqlite3_column_type($0, 9) != SQLITE_NULL
+                ? try UUID(statement: $0, offset: 9) : nil
+            let failRevisit = sqlite3_column_type($0, 10) != SQLITE_NULL
+                ? try UUID(statement: $0, offset: 10) : nil
+            let data = JobData(
+                nodeId: nodeId,
+                expression: self.expressions[expressionIndex],
+                history: Set(history),
+                currentBranch: currentBranch,
+                inSession: inSession,
+                historyExpression: historyExpression,
+                constraints: self.constraints[constraintsIndex],
+                session: session,
+                successRevisit: successRevisit,
+                failRevisit: failRevisit
+            )
+            return Job(id: id, data: data)
         }
-        let session = sqlite3_column_type(self.pluckJobSelectID, 8) != SQLITE_NULL
-            ? try UUID(statement: self.pluckJobSelectID, offset: 8) : nil
-        let successRevisit = sqlite3_column_type(self.pluckJobSelectID, 9) != SQLITE_NULL
-            ? try UUID(statement: self.pluckJobSelectID, offset: 9) : nil
-        let failRevisit = sqlite3_column_type(self.pluckJobSelectID, 10) != SQLITE_NULL
-            ? try UUID(statement: self.pluckJobSelectID, offset: 10) : nil
-        let data = JobData(
-            nodeId: nodeId,
-            expression: self.expressions[expressionIndex],
-            history: Set(history),
-            currentBranch: currentBranch,
-            inSession: inSession,
-            historyExpression: historyExpression,
-            constraints: self.constraints[constraintsIndex],
-            session: session,
-            successRevisit: successRevisit,
-            failRevisit: failRevisit
-        )
-        return Job(id: id, data: data)
     }
 
     private func prepareStatements() throws {
