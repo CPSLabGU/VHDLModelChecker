@@ -984,17 +984,10 @@ final class SQLiteJobStore: JobStorable {
         else {
             throw ModelCheckerError.internalError
         }
-        try exec { sqlite3_bind_text(self.pluckJobSelect, 1, nodeIDString, nodeIDString.bytes, nil) }
-        defer {
-            sqlite3_clear_bindings(self.pluckJobSelect)
-            sqlite3_reset(self.pluckJobSelect)
-        }
+        var strings = [historyString, currentBranchString, nodeIDString]
+        var parameters: [Int32] = [3, 4, 1]
         try exec {
             sqlite3_bind_int(self.pluckJobSelect, 2, Int32(getExpression(expression: data.expression)))
-        }
-        try exec { sqlite3_bind_text(self.pluckJobSelect, 3, historyString, historyString.bytes, nil) }
-        try exec {
-            sqlite3_bind_text(self.pluckJobSelect, 4, currentBranchString, currentBranchString.bytes, nil)
         }
         try exec { sqlite3_bind_int(self.pluckJobSelect, 5, data.inSession.sqlVal) }
         let historyExpression = data.historyExpression.map { Int32(getExpression(expression: $0)) }
@@ -1006,47 +999,45 @@ final class SQLiteJobStore: JobStorable {
         try exec {
             sqlite3_bind_int(self.pluckJobSelect, 7, Int32(getConstraints(constraint: data.constraints)))
         }
-        var sessionStr: [CChar] = [0]
         if let session = data.session?.uuidString {
             guard let cStr = session.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            sessionStr = cStr
-            try exec { sqlite3_bind_text(self.pluckJobSelect, 8, &sessionStr, sessionStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(8)
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 8) }
         }
-        var successStr: [CChar] = [0]
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            successStr = cStr
-            try exec { sqlite3_bind_text(self.pluckJobSelect, 9, &successStr, successStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(9)
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 9) }
         }
-        var failStr: [CChar] = [0]
         if let fail = data.failRevisit?.uuidString {
             guard let cStr = fail.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
-            failStr = cStr
-            try exec { sqlite3_bind_text(self.pluckJobSelect, 10, &failStr, failStr.bytes, nil) }
+            strings.append(cStr)
+            parameters.append(10)
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 10) }
         }
-        let stepResult = sqlite3_step(self.pluckJobSelect)
-        guard stepResult == SQLITE_ROW else {
-            return nil
+        return try self.bind(data: strings, parameters: parameters, statement: self.pluckJobSelect) {
+            guard $1 == SQLITE_ROW else {
+                return nil
+            }
+            guard
+                let id = sqlite3_column_text($0, 0).flatMap(String.init(cString:)),
+                let uuid = UUID(uuidString: id)
+            else {
+                throw SQLiteError.corruptDatabase
+            }
+            return Job(id: uuid, data: data)
         }
-        guard
-            let id = sqlite3_column_text(self.pluckJobSelect, 0).flatMap(String.init(cString:)),
-            let uuid = UUID(uuidString: id)
-        else {
-            throw SQLiteError.corruptDatabase
-        }
-        return Job(id: uuid, data: data)
     }
 
     private func pluckJob(id: UUID) throws -> Job? {
