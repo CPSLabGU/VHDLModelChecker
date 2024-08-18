@@ -74,6 +74,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         super.setUp()
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
         checker = TCTLModelChecker(store: try! SQLiteJobStore())
+        // checker = TCTLModelChecker(store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db"))
         // checker = TCTLModelChecker(
         //     store: InMemoryDataStore()
         // )
