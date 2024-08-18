@@ -348,7 +348,24 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 switch revisit {
                 case .ignored:
                     revisitSuccess = newRevisit
-                    revisitFail = successRevisit
+                    if let successRevisit {
+                        revisitFail = successRevisit
+                    } else {
+                        revisitFail = try self.store.job(forData: JobData(
+                            nodeId: job.nodeId,
+                            expression: .language(expression: .vhdl(expression: .conditional(
+                                expression: .literal(value: true)
+                            ))),
+                            history: job.history,
+                            currentBranch: job.currentBranch,
+                            inSession: result.isNewSession ? true : job.inSession,
+                            historyExpression: job.historyExpression,
+                            constraints: job.constraints,
+                            session: nil,
+                            successRevisit: nil,
+                            failRevisit: nil
+                        )).id
+                    }
                 case .required:
                     revisitSuccess = newRevisit
                     revisitFail = failRevisit
