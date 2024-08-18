@@ -99,24 +99,48 @@ extension GloballyQuantifiedExpression {
     }
 
     func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
-        let results = try self.expression.verify(
-            currentNode: node, inCycle: inCycle, quantifier: self.quantifier
-        )
         switch self {
         case .always:
             // A G e :: .noSession(.revisit(A X A G E, .required(e)))
             // A F e :: .noSession(.revisit(A X A F e, .skip(e)))
             // A X e :: .noSession(.succ(e))
+            let results = try self.expression.verify(
+                currentNode: node, inCycle: inCycle, quantifier: self.quantifier
+            )
             return results.map {
                 .noSession(status: $0)
             }
-        case .eventually:
+        case .eventually(let pathQuantifier):
             // E X e :: .newSession(.succ(e))
             // E G e :: .newSession(.revisit(E X E G e, .required(e)))
             // E F e :: .newSession(.revisit(E X E F e, .skip(e)))
-            return results.map {
-                .newSession(status: $0)
+            // return results.map {
+            //     .newSession(status: $0)
+            // }
+            let newExpression: Expression
+            switch pathQuantifier {
+            case .globally(let expression):
+                newExpression = .not(expression: .quantified(expression: .always(
+                    expression: .finally(expression: .not(expression: expression))
+                )))
+            case .finally(let expression):
+                newExpression = .not(expression: .quantified(expression: .always(
+                    expression: .globally(expression: .not(expression: expression))
+                )))
+            case .next(let expression):
+                newExpression = .not(expression: .quantified(expression: .always(
+                    expression: .next(expression: .not(expression: expression))
+                )))
+            case .until(let lhs, let rhs):
+                newExpression = .not(expression: .quantified(expression: .always(expression: .weak(
+                    lhs: .not(expression: lhs), rhs: .not(expression: rhs)
+                ))))
+            case .weak(let lhs, let rhs):
+                newExpression = .not(expression: .quantified(expression: .always(expression: .until(
+                    lhs: .not(expression: lhs), rhs: .not(expression: rhs)
+                ))))
             }
+            return try newExpression.verify(currentNode: node, inCycle: inCycle)
         }
     }
 
