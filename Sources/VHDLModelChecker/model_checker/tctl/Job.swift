@@ -57,7 +57,7 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class CycleData: Equatable, Hashable {
+final class CycleData: Equatable, Hashable, Codable {
 
     var nodeId: UUID
 
@@ -119,7 +119,7 @@ final class CycleData: Equatable, Hashable {
 
 }
 
-final class Job: Equatable, Hashable {
+final class JobData: Equatable, Hashable {
     var nodeId: UUID
     var expression: Expression
     var history: Set<UUID>
@@ -130,7 +130,7 @@ final class Job: Equatable, Hashable {
     var session: UUID?
     var successRevisit: UUID?
     var failRevisit: UUID?
-    var allSessionIds: SessionIdStore
+    // var allSessionIds: SessionIdStore
 
     var cycleData: CycleData {
         CycleData(
@@ -159,8 +159,7 @@ final class Job: Equatable, Hashable {
         constraints: [PhysicalConstraint],
         session: UUID?,
         successRevisit: UUID?,
-        failRevisit: UUID?,
-        allSessionIds: SessionIdStore
+        failRevisit: UUID?
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -172,26 +171,9 @@ final class Job: Equatable, Hashable {
         self.session = session
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
-        self.allSessionIds = allSessionIds
     }
 
-    convenience init(revisit: Revisit) {
-        self.init(
-            nodeId: revisit.nodeId,
-            expression: revisit.expression,
-            history: revisit.history,
-            currentBranch: revisit.currentBranch,
-            inSession: revisit.inSession,
-            historyExpression: revisit.historyExpression,
-            constraints: revisit.constraints,
-            session: revisit.session,
-            successRevisit: revisit.successRevisit,
-            failRevisit: revisit.failRevisit,
-            allSessionIds: revisit.allSessionIds
-        )
-    }
-
-    static func == (lhs: Job, rhs: Job) -> Bool {
+    static func == (lhs: JobData, rhs: JobData) -> Bool {
         lhs.nodeId == rhs.nodeId
             && lhs.expression == rhs.expression
             && lhs.history == rhs.history
@@ -202,7 +184,6 @@ final class Job: Equatable, Hashable {
             && lhs.session == rhs.session
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
-            && lhs.allSessionIds == rhs.allSessionIds
     }
 
     func hash(into hasher: inout Hasher) {
@@ -216,7 +197,196 @@ final class Job: Equatable, Hashable {
         hasher.combine(session)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
-        hasher.combine(allSessionIds)
+    }
+
+}
+
+final class Job: Equatable, Hashable, Identifiable {
+    let id: UUID
+    let data: JobData
+    // var allSessionIds: SessionIdStore
+
+    var cycleData: CycleData {
+        data.cycleData
+    }
+
+    var sessionKey: SessionKey {
+        data.sessionKey
+    }
+
+    var nodeId: UUID {
+        data.nodeId
+    }
+
+    var expression: Expression {
+        data.expression
+    }
+
+    var history: Set<UUID> {
+        data.history
+    }
+
+    var currentBranch: [UUID] {
+        data.currentBranch
+    }
+
+    var inSession: Bool {
+        data.inSession
+    }
+
+    var historyExpression: Expression? {
+        data.historyExpression
+    }
+
+    var constraints: [PhysicalConstraint] {
+        data.constraints
+    }
+
+    var session: UUID? {
+        data.session
+    }
+
+    var successRevisit: UUID? {
+        data.successRevisit
+    }
+
+    var failRevisit: UUID? {
+        data.failRevisit
+    }
+
+    convenience init(
+        id: UUID,
+        nodeId: UUID,
+        expression: Expression,
+        history: Set<UUID>,
+        currentBranch: [UUID],
+        inSession: Bool,
+        historyExpression: Expression?,
+        constraints: [PhysicalConstraint],
+        session: UUID?,
+        successRevisit: UUID?,
+        failRevisit: UUID?
+    ) {
+        self.init(
+            id: id,
+            data: JobData(
+                nodeId: nodeId,
+                expression: expression,
+                history: history,
+                currentBranch: currentBranch,
+                inSession: inSession,
+                historyExpression: historyExpression,
+                constraints: constraints,
+                session: session,
+                successRevisit: successRevisit,
+                failRevisit: failRevisit
+            )
+        )
+    }
+
+    init(id: UUID, data: JobData) {
+        self.id = id
+        self.data = data
+    }
+
+    static func == (lhs: Job, rhs: Job) -> Bool {
+        lhs.id == rhs.id && lhs.data == rhs.data
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(data)
+    }
+
+}
+
+extension JobData: Codable {
+
+    private enum CodingKeys: CodingKey {
+        case nodeId
+        case expression
+        case history
+        case currentBranch
+        case inSession
+        case historyExpression
+        case constraints
+        case session
+        case successRevisit
+        case failRevisit
+    }
+
+    convenience init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let expressionRawValue = try container.decode(String.self, forKey: .expression)
+        guard let expression = Expression(rawValue: expressionRawValue) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .expression,
+                in: container,
+                debugDescription: "Invalid expression value"
+            )
+        }
+        let historyExpression: Expression?
+        if let historyExpressionRawValue = try container.decode(String?.self, forKey: .historyExpression) {
+            guard let historyExpressionConverted = Expression(rawValue: historyExpressionRawValue) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .historyExpression,
+                    in: container,
+                    debugDescription: "Invalid history expression value"
+                )
+            }
+            historyExpression = historyExpressionConverted
+        } else {
+            historyExpression = nil
+        }
+        self.init(
+            nodeId: try container.decode(UUID.self, forKey: .nodeId),
+            expression: expression,
+            history: Set(try container.decode([UUID].self, forKey: .history)),
+            currentBranch: try container.decode([UUID].self, forKey: .currentBranch),
+            inSession: try container.decode(Bool.self, forKey: .inSession),
+            historyExpression: historyExpression,
+            constraints: try container.decode([PhysicalConstraint].self, forKey: .constraints),
+            session: try container.decode(UUID?.self, forKey: .session),
+            successRevisit: try container.decode(UUID?.self, forKey: .successRevisit),
+            failRevisit: try container.decode(UUID?.self, forKey: .failRevisit)
+        )
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(nodeId, forKey: .nodeId)
+        try container.encode(expression.rawValue, forKey: .expression)
+        try container.encode(history.sorted { $0.uuidString < $1.uuidString }, forKey: .history)
+        try container.encode(currentBranch, forKey: .currentBranch)
+        try container.encode(inSession, forKey: .inSession)
+        try container.encode(historyExpression?.rawValue, forKey: .historyExpression)
+        try container.encode(constraints, forKey: .constraints)
+        try container.encode(session, forKey: .session)
+        try container.encode(successRevisit, forKey: .successRevisit)
+        try container.encode(failRevisit, forKey: .failRevisit)
+    }
+
+}
+
+extension Job: Codable {
+
+    enum CodingKeys: CodingKey {
+        case id
+        case data
+    }
+
+    convenience init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try container.decode(UUID.self, forKey: .id),
+            data: try container.decode(JobData.self, forKey: .data)
+        )
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(data, forKey: .data)
     }
 
 }

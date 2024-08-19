@@ -10,3 +10,7 @@ DerivedData/
 Package.resolved
 .vscode
 default.profraw
+*.db
+*.sqlite
+*.sqlite3
+*.*-journal

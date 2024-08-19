@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// PerformanceData.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,53 +54,46 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
-import TCTLParser
-import VHDLKripkeStructures
-import VHDLParsing
 
-public struct VHDLModelChecker {
+struct PerformanceData: Comparable {
 
-    public init() {}
+    let durations: [Duration]
 
-    public func verify(
-        structure: KripkeStructure,
-        against specification: [RequirementsSpecification],
-        store: VerificationStore = .inMemory,
-        path: String? = nil
-    ) throws {
-        switch store {
-        case .inMemory:
-            try self.verify(
-                checker: TCTLModelChecker(store: InMemoryDataStore()),
-                structure: structure,
-                specification: specification
-            )
-        case .sqlite:
-            guard let path else {
-                throw ModelCheckerError.internalError
-            }
-            try self.verify(
-                checker: TCTLModelChecker(store: try SQLiteJobStore(path: path)),
-                structure: structure,
-                specification: specification
-            )
-        }
+    var average: Duration {
+        durations.reduce(Duration.zero, +) / durations.count
     }
 
-    func verify<T>(
-        checker: TCTLModelChecker<T>, structure: KripkeStructure, specification: [RequirementsSpecification]
-    ) throws {
-        let iterator = KripkeStructureIterator(structure: structure)
-        let clock = ContinuousClock()
-        let elapsedTime = try clock.measure {
-            try specification.forEach {
-                switch $0 {
-                case .tctl(let specification):
-                    try checker.check(structure: iterator, specification: specification)
-                }
-            }
-        }
-        print("Verification completed in \(elapsedTime) (± \(clock.minimumResolution)).")
+    var performanceFactor: Double {
+        self.max / self.min
+    }
+
+    var stdDev: Double {
+        let average = average.microseconds
+        let std = sqrt(
+            durations.reduce(0) { $0 + pow($1.microseconds - average, 2) } / Double(durations.count)
+        )
+        return std / average * 100.0
+    }
+
+    var max: Duration {
+        durations.max()!
+    }
+
+    var min: Duration {
+        durations.min()!
+    }
+
+    static func < (lhs: PerformanceData, rhs: PerformanceData) -> Bool {
+        lhs.average < rhs.average
+    }
+
+}
+
+extension Duration {
+
+    var microseconds: Double {
+        Double(self.components.seconds) * 1e9
+            + Double(self.components.attoseconds) / 1e9
     }
 
 }

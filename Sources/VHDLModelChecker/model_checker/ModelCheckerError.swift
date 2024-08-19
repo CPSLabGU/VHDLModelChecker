@@ -56,7 +56,7 @@
 import TCTLParser
 import VHDLKripkeStructures
 
-public enum ModelCheckerError: Error, CustomStringConvertible {
+public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable {
 
     case unsatisfied(branch: [Node], expression: Expression, base: Expression?)
 

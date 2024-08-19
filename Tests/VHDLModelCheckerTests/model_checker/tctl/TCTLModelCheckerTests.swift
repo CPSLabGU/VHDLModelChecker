@@ -67,12 +67,74 @@ final class TCTLModelCheckerTests: XCTestCase {
     lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.
-    let checker = TCTLModelChecker()
+    var checker: TCTLModelChecker<InMemoryDataStore>!
 
     /// Initialise the test data before every test.
     override func setUp() {
         super.setUp()
         iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
+        // checker = TCTLModelChecker(store: try! SQLiteJobStore())
+        // checker = TCTLModelChecker(store: try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db"))
+        checker = TCTLModelChecker(store: InMemoryDataStore())
+    }
+
+    // override func tearDown() {
+    //     super.tearDown()
+    //     let manager = FileManager.default
+    //     _ = try? manager.removeItem(atPath: manager.currentDirectoryPath + "/test.db")
+    // }
+
+    /// Test true.
+    func testTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    /// Always true.
+    func testAlwaysTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysTrueNegation() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G !false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testNotAlwaysFalseNegation() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        !A G false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    /// Eventually true.
+    func testEventuallyTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E G true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleAlwaysNext() throws {
@@ -466,8 +528,10 @@ final class TCTLModelCheckerTests: XCTestCase {
             "A X true V true"
         ]
         let specRaw = "// spec:language VHDL"
-        for spec in specs {
-            let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
+        for (index, spec) in specs.enumerated() {
+            print("Checking \(index + 1) of \(specs.count)")
+            fflush(stdout)
+            let specification = Specification(rawValue: specRaw + "\n\n" + spec + "\n")!
             XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
         }
     }

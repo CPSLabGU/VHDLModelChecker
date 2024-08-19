@@ -1,7 +1,7 @@
 import TCTLParser
 import VHDLKripkeStructures
 
-final class PhysicalConstraint: Equatable, Hashable {
+final class PhysicalConstraint: Equatable, Hashable, Codable {
 
     var cost: Cost
 

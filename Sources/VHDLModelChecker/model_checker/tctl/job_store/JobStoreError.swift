@@ -1,4 +1,4 @@
-// VHDLModelChecker.swift
+// JobStoreError.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -54,53 +54,9 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
-import TCTLParser
-import VHDLKripkeStructures
-import VHDLParsing
 
-public struct VHDLModelChecker {
+enum JobStoreError: Error {
 
-    public init() {}
-
-    public func verify(
-        structure: KripkeStructure,
-        against specification: [RequirementsSpecification],
-        store: VerificationStore = .inMemory,
-        path: String? = nil
-    ) throws {
-        switch store {
-        case .inMemory:
-            try self.verify(
-                checker: TCTLModelChecker(store: InMemoryDataStore()),
-                structure: structure,
-                specification: specification
-            )
-        case .sqlite:
-            guard let path else {
-                throw ModelCheckerError.internalError
-            }
-            try self.verify(
-                checker: TCTLModelChecker(store: try SQLiteJobStore(path: path)),
-                structure: structure,
-                specification: specification
-            )
-        }
-    }
-
-    func verify<T>(
-        checker: TCTLModelChecker<T>, structure: KripkeStructure, specification: [RequirementsSpecification]
-    ) throws {
-        let iterator = KripkeStructureIterator(structure: structure)
-        let clock = ContinuousClock()
-        let elapsedTime = try clock.measure {
-            try specification.forEach {
-                switch $0 {
-                case .tctl(let specification):
-                    try checker.check(structure: iterator, specification: specification)
-                }
-            }
-        }
-        print("Verification completed in \(elapsedTime) (± \(clock.minimumResolution)).")
-    }
+    case missingJob(id: UUID)
 
 }
