@@ -6,6 +6,9 @@ import PackageDescription
 /// The package definition.
 let package = Package(
     name: "VHDLModelChecker",
+    platforms: [
+        .macOS(.v12)
+    ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other
         // packages.
@@ -22,14 +25,16 @@ let package = Package(
         .package(url: "https://github.com/mipalgu/VHDLParsing", from: "2.4.0"),
         .package(url: "https://github.com/cpslabgu/TCTLParser", from: "1.1.2"),
         .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", from: "1.3.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0")
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
         // .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package
         // depends on.
-        .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),
+        .systemLibrary(
+            name: "CSQLite", pkgConfig: "sqlite3", providers: [.apt(["libsqlite3-dev"]), .brew(["sqlite3"])]
+        ),
         .target(
             name: "VHDLModelChecker",
             dependencies: [
