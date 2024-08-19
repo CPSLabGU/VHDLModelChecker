@@ -137,6 +137,186 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
+    func testAlwaysWeak() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A false W true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysWeakThrowsTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A true W true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysWeakThrowsFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A false W false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysWeakTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A true W false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysUntil() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A false U true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysUntilThrows() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A true U true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysUntilThrowsWithoutCompletion() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A true U false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysUntilThrowsWithoutCompletionFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A false U false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testAlwaysWeakThrows() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A true W true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyWeak() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E false W true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyWeakThrowsTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E true W true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyWeakThrowsFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E false W false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyWeakTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E true W false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyUntil() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E false U true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyUntilThrows() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E true U true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyUntilThrowsWithoutCompletion() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E true U false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyUntilThrowsWithoutCompletionFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E false U false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testEventuallyWeakThrows() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E true W true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
     func testSimpleAlwaysNext() throws {
         let specRaw = """
         // spec:language VHDL
