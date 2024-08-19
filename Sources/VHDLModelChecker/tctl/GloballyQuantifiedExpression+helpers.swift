@@ -132,13 +132,26 @@ extension GloballyQuantifiedExpression {
                     expression: .next(expression: .not(expression: expression))
                 )))
             case .until(let lhs, let rhs):
+                // E p U q === ! A !q W !q ^ !p
                 newExpression = .not(expression: .quantified(expression: .always(expression: .weak(
-                    lhs: .not(expression: lhs), rhs: .not(expression: rhs)
+                    lhs: .not(expression: rhs),
+                    rhs: .conjunction(lhs: .not(expression: rhs), rhs: .not(expression: lhs))
                 ))))
             case .weak(let lhs, let rhs):
-                newExpression = .not(expression: .quantified(expression: .always(expression: .until(
-                    lhs: .not(expression: lhs), rhs: .not(expression: rhs)
-                ))))
+                // E p W q === E p U q  V  E G p
+                // === (! A !q W !q ^ !p)  V  (! A F !p)
+                newExpression = .disjunction(
+                    lhs: .not(expression: .quantified(expression: .always(expression: .weak(
+                        lhs: .not(expression: rhs),
+                        rhs: .conjunction(lhs: .not(expression: rhs), rhs: .not(expression: lhs))
+                    )))),
+                    rhs: .not(expression: .quantified(expression: .always(
+                        expression: .finally(expression: .not(expression: lhs))
+                    )))
+                )
+                // newExpression = .not(expression: .quantified(expression: .always(expression: .until(
+                //     lhs: .not(expression: lhs), rhs: .not(expression: rhs)
+                // ))))
             }
             return try newExpression.verify(currentNode: node, inCycle: inCycle)
         }
