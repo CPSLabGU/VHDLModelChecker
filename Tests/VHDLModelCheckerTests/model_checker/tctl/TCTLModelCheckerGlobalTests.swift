@@ -68,6 +68,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
 
     let y = VariableName(rawValue: "y")!
 
+    let z = VariableName(rawValue: "z")!
+
     // MARK: Always Quantifier.
 
     func testAlwaysFutureGlobalPasses() {
@@ -530,21 +532,21 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
             currentState: a,
             executeOnEntry: true,
             nextState: a,
-            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+            properties: [x: .boolean(value: true), y: .boolean(value: false), z: .boolean(value: false)]
         )
         let bNode = Node(
             type: .write,
             currentState: a,
             executeOnEntry: false,
             nextState: a,
-            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+            properties: [x: .boolean(value: false), y: .boolean(value: false), z: .boolean(value: false)]
         )
         let cNode = Node(
             type: .write,
             currentState: a,
             executeOnEntry: false,
             nextState: a,
-            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+            properties: [x: .boolean(value: false), y: .boolean(value: false), z: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
             nodes: [aNode, bNode, cNode],
@@ -612,21 +614,21 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
             currentState: a,
             executeOnEntry: true,
             nextState: a,
-            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+            properties: [x: .boolean(value: true), y: .boolean(value: false), z: .boolean(value: false)]
         )
         let bNode = Node(
             type: .write,
             currentState: a,
             executeOnEntry: false,
             nextState: a,
-            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+            properties: [x: .boolean(value: true), y: .boolean(value: false), z: .boolean(value: false)]
         )
         let cNode = Node(
             type: .write,
             currentState: a,
             executeOnEntry: false,
             nextState: a,
-            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+            properties: [x: .boolean(value: true), y: .boolean(value: false), z: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
             nodes: [aNode, bNode, cNode],
