@@ -67,6 +67,7 @@ enum RevisitExpression: CustomStringConvertible, Equatable, Hashable, Codable, S
     /// revisits will be evaluated.
     /// 
     /// Expression e :: !e ? revisit(e') : T
+    /// Expression e :: e ? T : revisit(e')
     case skip(expression: Expression)
 
     /// Expression e :: e ? revisit(e') : T
