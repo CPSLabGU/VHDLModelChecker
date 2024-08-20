@@ -486,48 +486,56 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
 
     func testEventuallyFutureGlobalPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
-        let aNode = Node(
+        let initial = Node(
             type: .read,
             currentState: a,
             executeOnEntry: true,
             nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
-        let bNode = Node(
+        let aNode = Node(
             type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+        )
+        let bNode = Node(
+            type: .read,
             currentState: a,
             executeOnEntry: false,
             nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: false,
             nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: true)]
         )
         let dNode = Node(
-            type: .read,
+            type: .write,
             currentState: a,
-            executeOnEntry: true,
+            executeOnEntry: false,
             nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode, bNode, cNode, dNode],
+            nodes: [initial, aNode, bNode, cNode, dNode],
             edges: [
+                initial: [Edge(target: aNode, cost: .zero), Edge(target: dNode, cost: .zero)],
                 aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
                 bNode: [Edge(target: aNode, cost: .zero)],
                 cNode: [Edge(target: aNode, cost: .zero)],
                 dNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]
             ],
-            initialStates: [aNode, dNode]
+            initialStates: [initial]
         ))
         let specRaw = """
         // spec:language VHDL
 
-        E G x = true
+        E X E G x = true
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
@@ -584,48 +592,56 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
 
     func testEventuallyFutureFinallyPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
-        let aNode = Node(
-            type: .read,
-            currentState: a,
-            executeOnEntry: true,
-            nextState: a,
-            properties: [x: .boolean(value: false), y: .boolean(value: true)]
-        )
-        let bNode = Node(
-            type: .write,
-            currentState: a,
-            executeOnEntry: false,
-            nextState: a,
-            properties: [x: .boolean(value: true), y: .boolean(value: false)]
-        )
-        let cNode = Node(
-            type: .write,
-            currentState: a,
-            executeOnEntry: false,
-            nextState: a,
-            properties: [x: .boolean(value: false), y: .boolean(value: true)]
-        )
-        let dNode = Node(
+        let initial = Node(
             type: .read,
             currentState: a,
             executeOnEntry: true,
             nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
+        let aNode = Node(
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: false), y: .boolean(value: true)]
+        )
+        let bNode = Node(
+            type: .read,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+        )
+        let cNode = Node(
+            type: .read,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: true)]
+        )
+        let dNode = Node(
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+        )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode, bNode, cNode, dNode],
+            nodes: [initial, aNode, bNode, cNode, dNode],
             edges: [
+                initial: [Edge(target: aNode, cost: .zero), Edge(target: dNode, cost: .zero)],
                 aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
                 bNode: [Edge(target: aNode, cost: .zero)],
-                cNode: [Edge(target: cNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)],
                 dNode: [Edge(target: cNode, cost: .zero)]
             ],
-            initialStates: [aNode, dNode]
+            initialStates: [initial]
         ))
         let specRaw = """
         // spec:language VHDL
 
-        E F x = true
+        E X E F x = true
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
