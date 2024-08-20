@@ -70,7 +70,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
 
     let z = VariableName(rawValue: "z")!
 
-    // MARK: Always Quantifier.
+    // MARK: Always Global.
 
     func testAlwaysFutureGlobalPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
@@ -154,6 +154,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
 
+    // MARK: Always Finally.
+
     func testAlwaysFutureFinallyPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
@@ -235,6 +237,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specification = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
+
+    // MARK: Always Next.
 
     func testAlwaysFutureNextPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
@@ -318,6 +322,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
 
+    // MARK: Always Until.
+
     func testAlwaysFutureUntilPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
@@ -399,6 +405,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specification = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
+
+    // MARK: Always Weak.
 
     func testAlwaysFutureWeakPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
@@ -482,7 +490,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
 
-    // MARK: Eventually Quantifier.
+    // MARK: Eventually Global.
 
     func testEventuallyFutureGlobalPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
@@ -590,6 +598,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
 
+    // MARK: Eventually Finally.
+
     func testEventuallyFutureFinallyPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let initial = Node(
@@ -695,6 +705,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specification = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
+
+    // MARK: Eventually Next.
 
     func testEventuallyFutureNextPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
@@ -810,6 +822,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
 
+    // MARK: Eventually Weak.
+
     func testEventuallyFutureWeakPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let initial = Node(
@@ -907,6 +921,8 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specification = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
+
+    // MARK: Eventually Until.
 
     func testEventuallyFutureUntilPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
