@@ -77,6 +77,8 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         checker = TCTLModelChecker(store: InMemoryDataStore())
     }
 
+    // MARK: Primitive Values.
+
     /// Test true.
     func testTrue() throws {
         let specRaw = """
@@ -87,6 +89,19 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
+
+    /// Test false.
+    func testFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    // MARK: Always Global.
 
     /// Always true.
     func testAlwaysTrue() throws {
@@ -99,25 +114,17 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
-    func testAlwaysTrueNegation() throws {
+    func testAlwaysFalse() throws {
         let specRaw = """
         // spec:language VHDL
 
-        A G !false
+        A G false
         """
         let spec = Specification(rawValue: specRaw)!
-        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
     }
 
-    func testNotAlwaysFalseNegation() throws {
-        let specRaw = """
-        // spec:language VHDL
-
-        !A G false
-        """
-        let spec = Specification(rawValue: specRaw)!
-        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
-    }
+    // MARK: Eventually Global.
 
     /// Eventually true.
     func testEventuallyTrue() throws {
@@ -129,6 +136,18 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
+
+    func testEventuallyFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        E G false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    // MARK: Always Weak.
 
     func testAlwaysWeak() throws {
         let specRaw = """
@@ -170,6 +189,8 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
+    // MARK: Always Until.
+
     func testAlwaysUntil() throws {
         let specRaw = """
         // spec:language VHDL
@@ -210,15 +231,7 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
     }
 
-    func testAlwaysWeakThrows() throws {
-        let specRaw = """
-        // spec:language VHDL
-
-        A true W true
-        """
-        let spec = Specification(rawValue: specRaw)!
-        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
-    }
+    // MARK: Eventually Weak.
 
     func testEventuallyWeak() throws {
         let specRaw = """
@@ -260,6 +273,8 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
+    // MARK: Eventually Until.
+
     func testEventuallyUntil() throws {
         let specRaw = """
         // spec:language VHDL
@@ -300,31 +315,122 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
     }
 
-    func testEventuallyWeakThrows() throws {
+    // MARK: Conjunction.
+
+    func testConjunctionTrueTrue() throws {
         let specRaw = """
         // spec:language VHDL
 
-        E true W true
+        true ^ true
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
-    func testConjunction() throws {
+    func testConjunctionTrueFalse() throws {
         let specRaw = """
         // spec:language VHDL
 
-        E G true ^ true
+        true ^ false
         """
         let spec = Specification(rawValue: specRaw)!
-        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testConjunctionFalseTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        false ^ true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testConjunctionFalseFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        false ^ false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testConjunction() throws {
+        let specs = [
+            "A G true ^ true",
+            "E G true ^ true",
+            "A F true ^ true",
+            "E F true ^ true",
+            "A X true ^ true",
+            "E X true ^ true",
+            "A true ^ true U true",
+            "E true ^ true U true",
+            "A true U true ^ true",
+            "E true U true ^ true",
+            "A false U true ^ true",
+            "E false U true ^ true",
+            "A true ^ true W true",
+            "E true ^ true W true",
+            "A true ^ true W false",
+            "E true ^ true W false",
+            "A true W true ^ true",
+            "E true W true ^ true",
+            "A false W true ^ true",
+            "E false W true ^ true",
+            "A true W true ^ false",
+            "E true W true ^ false",
+            "A true W false ^ true",
+            "E true W false ^ true",
+            "A true W false ^ false",
+            "E true W false ^ false"
+        ]
+        let specRaw = "// spec:language VHDL"
+        for spec in specs {
+            let specification = Specification(rawValue: specRaw + "\n\n" + spec)!
+            XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
+        }
     }
 
     func testConjunctionFails() throws {
         let specs = [
             "A G true ^ false",
             "A G false ^ true",
-            "A G false ^ false"
+            "A G false ^ false",
+            "E G true ^ false",
+            "E G false ^ true",
+            "E G false ^ false",
+            "A F true ^ false",
+            "A F false ^ true",
+            "A F false ^ false",
+            "E F true ^ false",
+            "E F false ^ true",
+            "E F false ^ false",
+            "A X true ^ false",
+            "A X false ^ true",
+            "A X false ^ false",
+            "E X true ^ false",
+            "E X false ^ true",
+            "E X false ^ false",
+            "A true ^ false U false",
+            "A false ^ true U false",
+            "A false ^ false U false",
+            "E true ^ false U false",
+            "E false ^ true U false",
+            "E false ^ false U false",
+            "A false U true ^ false",
+            "A false U false ^ true",
+            "A false U false ^ false",
+            "E false U true ^ false",
+            "E false U false ^ true",
+            "E false U false ^ false",
+            "A true ^ false W false",
+            "A false ^ true W false",
+            "A false ^ false W false",
+            "E true ^ false W false",
+            "E false ^ true W false",
+            "E false ^ false W false"
         ]
         let specRaw = "// spec:language VHDL"
         for spec in specs {
@@ -344,6 +450,48 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
                 // print("Branch nodes: \(branches.count)")
             }
         }
+    }
+
+    // MARK: Disjunction.
+
+    func testDisjunctionTrueTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        true V true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testDisjunctionTrueFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        true V false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testDisjunctionFalseTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        false V true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testDisjunctionFalseFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        false V false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
     }
 
     func testDisjunction() throws {
@@ -402,6 +550,90 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
                 // print("Failed expression: \(expression.rawValue)")
                 // print("Branch nodes: \(branches.count)")
             }
+        }
+    }
+
+    // MARK: Negation.
+
+    func testNegationTrue() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        !true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testNegationFalse() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        !false
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testNegation() throws {
+        let specs = [
+            "A G !false",
+            "!A G false",
+            "E G !false",
+            "!E G false",
+            "A F !false",
+            "!A F false",
+            "E F !false",
+            "!E F false",
+            "A X !false",
+            "!A X false",
+            "E X !false",
+            "!E X false",
+            "!A false U false",
+            "!E false U false",
+            "!A false W false",
+            "!E false W false"
+        ]
+        let specRaw = "// spec:language VHDL"
+        for spec in specs {
+            guard let specification = Specification(rawValue: specRaw + "\n\n" + spec) else {
+                XCTFail("Failed to parse \(spec)")
+                return
+            }
+            XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
+        }
+    }
+
+    func testNegationFails() throws {
+        let specs = [
+            "A G !true",
+            "!A G true",
+            "E G !true",
+            "!E G true",
+            "A F !true",
+            "!A F true",
+            "E F !true",
+            "!E F true",
+            "A X !true",
+            "!A X true",
+            "E X !true",
+            "!E X true",
+            "!A false U true",
+            "!E false U true",
+            "!A true U true",
+            "!E true U true",
+            "!A false W true",
+            "!E false W true",
+            "!A true W true",
+            "!E true W true"
+        ]
+        let specRaw = "// spec:language VHDL"
+        for spec in specs {
+            guard let specification = Specification(rawValue: specRaw + "\n\n" + spec) else {
+                XCTFail("Failed to parse \(spec)")
+                return
+            }
+            XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
         }
     }
 
