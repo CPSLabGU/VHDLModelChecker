@@ -535,7 +535,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        E X E G x = true
+        E G x = true
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
@@ -641,7 +641,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        E X E F x = true
+        E F x = true
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
@@ -747,7 +747,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        E X E x = true W y = true
+        E x = true W y = true
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
@@ -845,7 +845,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        E X E x = true U y = true
+        E x = true U y = true
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
