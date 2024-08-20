@@ -120,13 +120,16 @@ extension GloballyQuantifiedExpression {
             let newExpression: Expression
             switch pathQuantifier {
             case .globally(let expression):
+                // E G e === ! A F !e
                 newExpression = .not(expression: .quantified(expression: .always(
                     expression: .finally(expression: .not(expression: expression))
                 )))
+                // E F e === ! A G !e
             case .finally(let expression):
                 newExpression = .not(expression: .quantified(expression: .always(
                     expression: .globally(expression: .not(expression: expression))
                 )))
+                // E X e === ! A X !e
             case .next(let expression):
                 newExpression = .not(expression: .quantified(expression: .always(
                     expression: .next(expression: .not(expression: expression))
