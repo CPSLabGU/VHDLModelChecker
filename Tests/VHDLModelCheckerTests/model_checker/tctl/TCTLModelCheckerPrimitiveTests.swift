@@ -637,4 +637,46 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         }
     }
 
+    // MARK: Constraints.
+
+    func testTruePassingConstraint() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        {true}_{t >= 0 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testTrueFailingConstraint() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        {true}_{t < 0 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testFalsePassingConstraint() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        {false}_{t >= 0 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
+    func testFalseFailingConstraint() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        {false}_{t < 0 us}
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
+    }
+
 }
