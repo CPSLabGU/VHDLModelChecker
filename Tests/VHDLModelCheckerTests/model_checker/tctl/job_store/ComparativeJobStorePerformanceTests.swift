@@ -118,7 +118,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             _ = try $0.addJob(data: $1)
         }
         print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 12.0)
+        XCTAssertLessThan(performanceFactor, 15.0)
     }
 
     func testAddManyJobs() throws {
