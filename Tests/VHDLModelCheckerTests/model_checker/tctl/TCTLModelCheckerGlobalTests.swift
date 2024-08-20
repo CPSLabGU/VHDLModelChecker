@@ -64,10 +64,6 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
 
     let a = VariableName(rawValue: "A")!
 
-    let b = VariableName(rawValue: "B")!
-
-    let c = VariableName(rawValue: "C")!
-
     let x = VariableName(rawValue: "x")!
 
     let y = VariableName(rawValue: "y")!
@@ -77,29 +73,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureGlobalPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -114,29 +114,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureGlobalFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -151,29 +155,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureFinallyPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -188,29 +196,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFinallyGlobalFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -225,29 +237,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureNextPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -262,29 +278,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysNextGlobalFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -299,29 +319,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureUntilPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: true)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -336,29 +360,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureUntilFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -373,29 +401,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureWeakPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -410,29 +442,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testAlwaysFutureWeakFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -449,29 +485,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testEventuallyFutureWeakPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -486,29 +526,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testEventuallyFutureWeakFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -523,29 +567,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testEventuallyFutureUntilPasses() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
@@ -560,29 +608,33 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     func testEventuallyFutureUntilFails() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
-            type: .write,
+            type: .read,
             currentState: a,
             executeOnEntry: true,
-            nextState: b,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let bNode = Node(
-            type: .read,
-            currentState: b,
-            executeOnEntry: true,
-            nextState: b,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let cNode = Node(
-            type: .read,
-            currentState: c,
-            executeOnEntry: true,
-            nextState: c,
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
             properties: [x: .boolean(value: true), y: .boolean(value: false)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
-            nodes: [aNode],
-            edges: [aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)]],
+            nodes: [aNode, bNode, cNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
+                bNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
+            ],
             initialStates: [aNode]
         ))
         let specRaw = """
