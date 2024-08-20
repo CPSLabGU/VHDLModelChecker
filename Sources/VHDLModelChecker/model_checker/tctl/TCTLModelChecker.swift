@@ -368,9 +368,41 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     }
                 case .required:
                     revisitSuccess = newRevisit
-                    revisitFail = failRevisit
+                    if let failRevisit {
+                        revisitFail = failRevisit
+                    } else {
+                        revisitFail = try self.store.job(forData: JobData(
+                            nodeId: job.nodeId,
+                            expression: .language(expression: .vhdl(expression: .false)),
+                            history: job.history,
+                            currentBranch: job.currentBranch,
+                            inSession: result.isNewSession ? true : job.inSession,
+                            historyExpression: job.historyExpression,
+                            constraints: job.constraints,
+                            session: nil,
+                            successRevisit: nil,
+                            failRevisit: nil
+                        )).id
+                    }
                 case .skip:
-                    revisitSuccess = successRevisit
+                    if let successRevisit {
+                        revisitSuccess = successRevisit
+                    } else {
+                        revisitSuccess = try self.store.job(forData: JobData(
+                            nodeId: job.nodeId,
+                            expression: .language(expression: .vhdl(expression: .conditional(
+                                expression: .literal(value: true)
+                            ))),
+                            history: job.history,
+                            currentBranch: job.currentBranch,
+                            inSession: result.isNewSession ? true : job.inSession,
+                            historyExpression: job.historyExpression,
+                            constraints: job.constraints,
+                            session: nil,
+                            successRevisit: nil,
+                            failRevisit: nil
+                        )).id
+                    }
                     revisitFail = newRevisit
                 }
                 let newJob = JobData(
