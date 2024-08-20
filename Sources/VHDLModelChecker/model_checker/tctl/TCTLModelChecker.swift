@@ -371,37 +371,13 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     if let failRevisit {
                         revisitFail = failRevisit
                     } else {
-                        revisitFail = try self.store.job(forData: JobData(
-                            nodeId: job.nodeId,
-                            expression: .language(expression: .vhdl(expression: .false)),
-                            history: job.history,
-                            currentBranch: job.currentBranch,
-                            inSession: result.isNewSession ? true : job.inSession,
-                            historyExpression: job.historyExpression,
-                            constraints: job.constraints,
-                            session: nil,
-                            successRevisit: nil,
-                            failRevisit: nil
-                        )).id
+                        revisitFail = nil
                     }
                 case .skip:
                     if let successRevisit {
                         revisitSuccess = successRevisit
                     } else {
-                        revisitSuccess = try self.store.job(forData: JobData(
-                            nodeId: job.nodeId,
-                            expression: .language(expression: .vhdl(expression: .conditional(
-                                expression: .literal(value: true)
-                            ))),
-                            history: job.history,
-                            currentBranch: job.currentBranch,
-                            inSession: result.isNewSession ? true : job.inSession,
-                            historyExpression: job.historyExpression,
-                            constraints: job.constraints,
-                            session: nil,
-                            successRevisit: nil,
-                            failRevisit: nil
-                        )).id
+                        revisitSuccess = nil
                     }
                     revisitFail = newRevisit
                 }
