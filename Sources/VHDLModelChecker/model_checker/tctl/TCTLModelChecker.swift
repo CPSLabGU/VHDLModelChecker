@@ -161,23 +161,17 @@ final class TCTLModelChecker<T> where T: JobStorable {
     ) throws -> [JobData] {
         lazy var successors = structure.edges[job.nodeId] ?? []
         return try results.flatMap { (result: VerifyStatus) -> [JobData] in
-            let jobs: [JobData]
             switch result {
             case .addConstraints(let expression, let constraints):
-                let newJob = JobData(expression: expression, constraints: constraints, job: job)
-                jobs = [newJob]
+                return [JobData(expression: expression, constraints: constraints, job: job)]
             case .successor(let expression):
-                if successors.isEmpty {
+                guard !successors.isEmpty else {
                     return []
                 }
-                jobs = successors.map { JobData(expression: expression, successor: $0, job: job) }
+                return successors.map { JobData(expression: expression, successor: $0, job: job) }
             case .revisitting(let expression, let revisit):
-                let newJob = try JobData(
-                    expression: expression, revisit: revisit, job: job, store: &self.store
-                )
-                jobs = [newJob]
+                return [try JobData(expression: expression, revisit: revisit, job: job, store: &self.store)]
             }
-            return jobs
         }
     }
 
