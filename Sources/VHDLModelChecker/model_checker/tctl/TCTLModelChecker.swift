@@ -268,9 +268,7 @@ private extension JobData {
             } else {
                 revisitFail = try store.job(forData: JobData(
                     nodeId: job.nodeId,
-                    expression: .language(expression: .vhdl(expression: .conditional(
-                        expression: .literal(value: true)
-                    ))),
+                    expression: .language(expression: .vhdl(expression: .true)),
                     history: job.history,
                     currentBranch: job.currentBranch,
                     historyExpression: job.historyExpression,
