@@ -368,17 +368,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     }
                 case .required:
                     revisitSuccess = newRevisit
-                    if let failRevisit {
-                        revisitFail = failRevisit
-                    } else {
-                        revisitFail = nil
-                    }
+                    revisitFail = failRevisit
                 case .skip:
-                    if let successRevisit {
-                        revisitSuccess = successRevisit
-                    } else {
-                        revisitSuccess = nil
-                    }
+                    revisitSuccess = successRevisit
                     revisitFail = newRevisit
                 }
                 let newJob = JobData(
@@ -462,8 +454,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
     ) throws {
         _ = try job.failRevisit.map { try self.store.addJob(job: try self.store.job(withId: $0)) }
         guard job.session != nil else {
-            if job.failRevisit != nil { return }
-            throw error(structure: structure, job: job, computeError)
+            if job.failRevisit == nil {
+                throw error(structure: structure, job: job, computeError)
+            }
+            return
         }
         // let currentCount = decrement(session: session, amount: 1)
         // guard currentCount == 0 else {
