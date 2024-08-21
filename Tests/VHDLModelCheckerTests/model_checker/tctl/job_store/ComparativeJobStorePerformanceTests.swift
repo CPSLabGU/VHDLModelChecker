@@ -76,10 +76,8 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             expression: Expression.language(expression: .vhdl(expression: .true)),
             history: [],
             currentBranch: [],
-            inSession: false,
             historyExpression: nil,
             constraints: [],
-            session: nil,
             successRevisit: nil,
             failRevisit: nil
         )
@@ -91,7 +89,6 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             expression: Expression.language(expression: .vhdl(expression: .true)),
             history: [UUID(), UUID()],
             currentBranch: [UUID(), UUID()],
-            inSession: true,
             historyExpression: Expression.language(expression: .vhdl(expression: .false)),
             constraints: [
                 PhysicalConstraint(
@@ -99,7 +96,6 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
                     constraint: .lessThan(constraint: .time(amount: 20, unit: .s))
                 )
             ],
-            session: UUID(),
             successRevisit: try store.job(forData: revisit).id,
             failRevisit: try store.job(forData: revisit).id
         )
@@ -145,30 +141,12 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         XCTAssertLessThan(performanceFactor, 12.0)
     }
 
-    func testPendingSessionJob() throws {
-        let fn: (inout any JobStorable, Job) throws -> Void = { store, _ in
-            _ = try store.pendingSessionJob
-        }
-        let performanceFactor = try self.compare(fn)
-        print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 60.0)
-    }
-
-    func testSessionID() throws {
-        let performanceFactor = try self.compare {
-            _ = try $0.sessionId(forJob: $1)
-        }
-        print("Performance factor: \(performanceFactor)")
-        XCTAssertLessThan(performanceFactor, 4.0)
-    }
-
     func compare(_ fn: (inout any JobStorable, Job) throws -> Void) throws -> Double {
         let durations = try stores.map { storeFn in
             var store = storeFn()
             let durations: [Duration] = try (0..<10).map { _ in
                 let datas = try (0..<1000).map { _ in try self.newJob(store: &store) }
                 let jobs = (try datas.map { try store.job(forData: $0) })
-                try jobs.forEach { _ = try store.sessionId(forJob: $0) }
                 let shuffledJobs = jobs.shuffled()
                 let duration = try clock.measure {
                     try shuffledJobs.forEach { try fn(&store, $0) }

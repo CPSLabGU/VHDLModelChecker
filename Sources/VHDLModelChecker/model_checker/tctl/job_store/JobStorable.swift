@@ -63,9 +63,6 @@ protocol JobStorable {
     /// next pending job to handle within the model checker.
     var next: UUID? { mutating get throws }
 
-    /// Fetches a job in a pending session.
-    var pendingSessionJob: Job? { get throws }
-
     /// Store the id of the given job within the queue of pending jobs.
     /// 
     /// This method first checks the existence of the job within the queue before adding it to the pending
@@ -90,15 +87,6 @@ protocol JobStorable {
     /// - Parameter jobs: The jobs to store.
     mutating func addManyJobs(jobs: [JobData]) throws
 
-    /// Sets a pending session as completed with a given result.
-    ///
-    /// - Parameter session: The id of the pending session to complete.
-    ///
-    /// - Parameter result: The result (either an error or nil) indicating
-    /// whether the session succeeded (when result is nil) or not (when result
-    /// is an error).
-    func completePendingSession(session: UUID, result: ModelCheckerError?) throws
-
     /// Have we seen this cycle before?
     ///
     /// - Parameter cycle: The data used to identify the cycle.
@@ -106,14 +94,6 @@ protocol JobStorable {
     /// - Returns: A value of `true` when a cycle has been detected, otherwise
     /// `false`.
     mutating func inCycle(_ job: Job) throws -> Bool
-
-    /// Is the session associated with the given session id pending?
-    ///
-    /// - Parameter session: The id of the session we are querying.
-    ///
-    /// - Returns: The value `true` if the session is pending, otherwise
-    /// `false`.
-    func isPending(session: UUID) throws -> Bool
 
     /// Fetch a job containg the given data, if a job does not exist yet, generate
     /// one.
@@ -135,20 +115,5 @@ protocol JobStorable {
 
     /// Set `self` to its initial configuration.
     mutating func reset() throws
-
-    /// Fetches the session if associated with the given job.
-    ///
-    /// - Parameter job: The job to handle within the session.
-    ///
-    /// - Returns: The id associated with the session containing `job`.
-    func sessionId(forJob job: Job) throws -> UUID
-
-    /// Fetches the result of a specific session.
-    ///
-    /// - Returns: nil when the session is still pending, otherwise an
-    /// optional error where nil represents that the session evaluated to
-    /// true and when set to an error, indicates that the session evaluated
-    /// to false with the corresponding error.
-    func sessionStatus(session: UUID) throws -> ModelCheckerError??
 
 }

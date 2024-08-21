@@ -73,6 +73,14 @@ enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertib
     ///     `expression` can be evaulated.
     case revisitting(expression: Expression, precondition: RevisitExpression)
 
+    /// The current verification continues by evaluation the associated
+    /// expression with additional constraints.
+    /// - Parameters:
+    ///     - expression: The expression to evaluate.
+    ///     - constraints: The new constraints to add before evaluating
+    ///     `expression`.
+    case addConstraints(expression: Expression, constraints: [ConstrainedStatement])
+
     /// A print-friendly string representing this instance.
     var description: String {
         switch self {
@@ -83,6 +91,12 @@ enum VerifyStatus: Equatable, Hashable, Codable, Sendable, CustomStringConvertib
                 + expression.rawValue
                 + ", "
                 + precondition.description
+                + ")"
+        case .addConstraints(let expression, let constraints):
+            return "addConstraints("
+                + expression.rawValue
+                + ", "
+                + constraints.description
                 + ")"
         }
     }

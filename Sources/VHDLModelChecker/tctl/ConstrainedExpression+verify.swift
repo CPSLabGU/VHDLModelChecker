@@ -65,8 +65,8 @@ extension ConstrainedExpression {
     ///   - inCycle: Whether this node has been visited before.
     ///   - cost: The current cost of the verification.
     /// - Returns: An array of statuses for the verification.
-    func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
-        return [
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
+        [
             .addConstraints(expression: expression, constraints: constraints)
         ]
     }

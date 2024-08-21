@@ -76,7 +76,7 @@ extension Expression {
         }
     }
 
-    func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {
         case .language(let expression):
@@ -88,30 +88,30 @@ extension Expression {
             return try expression.verify(currentNode: node, inCycle: inCycle)
         case .conjunction(let lhs, let rhs):
             return [
-                .noSession(status: .revisitting(
+                .revisitting(
                     expression: rhs, precondition: .required(expression: lhs)
-                ))
+                )
             ]
         case .disjunction(let lhs, let rhs):
             return [
-                .noSession(status: .revisitting(
+                .revisitting(
                     expression: rhs, precondition: .skip(expression: lhs)
-                ))
+                )
             ]
         case .not(let expression):
             return [
-                .noSession(status: .revisitting(
+                .revisitting(
                     expression: .language(expression: .vhdl(expression: .conditional(
                         expression: .literal(value: false)
                     ))),
                     precondition: .ignored(expression: expression)
-                ))
+                )
             ]
         case .implies(let lhs, let rhs):
             return [
-                .noSession(status: .revisitting(
+                .revisitting(
                     expression: rhs, precondition: .ignored(expression: lhs)
-                ))
+                )
             ]
         case .constrained(let expression):
             return try expression.verify(currentNode: node, inCycle: inCycle)

@@ -98,18 +98,15 @@ extension GloballyQuantifiedExpression {
         }
     }
 
-    func verify(currentNode node: Node, inCycle: Bool) throws -> [SessionStatus] {
+    func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         switch self {
         case .always:
             // A G e :: .noSession(.revisit(A X A G E, .required(e)))
             // A F e :: .noSession(.revisit(A X A F e, .skip(e)))
             // A X e :: .noSession(.succ(e))
-            let results = try self.expression.verify(
+            return try self.expression.verify(
                 currentNode: node, inCycle: inCycle, quantifier: self.quantifier
             )
-            return results.map {
-                .noSession(status: $0)
-            }
         case .eventually(let pathQuantifier):
             // E X e :: .newSession(.succ(e))
             // E G e :: .newSession(.revisit(E X E G e, .required(e)))

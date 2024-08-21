@@ -83,21 +83,9 @@ final class SQLiteJobStore: JobStorable {
         return arr
     }()
 
-    private var pendingSessionJobStatement: OpaquePointer
-
-    private var completePendingSessionStatement: OpaquePointer
-
     private var inCycleInsertStatement: OpaquePointer
 
     private var inCycleSelectStatement: OpaquePointer
-
-    private var isPendingStatement: OpaquePointer
-
-    private var sessionIDSelect: OpaquePointer
-
-    private var sessionIDInsert: OpaquePointer
-
-    private var sessionStatusSelect: OpaquePointer
 
     private var pluckJobSelect: OpaquePointer
 
@@ -108,20 +96,6 @@ final class SQLiteJobStore: JobStorable {
     var next: UUID? {
         get throws {
             self.currentJobs.popLast()
-        }
-    }
-
-    var pendingSessionJob: Job? {
-        get throws {
-            let result = sqlite3_step(self.pendingSessionJobStatement)
-            defer { sqlite3_reset(self.pendingSessionJobStatement) }
-            guard result != SQLITE_DONE else {
-                return nil
-            }
-            guard result == SQLITE_ROW else {
-                throw SQLiteError.connectionError(message: self.errorMessage)
-            }
-            return try self.createJob(statement: self.pendingSessionJobStatement)
         }
     }
 
@@ -177,41 +151,27 @@ final class SQLiteJobStore: JobStorable {
                 expression INTEGER NOT NULL,
                 history TEXT NOT NULL,
                 current_branch TEXT NOT NULL,
-                in_session INTEGER NOT NULL,
                 history_expression INTEGER,
                 constraints INTEGER NOT NULL,
-                session VARCHAR(36),
                 success_revisit VARCHAR(36),
                 fail_revisit VARCHAR(36)
             );
             CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
-                node_id, expression, history, current_branch, in_session, history_expression, constraints,
-                session, success_revisit, fail_revisit
+                node_id, expression, history, current_branch, history_expression, constraints,
+                success_revisit, fail_revisit
             );
-            CREATE TABLE IF NOT EXISTS sessions(
-                id VARCHAR(36) PRIMARY KEY,
-                job_id VARCHAR(36) NOT NULL,
-                node_id VARCHAR(36) NOT NULL,
-                expression INTEGER NOT NULL,
-                constraints INTEGER NOT NULL,
-                is_completed INTEGER NOT NULL,
-                status TEXT
-            );
-            CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
             """,
             """
-            CREATE INDEX IF NOT EXISTS session_is_completed_index ON sessions(job_id, is_completed);
             CREATE TABLE IF NOT EXISTS cycles(
                 node_id VARCHAR(36) NOT NULL,
                 expression INTEGER NOT NULL,
                 in_cycle INTEGER NOT NULL,
                 history_expression INTEGER,
                 constraints INTEGER NOT NULL,
-                session VARCHAR(36),
                 success_revisit VARCHAR(36),
                 fail_revisit VARCHAR(36),
                 PRIMARY KEY (
-                    node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                    node_id, expression, in_cycle, history_expression, constraints, success_revisit,
                     fail_revisit
                 )
             );
@@ -233,31 +193,14 @@ final class SQLiteJobStore: JobStorable {
                 throw SQLiteError.incompleteStatement(statement: query, tail: String(cString: tail!))
             }
         }
-        let pendingSessionJobStatement = try OpaquePointer(
-            db: db,
-            query: """
-            SELECT
-                j.*
-            FROM
-                jobs j,
-                sessions s
-            WHERE
-                j.id = s.job_id AND
-                s.is_completed = 0
-            LIMIT 1;
-            """
-        )
-        let completePendingSessionStatement = try OpaquePointer(
-            db: db, query: "UPDATE sessions SET is_completed = 1, status = ?1 WHERE id = ?2;"
-        )
         let inCycleInsertStatement = try OpaquePointer(
             db: db,
             query: """
             INSERT INTO cycles(
-                node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                node_id, expression, in_cycle, history_expression, constraints, success_revisit,
                 fail_revisit
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7
             );
             """
         )
@@ -274,47 +217,8 @@ final class SQLiteJobStore: JobStorable {
                 in_cycle = ?3 AND
                 history_expression = ?4 AND
                 constraints = ?5 AND
-                session = ?6 AND
-                success_revisit = ?7 AND
-                fail_revisit = ?8;
-            """
-        )
-        let isPendingStatement = try OpaquePointer(
-            db: db, query: "SELECT is_completed FROM sessions WHERE id = ?1;"
-        )
-        let sessionIDSelect = try OpaquePointer(
-            db: db,
-            query: """
-            SELECT
-                id
-            FROM
-                sessions
-            WHERE
-                node_id = ?1 AND
-                expression = ?2 AND
-                constraints = ?3
-            LIMIT 1;
-            """
-        )
-        let sessionIDInsert = try OpaquePointer(
-            db: db,
-            query: """
-            INSERT INTO sessions(
-                id, job_id, node_id, expression, constraints, is_completed
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, 0
-            );
-            """
-        )
-        let sessionStatusSelect = try OpaquePointer(
-            db: db,
-            query: """
-            SELECT
-                is_completed, status
-            FROM
-                sessions
-            WHERE
-                id = ?1;
+                success_revisit = ?6 AND
+                fail_revisit = ?7;
             """
         )
         let pluckJobSelect = try OpaquePointer(
@@ -329,12 +233,10 @@ final class SQLiteJobStore: JobStorable {
                 expression = ?2 AND
                 history = ?3 AND
                 current_branch = ?4 AND
-                in_session = ?5 AND
-                history_expression = ?6 AND
-                constraints = ?7 AND
-                session = ?8 AND
-                success_revisit = ?9 AND
-                fail_revisit = ?10;
+                history_expression = ?5 AND
+                constraints = ?6 AND
+                success_revisit = ?7 AND
+                fail_revisit = ?8;
             """
         )
         let pluckJobSelectID = try OpaquePointer(db: db, query: "SELECT * FROM jobs WHERE id = ?1;")
@@ -342,23 +244,17 @@ final class SQLiteJobStore: JobStorable {
             db: db,
             query: """
             INSERT INTO jobs(
-                id, node_id, expression, history, current_branch, in_session, history_expression, constraints,
-                session, success_revisit, fail_revisit
+                id, node_id, expression, history, current_branch, history_expression, constraints,
+                success_revisit, fail_revisit
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
             );
             """
         )
         self.init(
             db: db,
-            pendingSessionJobStatement: pendingSessionJobStatement,
-            completePendingSessionStatement: completePendingSessionStatement,
             inCycleInsertStatement: inCycleInsertStatement,
             inCycleSelectStatement: inCycleSelectStatement,
-            isPendingStatement: isPendingStatement,
-            sessionIDSelect: sessionIDSelect,
-            sessionIDInsert: sessionIDInsert,
-            sessionStatusSelect: sessionStatusSelect,
             pluckJobSelect: pluckJobSelect,
             pluckJobSelectID: pluckJobSelectID,
             insertJobStatement: insertJobStatement
@@ -367,27 +263,15 @@ final class SQLiteJobStore: JobStorable {
 
     private init(
         db: OpaquePointer,
-        pendingSessionJobStatement: OpaquePointer,
-        completePendingSessionStatement: OpaquePointer,
         inCycleInsertStatement: OpaquePointer,
         inCycleSelectStatement: OpaquePointer,
-        isPendingStatement: OpaquePointer,
-        sessionIDSelect: OpaquePointer,
-        sessionIDInsert: OpaquePointer,
-        sessionStatusSelect: OpaquePointer,
         pluckJobSelect: OpaquePointer,
         pluckJobSelectID: OpaquePointer,
         insertJobStatement: OpaquePointer
     ) {
         self.db = db
-        self.pendingSessionJobStatement = pendingSessionJobStatement
-        self.completePendingSessionStatement = completePendingSessionStatement
         self.inCycleInsertStatement = inCycleInsertStatement
         self.inCycleSelectStatement = inCycleSelectStatement
-        self.isPendingStatement = isPendingStatement
-        self.sessionIDSelect = sessionIDSelect
-        self.sessionIDInsert = sessionIDInsert
-        self.sessionStatusSelect = sessionStatusSelect
         self.pluckJobSelect = pluckJobSelect
         self.pluckJobSelectID = pluckJobSelectID
         self.insertJobStatement = insertJobStatement
@@ -406,35 +290,6 @@ final class SQLiteJobStore: JobStorable {
 
     func addManyJobs(jobs: [JobData]) throws {
         self.currentJobs.append(contentsOf: try jobs.map { try self.job(forData: $0).id })
-    }
-
-    func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
-        var strings: [[CChar]] = []
-        var parameters: [Int32] = []
-        if let encodedResult = try result.map({ try self.encoder.encode($0) }) {
-            guard let cString = String(decoding: encodedResult, as: UTF8.self).cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            strings.append(cString)
-            parameters.append(1)
-        } else {
-            try exec { sqlite3_bind_null(self.completePendingSessionStatement, 1) }
-        }
-        guard let sessionStr = session.uuidString.cString(using: .utf8) else {
-            throw ModelCheckerError.internalError
-        }
-        strings.append(sessionStr)
-        parameters.append(2)
-        try self.bind(
-            data: strings, parameters: parameters, statement: self.completePendingSessionStatement
-        ) {
-            guard $1 == SQLITE_DONE else {
-                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
-            }
-            guard sqlite3_changes(self.db) == 1 else {
-                throw SQLiteError.corruptDatabase
-            }
-        }
     }
 
     func inCycle(_ job: Job) throws -> Bool {
@@ -458,9 +313,9 @@ final class SQLiteJobStore: JobStorable {
         }
         let constraintIndex = Int32(getConstraints(constraint: data.constraints))
         try exec { sqlite3_bind_int(self.inCycleSelectStatement, 5, constraintIndex) }
-        let sessionStr = data.session.map { $0.uuidString }
-        if let sessionStr {
-            guard let cStr = sessionStr.cString(using: .utf8) else {
+        let successStr = data.successRevisit.map { $0.uuidString }
+        if let successStr {
+            guard let cStr = successStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             strings.append(cStr)
@@ -468,25 +323,15 @@ final class SQLiteJobStore: JobStorable {
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 6) }
         }
-        let successStr = data.successRevisit.map { $0.uuidString }
-        if let successStr {
-            guard let cStr = successStr.cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            strings.append(cStr)
-            parameters.append(7)
-        } else {
-            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 7) }
-        }
         let failStr = data.failRevisit.map { $0.uuidString }
         if let failStr {
             guard let cStr = failStr.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             strings.append(cStr)
-            parameters.append(8)
+            parameters.append(7)
         } else {
-            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 8) }
+            try exec { sqlite3_bind_null(self.inCycleSelectStatement, 7) }
         }
         return try self.bind(data: strings, parameters: parameters, statement: self.inCycleSelectStatement) {
             guard $1 == SQLITE_DONE else {
@@ -505,8 +350,8 @@ final class SQLiteJobStore: JobStorable {
                 try exec { sqlite3_bind_null(self.inCycleInsertStatement, 4) }
             }
             try exec { sqlite3_bind_int(self.inCycleInsertStatement, 5, constraintIndex) }
-            if let sessionStr {
-                guard let cStr = sessionStr.cString(using: .utf8) else {
+            if let successStr {
+                guard let cStr = successStr.cString(using: .utf8) else {
                     throw ModelCheckerError.internalError
                 }
                 insertStrings.append(cStr)
@@ -514,23 +359,14 @@ final class SQLiteJobStore: JobStorable {
             } else {
                 try exec { sqlite3_bind_null(self.inCycleInsertStatement, 6) }
             }
-            if let successStr {
-                guard let cStr = successStr.cString(using: .utf8) else {
+            if let failStr {
+                guard let cStr = failStr.cString(using: .utf8) else {
                     throw ModelCheckerError.internalError
                 }
                 insertStrings.append(cStr)
                 insertParameters.append(7)
             } else {
                 try exec { sqlite3_bind_null(self.inCycleInsertStatement, 7) }
-            }
-            if let failStr {
-                guard let cStr = failStr.cString(using: .utf8) else {
-                    throw ModelCheckerError.internalError
-                }
-                insertStrings.append(cStr)
-                insertParameters.append(8)
-            } else {
-                try exec { sqlite3_bind_null(self.inCycleInsertStatement, 8) }
             }
             try self.bind(
                 data: insertStrings, parameters: insertParameters, statement: self.inCycleInsertStatement
@@ -540,24 +376,6 @@ final class SQLiteJobStore: JobStorable {
                 }
             }
             return false
-        }
-    }
-
-    func isPending(session: UUID) throws -> Bool {
-        guard let sessionString = session.uuidString.cString(using: .utf8) else {
-            throw ModelCheckerError.internalError
-        }
-        return try self.bind(
-            data: sessionString, offsets: [0], parameters: [1], statement: self.isPendingStatement
-        ) {
-            switch $1 {
-            case SQLITE_ROW:
-                return !(try Bool(statement: $0, offset: 0))
-            case SQLITE_DONE:
-                return false
-            default:
-                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
-            }
         }
     }
 
@@ -585,67 +403,6 @@ final class SQLiteJobStore: JobStorable {
         self.expressionKeys.removeAll()
         self.constraints.removeAll()
         self.constraintKeys.removeAll()
-    }
-
-    func sessionId(forJob job: Job) throws -> UUID {
-        let key = job.sessionKey
-        guard let nodeIDString = key.nodeId.uuidString.cString(using: .utf8) else {
-            throw ModelCheckerError.internalError
-        }
-        let expressionIndex = Int32(self.getExpression(expression: key.expression))
-        try exec { sqlite3_bind_int(self.sessionIDSelect, 2, expressionIndex) }
-        let constraintIndex = Int32(self.getConstraints(constraint: key.constraints))
-        try exec { sqlite3_bind_int(self.sessionIDSelect, 3, constraintIndex) }
-        return try self.bind(
-            data: nodeIDString, offsets: [0], parameters: [1], statement: self.sessionIDSelect
-        ) {
-            guard $1 != SQLITE_ROW else {
-                return try UUID(statement: $0, offset: 0)
-            }
-            let id = UUID()
-            guard
-                let idString = id.uuidString.cString(using: .utf8),
-                let jobString = job.id.uuidString.cString(using: .utf8),
-                let nodeID = key.nodeId.uuidString.cString(using: .utf8)
-            else {
-                throw ModelCheckerError.internalError
-            }
-            try exec { sqlite3_bind_int(self.sessionIDInsert, 4, expressionIndex) }
-            try exec { sqlite3_bind_int(self.sessionIDInsert, 5, constraintIndex) }
-            try self.bind(
-                data: [idString, jobString, nodeID], parameters: [1, 2, 3], statement: self.sessionIDInsert
-            ) {
-                guard SQLITE_DONE == $1 else {
-                    throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
-                }
-            }
-            return id
-        }
-    }
-
-    func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
-        guard let sessionString = session.uuidString.cString(using: .utf8) else {
-            throw ModelCheckerError.internalError
-        }
-        return try self.bind(
-            data: sessionString, offsets: [0], parameters: [1], statement: self.sessionStatusSelect
-        ) {
-            guard $1 != SQLITE_DONE else {
-                return nil
-            }
-            guard $1 == SQLITE_ROW else {
-                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
-            }
-            let isCompleted = try Bool(statement: $0, offset: 0)
-            guard isCompleted else {
-                return nil
-            }
-            guard sqlite3_column_type($0, 1) != SQLITE_NULL else {
-                return .some(nil)
-            }
-            let statusRaw = Data(try String(statement: $0, offset: 1).utf8)
-            return try self.decoder.decode(ModelCheckerError.self, from: statusRaw)
-        }
     }
 
     private func bind<T>(
@@ -720,7 +477,7 @@ final class SQLiteJobStore: JobStorable {
         let endExpressionsIndex = self.expressions.count
         let endConstraintsIndex = self.constraints.count
         let expressionIndex = Int(sqlite3_column_int(statement, 2))
-        let constraintsIndex = Int(sqlite3_column_int(statement, 7))
+        let constraintsIndex = Int(sqlite3_column_int(statement, 6))
         guard
             expressionIndex >= 0,
             expressionIndex < endExpressionsIndex,
@@ -731,14 +488,13 @@ final class SQLiteJobStore: JobStorable {
         }
         let id = try UUID(statement: statement, offset: 0)
         let nodeId = try UUID(statement: statement, offset: 1)
-        let inSession = try sqlite3_column_int(statement, 5).boolValue
         let historyRaw = Data(try String(statement: statement, offset: 3).utf8)
         let history = try self.decoder.decode([UUID].self, from: historyRaw)
         let currentBranchRaw = Data(try String(statement: statement, offset: 4).utf8)
         let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
         let historyExpression: Expression?
-        if sqlite3_column_type(statement, 6) != SQLITE_NULL {
-            let expressionIndex = Int(sqlite3_column_int(statement, 6))
+        if sqlite3_column_type(statement, 5) != SQLITE_NULL {
+            let expressionIndex = Int(sqlite3_column_int(statement, 5))
             guard
                 expressionIndex >= 0,
                 expressionIndex < endExpressionsIndex
@@ -749,21 +505,17 @@ final class SQLiteJobStore: JobStorable {
         } else {
             historyExpression = nil
         }
-        let session = sqlite3_column_type(statement, 8) != SQLITE_NULL
+        let successRevisit = sqlite3_column_type(statement, 7) != SQLITE_NULL
+            ? try UUID(statement: statement, offset: 7) : nil
+        let failRevisit = sqlite3_column_type(statement, 8) != SQLITE_NULL
             ? try UUID(statement: statement, offset: 8) : nil
-        let successRevisit = sqlite3_column_type(statement, 9) != SQLITE_NULL
-            ? try UUID(statement: statement, offset: 9) : nil
-        let failRevisit = sqlite3_column_type(statement, 10) != SQLITE_NULL
-            ? try UUID(statement: statement, offset: 10) : nil
         let data = JobData(
             nodeId: nodeId,
             expression: self.expressions[expressionIndex],
             history: Set(history),
             currentBranch: currentBranch,
-            inSession: inSession,
             historyExpression: historyExpression,
             constraints: self.constraints[constraintsIndex],
-            session: session,
             successRevisit: successRevisit,
             failRevisit: failRevisit
         )
@@ -779,41 +531,27 @@ final class SQLiteJobStore: JobStorable {
                 expression INTEGER NOT NULL,
                 history TEXT NOT NULL,
                 current_branch TEXT NOT NULL,
-                in_session INTEGER NOT NULL,
                 history_expression INTEGER,
                 constraints INTEGER NOT NULL,
-                session VARCHAR(36),
                 success_revisit VARCHAR(36),
                 fail_revisit VARCHAR(36)
             );
             CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
-                node_id, expression, history, current_branch, in_session, history_expression, constraints,
-                session, success_revisit, fail_revisit
+                node_id, expression, history, current_branch, history_expression, constraints,
+                success_revisit, fail_revisit
             );
-            CREATE TABLE IF NOT EXISTS sessions(
-                id VARCHAR(36) PRIMARY KEY,
-                job_id VARCHAR(36) NOT NULL,
-                node_id VARCHAR(36) NOT NULL,
-                expression INTEGER NOT NULL,
-                constraints INTEGER NOT NULL,
-                is_completed INTEGER NOT NULL,
-                status TEXT
-            );
-            CREATE UNIQUE INDEX IF NOT EXISTS session_key ON sessions(node_id, expression, constraints);
             """,
             """
-            CREATE INDEX IF NOT EXISTS session_is_completed_index ON sessions(job_id, is_completed);
             CREATE TABLE IF NOT EXISTS cycles(
                 node_id VARCHAR(36) NOT NULL,
                 expression INTEGER NOT NULL,
                 in_cycle INTEGER NOT NULL,
                 history_expression INTEGER,
                 constraints INTEGER NOT NULL,
-                session VARCHAR(36),
                 success_revisit VARCHAR(36),
                 fail_revisit VARCHAR(36),
                 PRIMARY KEY (
-                    node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                    node_id, expression, in_cycle, history_expression, constraints, success_revisit,
                     fail_revisit
                 )
             );
@@ -838,9 +576,6 @@ final class SQLiteJobStore: JobStorable {
     private func dropSchema() throws {
         let query = """
         DROP TABLE IF EXISTS cycles;
-        DROP INDEX IF EXISTS session_is_completed_index;
-        DROP INDEX IF EXISTS session_key;
-        DROP TABLE IF EXISTS sessions;
         DROP INDEX IF EXISTS job_data_index;
         DROP TABLE IF EXISTS jobs;
         """
@@ -865,14 +600,8 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func finalizeStatements() throws {
-        try exec { sqlite3_finalize(self.pendingSessionJobStatement) }
-        try exec { sqlite3_finalize(self.completePendingSessionStatement) }
         try exec { sqlite3_finalize(self.inCycleInsertStatement) }
         try exec { sqlite3_finalize(self.inCycleSelectStatement) }
-        try exec { sqlite3_finalize(self.isPendingStatement) }
-        try exec { sqlite3_finalize(self.sessionIDSelect) }
-        try exec { sqlite3_finalize(self.sessionIDInsert) }
-        try exec { sqlite3_finalize(self.sessionStatusSelect) }
         try exec { sqlite3_finalize(self.pluckJobSelect) }
         try exec { sqlite3_finalize(self.pluckJobSelectID) }
         try exec { sqlite3_finalize(self.insertJobStatement) }
@@ -921,45 +650,35 @@ final class SQLiteJobStore: JobStorable {
         try exec {
             sqlite3_bind_int(self.insertJobStatement, 3, Int32(getExpression(expression: data.expression)))
         }
-        try exec { sqlite3_bind_int(self.insertJobStatement, 6, data.inSession.sqlVal) }
         if let historyExpression = data.historyExpression {
             try exec {
                 sqlite3_bind_int(
-                    self.insertJobStatement, 7, Int32(getExpression(expression: historyExpression))
+                    self.insertJobStatement, 6, Int32(getExpression(expression: historyExpression))
                 )
             }
         } else {
-            try exec { sqlite3_bind_null(self.insertJobStatement, 7) }
+            try exec { sqlite3_bind_null(self.insertJobStatement, 6) }
         }
         try exec {
-            sqlite3_bind_int(self.insertJobStatement, 8, Int32(getConstraints(constraint: data.constraints)))
-        }
-        if let session = data.session?.uuidString {
-            guard let cStr = session.cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            strings.append(cStr)
-            parameters.append(9)
-        } else {
-            try exec { sqlite3_bind_null(self.insertJobStatement, 9) }
+            sqlite3_bind_int(self.insertJobStatement, 7, Int32(getConstraints(constraint: data.constraints)))
         }
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             strings.append(cStr)
-            parameters.append(10)
+            parameters.append(8)
         } else {
-            try exec { sqlite3_bind_null(self.insertJobStatement, 10) }
+            try exec { sqlite3_bind_null(self.insertJobStatement, 8) }
         }
         if let fail = data.failRevisit?.uuidString {
             guard let cStr = fail.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             strings.append(cStr)
-            parameters.append(11)
+            parameters.append(9)
         } else {
-            try exec { sqlite3_bind_null(self.insertJobStatement, 11) }
+            try exec { sqlite3_bind_null(self.insertJobStatement, 9) }
         }
         try self.bind(data: strings, parameters: parameters, statement: self.insertJobStatement) {
             guard $1 == SQLITE_DONE else {
@@ -989,42 +708,32 @@ final class SQLiteJobStore: JobStorable {
         try exec {
             sqlite3_bind_int(self.pluckJobSelect, 2, Int32(getExpression(expression: data.expression)))
         }
-        try exec { sqlite3_bind_int(self.pluckJobSelect, 5, data.inSession.sqlVal) }
         let historyExpression = data.historyExpression.map { Int32(getExpression(expression: $0)) }
         if let historyExpression {
-            try exec { sqlite3_bind_int(self.pluckJobSelect, 6, historyExpression) }
+            try exec { sqlite3_bind_int(self.pluckJobSelect, 5, historyExpression) }
         } else {
-            try exec { sqlite3_bind_null(self.pluckJobSelect, 6) }
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 5) }
         }
         try exec {
-            sqlite3_bind_int(self.pluckJobSelect, 7, Int32(getConstraints(constraint: data.constraints)))
-        }
-        if let session = data.session?.uuidString {
-            guard let cStr = session.cString(using: .utf8) else {
-                throw ModelCheckerError.internalError
-            }
-            strings.append(cStr)
-            parameters.append(8)
-        } else {
-            try exec { sqlite3_bind_null(self.pluckJobSelect, 8) }
+            sqlite3_bind_int(self.pluckJobSelect, 6, Int32(getConstraints(constraint: data.constraints)))
         }
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             strings.append(cStr)
-            parameters.append(9)
+            parameters.append(7)
         } else {
-            try exec { sqlite3_bind_null(self.pluckJobSelect, 9) }
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 7) }
         }
         if let fail = data.failRevisit?.uuidString {
             guard let cStr = fail.cString(using: .utf8) else {
                 throw ModelCheckerError.internalError
             }
             strings.append(cStr)
-            parameters.append(10)
+            parameters.append(8)
         } else {
-            try exec { sqlite3_bind_null(self.pluckJobSelect, 10) }
+            try exec { sqlite3_bind_null(self.pluckJobSelect, 8) }
         }
         return try self.bind(data: strings, parameters: parameters, statement: self.pluckJobSelect) {
             guard $1 == SQLITE_ROW else {
@@ -1051,7 +760,7 @@ final class SQLiteJobStore: JobStorable {
             let endExpressionsIndex = self.expressions.count
             let endConstraintsIndex = self.constraints.count
             let expressionIndex = Int(sqlite3_column_int($0, 2))
-            let constraintsIndex = Int(sqlite3_column_int($0, 7))
+            let constraintsIndex = Int(sqlite3_column_int($0, 6))
             guard
                 expressionIndex >= 0,
                 expressionIndex < endExpressionsIndex,
@@ -1061,14 +770,13 @@ final class SQLiteJobStore: JobStorable {
                 throw SQLiteError.corruptDatabase
             }
             let nodeId = try UUID(statement: $0, offset: 1)
-            let inSession = try sqlite3_column_int($0, 5).boolValue
             let historyRaw = Data(try String(statement: $0, offset: 3).utf8)
             let history = try self.decoder.decode([UUID].self, from: historyRaw)
             let currentBranchRaw = Data(try String(statement: $0, offset: 4).utf8)
             let currentBranch = try self.decoder.decode([UUID].self, from: currentBranchRaw)
             let historyExpression: Expression?
-            if sqlite3_column_type($0, 6) != SQLITE_NULL {
-                let expressionIndex = Int(sqlite3_column_int($0, 6))
+            if sqlite3_column_type($0, 5) != SQLITE_NULL {
+                let expressionIndex = Int(sqlite3_column_int($0, 5))
                 guard
                     expressionIndex >= 0,
                     expressionIndex < endExpressionsIndex
@@ -1079,21 +787,17 @@ final class SQLiteJobStore: JobStorable {
             } else {
                 historyExpression = nil
             }
-            let session = sqlite3_column_type($0, 8) != SQLITE_NULL
+            let successRevisit = sqlite3_column_type($0, 7) != SQLITE_NULL
+                ? try UUID(statement: $0, offset: 7) : nil
+            let failRevisit = sqlite3_column_type($0, 8) != SQLITE_NULL
                 ? try UUID(statement: $0, offset: 8) : nil
-            let successRevisit = sqlite3_column_type($0, 9) != SQLITE_NULL
-                ? try UUID(statement: $0, offset: 9) : nil
-            let failRevisit = sqlite3_column_type($0, 10) != SQLITE_NULL
-                ? try UUID(statement: $0, offset: 10) : nil
             let data = JobData(
                 nodeId: nodeId,
                 expression: self.expressions[expressionIndex],
                 history: Set(history),
                 currentBranch: currentBranch,
-                inSession: inSession,
                 historyExpression: historyExpression,
                 constraints: self.constraints[constraintsIndex],
-                session: session,
                 successRevisit: successRevisit,
                 failRevisit: failRevisit
             )
@@ -1102,31 +806,14 @@ final class SQLiteJobStore: JobStorable {
     }
 
     private func prepareStatements() throws {
-        self.pendingSessionJobStatement = try OpaquePointer(
-            db: self.db,
-            query: """
-            SELECT
-                j.*
-            FROM
-                jobs j,
-                sessions s
-            WHERE
-                j.id = s.job_id AND
-                s.is_completed = 0
-            LIMIT 1;
-            """
-        )
-        self.completePendingSessionStatement = try OpaquePointer(
-            db: self.db, query: "UPDATE sessions SET is_completed = 1, status = ?1 WHERE id = ?2;"
-        )
         self.inCycleInsertStatement = try OpaquePointer(
             db: self.db,
             query: """
             INSERT INTO cycles(
-                node_id, expression, in_cycle, history_expression, constraints, session, success_revisit,
+                node_id, expression, in_cycle, history_expression, constraints, success_revisit,
                 fail_revisit
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7
             );
             """
         )
@@ -1143,41 +830,9 @@ final class SQLiteJobStore: JobStorable {
                 in_cycle = ?3 AND
                 history_expression = ?4 AND
                 constraints = ?5 AND
-                session = ?6 AND
-                success_revisit = ?7 AND
-                fail_revisit = ?8;
+                success_revisit = ?6 AND
+                fail_revisit = ?7;
             """
-        )
-        self.isPendingStatement = try OpaquePointer(
-            db: self.db, query: "SELECT is_completed FROM sessions WHERE id = ?1;"
-        )
-        self.sessionIDSelect = try OpaquePointer(
-            db: self.db,
-            query: """
-            SELECT
-                id
-            FROM
-                sessions
-            WHERE
-                node_id = ?1 AND
-                expression = ?2 AND
-                constraints = ?3
-            LIMIT 1;
-            """
-        )
-        self.sessionIDInsert = try OpaquePointer(
-            db: self.db,
-            query: """
-            INSERT INTO sessions(
-                id, job_id, node_id, expression, constraints, is_completed
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, 0
-            );
-            """
-        )
-        self.sessionStatusSelect = try OpaquePointer(
-            db: self.db,
-            query: "SELECT is_completed, status FROM sessions WHERE id = ?1;"
         )
         self.pluckJobSelect = try OpaquePointer(
             db: self.db,
@@ -1191,12 +846,10 @@ final class SQLiteJobStore: JobStorable {
                 expression = ?2 AND
                 history = ?3 AND
                 current_branch = ?4 AND
-                in_session = ?5 AND
-                history_expression = ?6 AND
-                constraints = ?7 AND
-                session = ?8 AND
-                success_revisit = ?9 AND
-                fail_revisit = ?10;
+                history_expression = ?5 AND
+                constraints = ?6 AND
+                success_revisit = ?7 AND
+                fail_revisit = ?8;
             """
         )
         self.pluckJobSelectID = try OpaquePointer(db: self.db, query: "SELECT * FROM jobs WHERE id = ?1;")
@@ -1204,24 +857,18 @@ final class SQLiteJobStore: JobStorable {
             db: db,
             query: """
             INSERT INTO jobs(
-                id, node_id, expression, history, current_branch, in_session, history_expression, constraints,
-                session, success_revisit, fail_revisit
+                id, node_id, expression, history, current_branch, history_expression, constraints,
+                success_revisit, fail_revisit
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
             );
             """
         )
     }
 
     deinit {
-        _ = sqlite3_finalize(self.pendingSessionJobStatement)
-        _ = sqlite3_finalize(self.completePendingSessionStatement)
         _ = sqlite3_finalize(self.inCycleInsertStatement)
         _ = sqlite3_finalize(self.inCycleSelectStatement)
-        _ = sqlite3_finalize(self.isPendingStatement)
-        _ = sqlite3_finalize(self.sessionIDSelect)
-        _ = sqlite3_finalize(self.sessionIDInsert)
-        _ = sqlite3_finalize(self.sessionStatusSelect)
         _ = sqlite3_finalize(self.pluckJobSelect)
         _ = sqlite3_finalize(self.pluckJobSelectID)
         _ = sqlite3_finalize(self.insertJobStatement)

@@ -65,20 +65,10 @@ class InMemoryDataStore: JobStorable {
 
     private var cycles: Set<CycleData> = []
 
-    private var completedSessions: [UUID: ModelCheckerError?] = [:]
-
-    private var pendingSessions: [UUID: Job] = [:]
-
-    private var sessionIds: [SessionKey: UUID] = [:]
-
     // var sessionReferences: [UUID: UInt] = [:]
 
     var next: UUID? {
         pendingJobs.popLast()
-    }
-
-    var pendingSessionJob: Job? {
-        self.pendingSessions.first?.value
     }
 
     init() {
@@ -86,10 +76,6 @@ class InMemoryDataStore: JobStorable {
         self.jobs.reserveCapacity(1000000)
         self.pendingJobs.reserveCapacity(1000000)
         self.cycles.reserveCapacity(1000000)
-        self.completedSessions.reserveCapacity(1000000)
-        self.pendingSessions.reserveCapacity(1000000)
-        self.sessionIds.reserveCapacity(1000000)
-        // self.sessionReferences.reserveCapacity(1000000)
     }
 
     @discardableResult
@@ -110,11 +96,6 @@ class InMemoryDataStore: JobStorable {
         self.pendingJobs.append(contentsOf: ids)
     }
 
-    func completePendingSession(session: UUID, result: ModelCheckerError?) throws {
-        self.completedSessions[session] = .some(result)
-        self.pendingSessions[session] = nil
-    }
-
     func inCycle(_ job: Job) throws -> Bool {
         let cycleData = job.cycleData
         let inCycle = self.cycles.contains(cycleData)
@@ -122,10 +103,6 @@ class InMemoryDataStore: JobStorable {
             self.cycles.insert(cycleData)
         }
         return inCycle
-    }
-
-    func isPending(session: UUID) throws -> Bool {
-        self.pendingSessions[session] != nil
     }
 
     func job(forData data: JobData) throws -> Job {
@@ -152,30 +129,6 @@ class InMemoryDataStore: JobStorable {
         self.jobs.removeAll(keepingCapacity: true)
         self.pendingJobs.removeAll(keepingCapacity: true)
         self.cycles.removeAll(keepingCapacity: true)
-        self.completedSessions.removeAll(keepingCapacity: true)
-        self.pendingSessions.removeAll(keepingCapacity: true)
-        self.sessionIds.removeAll(keepingCapacity: true)
-        // self.sessionReferences.removeAll(keepingCapacity: true)
-    }
-
-    func sessionId(forJob job: Job) throws -> UUID {
-        let key = job.sessionKey
-        let out: UUID
-        if let id = self.sessionIds[key] {
-            out = id
-        } else {
-            // sessionReferences[id] = 0
-            out = UUID()
-            self.sessionIds[key] = out
-        }
-        if try self.sessionStatus(session: out) == nil {
-            self.pendingSessions[out] = job
-        }
-        return out
-    }
-
-    func sessionStatus(session: UUID) throws -> ModelCheckerError?? {
-        self.completedSessions[session]
     }
 
 }

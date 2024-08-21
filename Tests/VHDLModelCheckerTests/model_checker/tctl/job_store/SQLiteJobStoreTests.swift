@@ -23,10 +23,6 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         try super._testInCycle()
     }
 
-    func testIsPending() throws {
-        try super._testIsPending()
-    }
-
     func testJobForData() throws {
         try super._testJobFromData()
     }
@@ -43,24 +39,8 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         try super._testReset()
     }
 
-    func testSessions() throws {
-        try super._testSessions()
-    }
-
-    func testSessionID() throws {
-        try super._testSessionID()
-    }
-
-    func testSessionStatus() throws {
-        try super._testSessionStatus()
-    }
-
     func testNextPerformance() throws {
         try super._testNextPerformance()
-    }
-
-    func testPendingSessionJob() throws {
-        try super._testPendingSessionJob()
     }
 
     func testAddJobDataPerformance() throws {
@@ -75,16 +55,8 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
         try super._testAddManyJobPerformance()
     }
 
-    func testCompletePendingSessionPerformance() throws {
-        try super._testCompletePendingSessionPerformance()
-    }
-
     func testInCyclePerformance() throws {
         try super._testInCyclePerformance()
-    }
-
-    func testIsPendingPerformance() throws {
-        try super._testIsPendingPerformance()
     }
 
     func testJobFromDataPerformance() throws {
@@ -93,14 +65,6 @@ final class SQLiteJobStoreTests: JobStorableTestCase {
 
     func testJobFromIDPerformance() throws {
         try super._testJobFromIDPerformance()
-    }
-
-    func testSessionIdPerformance() throws {
-        try super._testSessionIdPerformance()
-    }
-
-    func testSessionStatusPerformance() throws {
-        try super._testSessionStatusPerformance()
     }
 
 }
