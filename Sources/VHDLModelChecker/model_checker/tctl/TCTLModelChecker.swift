@@ -151,99 +151,33 @@ final class TCTLModelChecker<T> where T: JobStorable {
             try succeed(job: job)
             return
         }
+        try self.store.addManyJobs(
+            jobs: try createNewJobs(currentJob: job, structure: structure, results: results)
+        )
+    }
+
+    private func createNewJobs(
+        currentJob job: Job, structure: KripkeStructureIterator, results: [VerifyStatus]
+    ) throws -> [JobData] {
         lazy var successors = structure.edges[job.nodeId] ?? []
-        for result in results {
-            let successRevisit = job.successRevisit
-            let failRevisit = job.failRevisit
+        return try results.flatMap { (result: VerifyStatus) -> [JobData] in
             let jobs: [JobData]
             switch result {
             case .addConstraints(let expression, let constraints):
-                let newJob = JobData(
-                    nodeId: job.nodeId,
-                    expression: expression,
-                    history: job.history,
-                    currentBranch: job.currentBranch,
-                    historyExpression: job.historyExpression,
-                    constraints: job.constraints + constraints.map {
-                        PhysicalConstraint(cost: .zero, constraint: $0)
-                    },
-                    successRevisit: successRevisit,
-                    failRevisit: failRevisit
-                )
+                let newJob = JobData(expression: expression, constraints: constraints, job: job)
                 jobs = [newJob]
             case .successor(let expression):
                 if successors.isEmpty {
-                    continue
+                    return []
                 }
-                jobs = successors.map { successor in
-                    let nodeId = successor.destination
-                    return JobData(
-                        nodeId: nodeId,
-                        expression: expression,
-                        history: job.history.union([job.nodeId]),
-                        currentBranch: job.currentBranch + [job.nodeId],
-                        historyExpression: job.historyExpression,
-                        constraints: job.constraints.map {
-                            PhysicalConstraint(cost: $0.cost + successor.cost, constraint: $0.constraint)
-                        },
-                        successRevisit: successRevisit,
-                        failRevisit: failRevisit
-                    )
-                }
+                jobs = successors.map { JobData(expression: expression, successor: $0, job: job) }
             case .revisitting(let expression, let revisit):
-                let newRevisit = try self.store.job(
-                    forData: JobData(
-                        nodeId: job.nodeId,
-                        expression: expression,
-                        history: job.history,
-                        currentBranch: job.currentBranch,
-                        historyExpression: job.historyExpression,
-                        constraints: job.constraints,
-                        successRevisit: successRevisit,
-                        failRevisit: failRevisit
-                    )
-                ).id
-                let revisitSuccess: UUID?
-                let revisitFail: UUID?
-                switch revisit {
-                case .ignored:
-                    revisitSuccess = newRevisit
-                    if let successRevisit {
-                        revisitFail = successRevisit
-                    } else {
-                        revisitFail = try self.store.job(forData: JobData(
-                            nodeId: job.nodeId,
-                            expression: .language(expression: .vhdl(expression: .conditional(
-                                expression: .literal(value: true)
-                            ))),
-                            history: job.history,
-                            currentBranch: job.currentBranch,
-                            historyExpression: job.historyExpression,
-                            constraints: job.constraints,
-                            successRevisit: nil,
-                            failRevisit: nil
-                        )).id
-                    }
-                case .required:
-                    revisitSuccess = newRevisit
-                    revisitFail = failRevisit
-                case .skip:
-                    revisitSuccess = successRevisit
-                    revisitFail = newRevisit
-                }
-                let newJob = JobData(
-                    nodeId: job.nodeId,
-                    expression: revisit.expression,
-                    history: job.history,
-                    currentBranch: job.currentBranch,
-                    historyExpression: job.historyExpression,
-                    constraints: job.constraints,
-                    successRevisit: revisitSuccess,
-                    failRevisit: revisitFail
+                let newJob = try JobData(
+                    expression: expression, revisit: revisit, job: job, store: &self.store
                 )
                 jobs = [newJob]
             }
-            try self.store.addManyJobs(jobs: jobs)
+            return jobs
         }
     }
 
@@ -277,6 +211,97 @@ final class TCTLModelChecker<T> where T: JobStorable {
             return ModelCheckerError.internalError
         }
         return computeError(currentNodes)
+    }
+
+}
+
+private extension JobData {
+
+    convenience init(expression: Expression, successor: NodeEdge, job: Job) {
+        self.init(
+            nodeId: successor.destination,
+            expression: expression,
+            history: job.history.union([job.nodeId]),
+            currentBranch: job.currentBranch + [job.nodeId],
+            historyExpression: job.historyExpression,
+            constraints: job.constraints.map {
+                PhysicalConstraint(cost: $0.cost + successor.cost, constraint: $0.constraint)
+            },
+            successRevisit: job.successRevisit,
+            failRevisit: job.failRevisit
+        )
+    }
+
+    convenience init(expression: Expression, constraints: [ConstrainedStatement], job: Job) {
+        self.init(
+            nodeId: job.nodeId,
+            expression: expression,
+            history: job.history,
+            currentBranch: job.currentBranch,
+            historyExpression: job.historyExpression,
+            constraints: job.constraints + constraints.map {
+                PhysicalConstraint(cost: .zero, constraint: $0)
+            },
+            successRevisit: job.successRevisit,
+            failRevisit: job.failRevisit
+        )
+    }
+
+    convenience init<T>(
+        expression: Expression, revisit: RevisitExpression, job: Job, store: inout T
+    ) throws where T: JobStorable {
+        let successRevisit = job.successRevisit
+        let failRevisit = job.failRevisit
+        let newRevisit = try store.job(
+            forData: JobData(
+                nodeId: job.nodeId,
+                expression: expression,
+                history: job.history,
+                currentBranch: job.currentBranch,
+                historyExpression: job.historyExpression,
+                constraints: job.constraints,
+                successRevisit: successRevisit,
+                failRevisit: failRevisit
+            )
+        ).id
+        let revisitSuccess: UUID?
+        let revisitFail: UUID?
+        switch revisit {
+        case .ignored:
+            revisitSuccess = newRevisit
+            if let successRevisit {
+                revisitFail = successRevisit
+            } else {
+                revisitFail = try store.job(forData: JobData(
+                    nodeId: job.nodeId,
+                    expression: .language(expression: .vhdl(expression: .conditional(
+                        expression: .literal(value: true)
+                    ))),
+                    history: job.history,
+                    currentBranch: job.currentBranch,
+                    historyExpression: job.historyExpression,
+                    constraints: job.constraints,
+                    successRevisit: nil,
+                    failRevisit: nil
+                )).id
+            }
+        case .required:
+            revisitSuccess = newRevisit
+            revisitFail = failRevisit
+        case .skip:
+            revisitSuccess = successRevisit
+            revisitFail = newRevisit
+        }
+        self.init(
+            nodeId: job.nodeId,
+            expression: revisit.expression,
+            history: job.history,
+            currentBranch: job.currentBranch,
+            historyExpression: job.historyExpression,
+            constraints: job.constraints,
+            successRevisit: revisitSuccess,
+            failRevisit: revisitFail
+        )
     }
 
 }
