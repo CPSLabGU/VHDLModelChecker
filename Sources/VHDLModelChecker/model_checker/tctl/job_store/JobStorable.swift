@@ -83,11 +83,6 @@ protocol JobStorable {
     /// - Parameter job: The job to place on the queue of pending jobs. 
     mutating func addJob(job: Job) throws
 
-    /// Store all given jobs into the queue of pending jobs.
-    ///
-    /// - Parameter jobs: The jobs to store.
-    mutating func addManyJobs(jobs: [JobData]) throws
-
     func error(session: UUID) throws -> ModelCheckerError?
 
     mutating func failSession(id: UUID, error: ModelCheckerError?) throws

@@ -57,18 +57,6 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNil(try store.next)
     }
 
-    func _testCanAddManyJobs() throws {
-        let jobs = try Array(repeating: 0, count: 10).map { _ in try self.newJob }
-        try store.addManyJobs(jobs: jobs)
-        try jobs.reversed().forEach {
-            XCTAssertFalse(try store.isComplete(session: $0.session!))
-            let id = try store.job(forData: $0).id
-            XCTAssertEqual(id, try store.next)
-        }
-        XCTAssertTrue(try jobs.allSatisfy { try store.isComplete(session: $0.session!) })
-        XCTAssertNil(try store.next)
-    }
-
     func _testFailsSession() throws {
         let job = try newJob
         let id = try self.store.addJob(data: job)
@@ -151,14 +139,6 @@ class JobStorableTestCase: XCTestCase {
                 let job = try! self.newJob
                 _ = try! store.addJob(job: Job(id: UUID(), data: job))
             }
-        }
-    }
-
-    func _testAddManyJobPerformance() throws {
-        let jobs = try (0..<1000).map { _ in try self.newJob }
-        measure {
-            try! self.store.reset()
-            try! store.addManyJobs(jobs: jobs)
         }
     }
 

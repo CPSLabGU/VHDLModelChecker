@@ -16,10 +16,6 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         try super._testCanAddJobs()
     }
 
-    func testCanAddManyJobs() throws {
-        try super._testCanAddManyJobs()
-    }
-
     func testFailsSession() throws {
         try super._testFailsSession()
     }
@@ -54,10 +50,6 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
 
     func testAddJobPerformance() throws {
         try super._testAddJobPerformance()
-    }
-
-    func testAddManyJobPerformance() throws {
-        try super._testAddManyJobPerformance()
     }
 
     func testInCyclePerformance() throws {

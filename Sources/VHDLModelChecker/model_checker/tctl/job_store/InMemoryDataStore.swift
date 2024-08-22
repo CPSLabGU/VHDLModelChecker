@@ -115,16 +115,6 @@ class InMemoryDataStore: JobStorable {
         self.pendingJobs.append(job.id)
     }
 
-    func addManyJobs(jobs: [JobData]) throws {
-        let ids = try jobs.map {
-            if let session = $0.session {
-                self.incrementSession(id: session)
-            }
-            return try self.job(forData: $0).id
-        }
-        self.pendingJobs.append(contentsOf: ids)
-    }
-
     func error(session: UUID) throws -> ModelCheckerError? {
         guard let session = self.sessions[session] else {
             throw ModelCheckerError.internalError
