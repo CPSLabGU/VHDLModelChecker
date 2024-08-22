@@ -73,6 +73,8 @@ final class CycleData: Equatable, Hashable, Codable {
 
     var failRevisit: UUID?
 
+    var session: UUID?
+
     init(
         nodeId: UUID,
         expression: Expression,
@@ -80,7 +82,8 @@ final class CycleData: Equatable, Hashable, Codable {
         historyExpression: Expression?,
         constraints: [PhysicalConstraint],
         successRevisit: UUID?,
-        failRevisit: UUID?
+        failRevisit: UUID?,
+        session: UUID?
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -89,6 +92,7 @@ final class CycleData: Equatable, Hashable, Codable {
         self.constraints = constraints
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
+        self.session = session
     }
 
     static func == (lhs: CycleData, rhs: CycleData) -> Bool {
@@ -99,6 +103,7 @@ final class CycleData: Equatable, Hashable, Codable {
             && lhs.constraints == rhs.constraints
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
+            && lhs.session == rhs.session
     }
 
     func hash(into hasher: inout Hasher) {
@@ -109,6 +114,7 @@ final class CycleData: Equatable, Hashable, Codable {
         hasher.combine(constraints)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
+        hasher.combine(session)
     }
 
 }
@@ -122,6 +128,7 @@ final class JobData: Equatable, Hashable {
     var constraints: [PhysicalConstraint]
     var successRevisit: UUID?
     var failRevisit: UUID?
+    var session: UUID?
     // var allSessionIds: SessionIdStore
 
     var cycleData: CycleData {
@@ -132,7 +139,8 @@ final class JobData: Equatable, Hashable {
             historyExpression: historyExpression,
             constraints: constraints,
             successRevisit: successRevisit,
-            failRevisit: failRevisit
+            failRevisit: failRevisit,
+            session: session
         )
     }
 
@@ -144,7 +152,8 @@ final class JobData: Equatable, Hashable {
         historyExpression: Expression?,
         constraints: [PhysicalConstraint],
         successRevisit: UUID?,
-        failRevisit: UUID?
+        failRevisit: UUID?,
+        session: UUID?
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -154,6 +163,7 @@ final class JobData: Equatable, Hashable {
         self.constraints = constraints
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
+        self.session = session
     }
 
     static func == (lhs: JobData, rhs: JobData) -> Bool {
@@ -165,6 +175,7 @@ final class JobData: Equatable, Hashable {
             && lhs.constraints == rhs.constraints
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
+            && lhs.session == rhs.session
     }
 
     func hash(into hasher: inout Hasher) {
@@ -176,6 +187,7 @@ final class JobData: Equatable, Hashable {
         hasher.combine(constraints)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
+        hasher.combine(session)
     }
 
 }
@@ -221,6 +233,10 @@ final class Job: Equatable, Hashable, Identifiable {
         data.failRevisit
     }
 
+    var session: UUID? {
+        data.session
+    }
+
     convenience init(
         id: UUID,
         nodeId: UUID,
@@ -230,7 +246,8 @@ final class Job: Equatable, Hashable, Identifiable {
         historyExpression: Expression?,
         constraints: [PhysicalConstraint],
         successRevisit: UUID?,
-        failRevisit: UUID?
+        failRevisit: UUID?,
+        session: UUID?
     ) {
         self.init(
             id: id,
@@ -242,7 +259,8 @@ final class Job: Equatable, Hashable, Identifiable {
                 historyExpression: historyExpression,
                 constraints: constraints,
                 successRevisit: successRevisit,
-                failRevisit: failRevisit
+                failRevisit: failRevisit,
+                session: session
             )
         )
     }
@@ -274,6 +292,7 @@ extension JobData: Codable {
         case constraints
         case successRevisit
         case failRevisit
+        case session
     }
 
     convenience init(from decoder: any Decoder) throws {
@@ -307,7 +326,8 @@ extension JobData: Codable {
             historyExpression: historyExpression,
             constraints: try container.decode([PhysicalConstraint].self, forKey: .constraints),
             successRevisit: try container.decode(UUID?.self, forKey: .successRevisit),
-            failRevisit: try container.decode(UUID?.self, forKey: .failRevisit)
+            failRevisit: try container.decode(UUID?.self, forKey: .failRevisit),
+            session: try container.decode(UUID?.self, forKey: .session)
         )
     }
 
@@ -321,6 +341,7 @@ extension JobData: Codable {
         try container.encode(constraints, forKey: .constraints)
         try container.encode(successRevisit, forKey: .successRevisit)
         try container.encode(failRevisit, forKey: .failRevisit)
+        try container.encode(session, forKey: .session)
     }
 
 }

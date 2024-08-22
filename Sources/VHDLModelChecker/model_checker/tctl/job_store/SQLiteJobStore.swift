@@ -529,7 +529,8 @@ final class SQLiteJobStore: JobStorable {
             historyExpression: historyExpression,
             constraints: self.constraints[constraintsIndex],
             successRevisit: successRevisit,
-            failRevisit: failRevisit
+            failRevisit: failRevisit,
+            session: nil
         )
         return Job(id: id, data: data)
     }
@@ -811,7 +812,8 @@ final class SQLiteJobStore: JobStorable {
                 historyExpression: historyExpression,
                 constraints: self.constraints[constraintsIndex],
                 successRevisit: successRevisit,
-                failRevisit: failRevisit
+                failRevisit: failRevisit,
+                session: nil
             )
             return Job(id: id, data: data)
         }

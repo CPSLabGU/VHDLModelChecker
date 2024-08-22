@@ -59,11 +59,11 @@ class InMemoryDataStore: JobStorable {
 
     private final class SessionData {
 
-        let count: Int
+        var count: UInt
 
-        let error: ModelCheckerError?
+        var error: ModelCheckerError?
 
-        init(count: Int, error: ModelCheckerError? = nil) {
+        init(count: UInt, error: ModelCheckerError? = nil) {
             self.count = count
             self.error = error
         }
@@ -83,7 +83,15 @@ class InMemoryDataStore: JobStorable {
     // var sessionReferences: [UUID: UInt] = [:]
 
     var next: UUID? {
-        pendingJobs.popLast()
+        get throws {
+            guard let id = pendingJobs.popLast() else {
+                return nil
+            }
+            if let session = try self.job(withId: id).session {
+                try self.decrementSession(id: session)
+            }
+            return id
+        }
     }
 
     init() {
@@ -101,12 +109,18 @@ class InMemoryDataStore: JobStorable {
     }
 
     func addJob(job: Job) throws {
+        if let session = job.session {
+            self.incrementSession(id: session)
+        }
         self.pendingJobs.append(job.id)
     }
 
     func addManyJobs(jobs: [JobData]) throws {
         let ids = try jobs.map {
-            try self.job(forData: $0).id
+            if let session = $0.session {
+                self.incrementSession(id: session)
+            }
+            return try self.job(forData: $0).id
         }
         self.pendingJobs.append(contentsOf: ids)
     }
@@ -166,6 +180,22 @@ class InMemoryDataStore: JobStorable {
         self.jobs.removeAll(keepingCapacity: true)
         self.pendingJobs.removeAll(keepingCapacity: true)
         self.cycles.removeAll(keepingCapacity: true)
+    }
+
+    private func incrementSession(id: UUID) {
+        guard let session = sessions[id] else {
+            sessions[id] = SessionData(count: 1)
+            return
+        }
+        session.count += 1
+    }
+
+    private func decrementSession(id: UUID) throws {
+        // swiftlint:disable:next empty_count
+        guard let session = sessions[id], session.count > 0 else {
+            throw ModelCheckerError.internalError
+        }
+        session.count -= 1
     }
 
 }

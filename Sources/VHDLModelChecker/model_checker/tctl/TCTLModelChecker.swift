@@ -88,7 +88,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     historyExpression: nil,
                     constraints: [],
                     successRevisit: nil,
-                    failRevisit: nil
+                    failRevisit: nil,
+                    session: nil
                 )
                 try self.store.addJob(data: job)
             }
@@ -116,7 +117,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 historyExpression: historyExpression,
                 constraints: job.constraints,
                 successRevisit: job.successRevisit,
-                failRevisit: job.failRevisit
+                failRevisit: job.failRevisit,
+                session: nil
             )
             try self.store.addJob(data: newJob)
             return
@@ -222,7 +224,8 @@ private extension JobData {
                 PhysicalConstraint(cost: $0.cost + successor.cost, constraint: $0.constraint)
             },
             successRevisit: job.successRevisit,
-            failRevisit: job.failRevisit
+            failRevisit: job.failRevisit,
+            session: nil
         )
     }
 
@@ -237,7 +240,8 @@ private extension JobData {
                 PhysicalConstraint(cost: .zero, constraint: $0)
             },
             successRevisit: job.successRevisit,
-            failRevisit: job.failRevisit
+            failRevisit: job.failRevisit,
+            session: nil
         )
     }
 
@@ -255,7 +259,8 @@ private extension JobData {
                 historyExpression: job.historyExpression,
                 constraints: job.constraints,
                 successRevisit: successRevisit,
-                failRevisit: failRevisit
+                failRevisit: failRevisit,
+                session: nil
             )
         ).id
         let revisitSuccess: UUID?
@@ -274,7 +279,8 @@ private extension JobData {
                     historyExpression: job.historyExpression,
                     constraints: job.constraints,
                     successRevisit: nil,
-                    failRevisit: nil
+                    failRevisit: nil,
+                    session: nil
                 )).id
             }
         case .required:
@@ -292,7 +298,8 @@ private extension JobData {
             historyExpression: job.historyExpression,
             constraints: job.constraints,
             successRevisit: revisitSuccess,
-            failRevisit: revisitFail
+            failRevisit: revisitFail,
+            session: nil
         )
     }
 
