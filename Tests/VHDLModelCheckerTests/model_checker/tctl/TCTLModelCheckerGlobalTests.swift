@@ -436,6 +436,104 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
     }
 
+    func testAlwaysFutureNextNextPasses() {
+        let checker = TCTLModelChecker(store: InMemoryDataStore())
+        let aNode = Node(
+            type: .read,
+            currentState: a,
+            executeOnEntry: true,
+            nextState: a,
+            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+        )
+        let bNode = Node(
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+        )
+        let cNode = Node(
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: true)]
+        )
+        let dNode = Node(
+            type: .read,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+        )
+        let iterator = KripkeStructureIterator(structure: KripkeStructure(
+            nodes: [aNode, bNode, cNode, dNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero)],
+                bNode: [Edge(target: cNode, cost: .zero), Edge(target: dNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)],
+                dNode: [Edge(target: aNode, cost: .zero)]
+            ],
+            initialStates: [aNode]
+        ))
+        let specRaw = """
+        // spec:language VHDL
+
+        A X A X x = true
+        """
+        let specification = Specification(rawValue: specRaw)!
+        XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))
+    }
+
+    func testAlwaysNextNextGlobalFails() {
+        let checker = TCTLModelChecker(store: InMemoryDataStore())
+        let aNode = Node(
+            type: .read,
+            currentState: a,
+            executeOnEntry: true,
+            nextState: a,
+            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+        )
+        let bNode = Node(
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+        )
+        let cNode = Node(
+            type: .write,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: true), y: .boolean(value: true)]
+        )
+        let dNode = Node(
+            type: .read,
+            currentState: a,
+            executeOnEntry: false,
+            nextState: a,
+            properties: [x: .boolean(value: false), y: .boolean(value: false)]
+        )
+        let iterator = KripkeStructureIterator(structure: KripkeStructure(
+            nodes: [aNode, bNode, cNode, dNode],
+            edges: [
+                aNode: [Edge(target: bNode, cost: .zero)],
+                bNode: [Edge(target: cNode, cost: .zero), Edge(target: dNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)],
+                dNode: [Edge(target: aNode, cost: .zero)]
+            ],
+            initialStates: [aNode]
+        ))
+        let specRaw = """
+        // spec:language VHDL
+
+        A X A X x = true
+        """
+        let specification = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))
+    }
+
     // MARK: Always Until.
 
     func testAlwaysFutureUntilPasses() {
