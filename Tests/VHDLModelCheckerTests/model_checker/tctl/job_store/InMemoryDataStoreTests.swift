@@ -20,6 +20,10 @@ final class InMemoryDataStoreTests: JobStorableTestCase {
         try super._testCanAddManyJobs()
     }
 
+    func testFailsSession() throws {
+        try super._testFailsSession()
+    }
+
     func testInCycle() throws {
         try super._testInCycle()
     }

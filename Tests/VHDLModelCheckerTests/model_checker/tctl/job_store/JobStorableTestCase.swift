@@ -59,10 +59,27 @@ class JobStorableTestCase: XCTestCase {
         let jobs = try Array(repeating: 0, count: 10).map { _ in try self.newJob }
         try store.addManyJobs(jobs: jobs)
         try jobs.reversed().forEach {
+            XCTAssertFalse(try store.isComplete(session: $0.session!))
             let id = try store.job(forData: $0).id
             XCTAssertEqual(id, try store.next)
         }
+        XCTAssertTrue(try jobs.allSatisfy { try store.isComplete(session: $0.session!) })
         XCTAssertNil(try store.next)
+    }
+
+    func _testFailsSession() throws {
+        let job = try newJob
+        let id = try self.store.addJob(data: job)
+        XCTAssertFalse(try store.isComplete(session: job.session!))
+        XCTAssertNil(try store.error(session: job.session!))
+        try store.failSession(id: job.session!, error: .internalError)
+        XCTAssertFalse(try store.isComplete(session: job.session!))
+        XCTAssertEqual(try store.error(session: job.session!), .internalError)
+        XCTAssertFalse(try store.isComplete(session: job.session!))
+        let next = try store.next
+        XCTAssertEqual(next, id)
+        XCTAssertTrue(try store.isComplete(session: job.session!))
+        XCTAssertEqual(try store.error(session: job.session!), .internalError)
     }
 
     func _testInCycle() throws {
