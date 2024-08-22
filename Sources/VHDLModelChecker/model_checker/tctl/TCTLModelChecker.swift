@@ -125,7 +125,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         let results: [VerifyStatus]
         do {
-            results = try job.expression.verify(currentNode: node, inCycle: job.history.contains(job.nodeId))
+            results = try job.expression.verify(
+                currentNode: node,
+                inCycle: job.history.contains(job.nodeId) || (structure.edges[job.nodeId] ?? []).isEmpty
+            )
         } catch let error as VerificationError {
             try fail(structure: structure, job: job) {
                 ModelCheckerError(
@@ -168,7 +171,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 return [JobData(expression: expression, constraints: constraints, job: job)]
             case .successor(let expression):
                 guard !successors.isEmpty else {
-                    return []
+                    throw ModelCheckerError.internalError
                 }
                 return successors.map { JobData(expression: expression, successor: $0, job: job) }
             case .revisitting(let expression, let revisit):
