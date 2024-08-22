@@ -122,8 +122,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
             throw ModelCheckerError.internalError
         }
         if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
-            print("New session:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
-            fflush(stdout)
+            // print("New session:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
+            // fflush(stdout)
             let newJob = JobData(
                 nodeId: job.nodeId,
                 expression: job.expression,
@@ -139,8 +139,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
             try self.store.addJob(data: newJob)
             return
         }
-        print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
-        fflush(stdout)
+        // print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
+        // fflush(stdout)
         let results: [VerifyStatus]
         do {
             results = try job.expression.verify(
