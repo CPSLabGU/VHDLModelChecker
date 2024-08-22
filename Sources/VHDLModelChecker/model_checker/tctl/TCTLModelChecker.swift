@@ -104,6 +104,15 @@ final class TCTLModelChecker<T> where T: JobStorable {
     private func handleJob(withId jobId: UUID, structure: KripkeStructureIterator) throws {
         let job = try self.store.job(withId: jobId)
         guard !(try store.inCycle(job)) else {
+            guard
+                let session = job.session,
+                try self.store.isComplete(session: session),
+                try self.store.error(session: session) == nil,
+                let revisit = job.sessionRevisit
+            else {
+                return
+            }
+            try self.store.addJob(job: try self.store.job(withId: revisit))
             return
         }
         guard let node = structure.nodes[job.nodeId] else {
@@ -190,7 +199,6 @@ final class TCTLModelChecker<T> where T: JobStorable {
         if let revisitId = job.successRevisit {
             let revisit = try self.store.job(withId: revisitId)
             try self.store.addJob(job: revisit)
-            return
         }
         if let revisit = job.sessionRevisit {
             guard let session = job.session else {
