@@ -277,32 +277,14 @@ private extension JobData {
             },
             successRevisit: job.successRevisit,
             failRevisit: job.failRevisit,
-            session: nil,
-            sessionRevisit: nil
+            session: job.session,
+            sessionRevisit: job.sessionRevisit
         )
     }
 
     convenience init<T>(
         expression: Expression, revisit: RevisitExpression, job: Job, store: inout T
     ) throws where T: JobStorable {
-        // let successRevisit = job.successRevisit
-        // let failRevisit = job.failRevisit
-        // let newRevisit = try store.job(
-        //     forData: JobData(
-        //         nodeId: job.nodeId,
-        //         expression: expression,
-        //         history: job.history,
-        //         currentBranch: job.currentBranch,
-        //         historyExpression: job.historyExpression,
-        //         constraints: job.constraints,
-        //         successRevisit: successRevisit,
-        //         failRevisit: failRevisit,
-        //         session: nil,
-        //         sessionRevisit: nil
-        //     )
-        // ).id
-        // let revisitSuccess: UUID?
-        // let revisitFail: UUID?
         switch revisit {
         case .ignored:
             let newRevisit = JobData(
@@ -405,18 +387,6 @@ private extension JobData {
                 sessionRevisit: nil
             )
         }
-        // self.init(
-        //     nodeId: job.nodeId,
-        //     expression: revisit.expression,
-        //     history: job.history,
-        //     currentBranch: job.currentBranch,
-        //     historyExpression: job.historyExpression,
-        //     constraints: job.constraints,
-        //     successRevisit: revisitSuccess,
-        //     failRevisit: revisitFail,
-        //     session: nil,
-        //     sessionRevisit: nil
-        // )
     }
 
 }
