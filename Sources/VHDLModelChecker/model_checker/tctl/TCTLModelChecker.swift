@@ -115,6 +115,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
             try self.store.addJob(job: try self.store.job(withId: revisit))
             return
         }
+        if let session = job.session, try self.store.error(session: session) != nil {
+            return
+        }
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
         }
@@ -136,7 +139,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
             try self.store.addJob(data: newJob)
             return
         }
-        print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
+        print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
         fflush(stdout)
         let results: [VerifyStatus]
         do {
@@ -221,6 +224,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
         structure: KripkeStructureIterator, job: Job, computeError: ([Node]) -> ModelCheckerError
     ) throws {
         _ = try job.failRevisit.map { try self.store.addJob(job: try self.store.job(withId: $0)) }
+        if let session = job.session {
+            try self.store.failSession(
+                id: session, error: error(structure: structure, job: job, computeError)
+            )
+        }
         if job.failRevisit == nil {
             throw error(structure: structure, job: job, computeError)
         }
@@ -356,8 +364,8 @@ private extension JobData {
                 constraints: job.constraints,
                 successRevisit: id,
                 failRevisit: job.failRevisit,
-                session: nil,
-                sessionRevisit: nil
+                session: job.session,
+                sessionRevisit: job.sessionRevisit
             )
         case .skip:
             let newRevisit = JobData(
