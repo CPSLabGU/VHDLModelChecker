@@ -57,6 +57,19 @@ import Foundation
 
 class InMemoryDataStore: JobStorable {
 
+    private final class SessionData {
+
+        let count: Int
+
+        let error: ModelCheckerError?
+
+        init(count: Int, error: ModelCheckerError? = nil) {
+            self.count = count
+            self.error = error
+        }
+
+    }
+
     private var jobs: [UUID: Job] = [:]
 
     private var jobIds: [JobData: UUID] = [:]
@@ -64,6 +77,8 @@ class InMemoryDataStore: JobStorable {
     private var pendingJobs: [UUID] = []
 
     private var cycles: Set<CycleData> = []
+
+    private var sessions: [UUID: SessionData] = [:]
 
     // var sessionReferences: [UUID: UInt] = [:]
 
@@ -96,6 +111,20 @@ class InMemoryDataStore: JobStorable {
         self.pendingJobs.append(contentsOf: ids)
     }
 
+    func error(session: UUID) throws -> ModelCheckerError? {
+        guard let session = self.sessions[session] else {
+            throw ModelCheckerError.internalError
+        }
+        return session.error
+    }
+
+    func failSession(id: UUID, error: ModelCheckerError?) throws {
+        guard let session = self.sessions[id] else {
+            throw ModelCheckerError.internalError
+        }
+        self.sessions[id] = SessionData(count: session.count, error: error)
+    }
+
     func inCycle(_ job: Job) throws -> Bool {
         let cycleData = job.cycleData
         let inCycle = self.cycles.contains(cycleData)
@@ -103,6 +132,14 @@ class InMemoryDataStore: JobStorable {
             self.cycles.insert(cycleData)
         }
         return inCycle
+    }
+
+    func isComplete(session: UUID) throws -> Bool {
+        guard let session = self.sessions[session] else {
+            throw ModelCheckerError.internalError
+        }
+        // swiftlint:disable:next empty_count
+        return session.count == 0
     }
 
     func job(forData data: JobData) throws -> Job {

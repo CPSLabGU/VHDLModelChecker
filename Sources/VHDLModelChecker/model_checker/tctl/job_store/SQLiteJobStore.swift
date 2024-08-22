@@ -292,6 +292,14 @@ final class SQLiteJobStore: JobStorable {
         self.currentJobs.append(contentsOf: try jobs.map { try self.job(forData: $0).id })
     }
 
+    func error(session: UUID) throws -> ModelCheckerError? {
+        throw UnrecoverableError.notSupported
+    }
+
+    func failSession(id: UUID, error: ModelCheckerError?) throws {
+        throw UnrecoverableError.notSupported
+    }
+
     func inCycle(_ job: Job) throws -> Bool {
         let data = job.cycleData
         var strings: [[CChar]] = []
@@ -377,6 +385,10 @@ final class SQLiteJobStore: JobStorable {
             }
             return false
         }
+    }
+
+    func isComplete(session: UUID) throws -> Bool {
+        throw UnrecoverableError.notSupported
     }
 
     func job(forData data: JobData) throws -> Job {

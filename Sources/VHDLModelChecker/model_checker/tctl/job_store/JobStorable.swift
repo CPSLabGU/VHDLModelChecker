@@ -54,6 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
+import TCTLParser
 
 /// A protocol that represents a store of data associated with a particular
 /// `TCTLModelChecker`.
@@ -87,6 +88,10 @@ protocol JobStorable {
     /// - Parameter jobs: The jobs to store.
     mutating func addManyJobs(jobs: [JobData]) throws
 
+    func error(session: UUID) throws -> ModelCheckerError?
+
+    mutating func failSession(id: UUID, error: ModelCheckerError?) throws
+
     /// Have we seen this cycle before?
     ///
     /// - Parameter cycle: The data used to identify the cycle.
@@ -94,6 +99,8 @@ protocol JobStorable {
     /// - Returns: A value of `true` when a cycle has been detected, otherwise
     /// `false`.
     mutating func inCycle(_ job: Job) throws -> Bool
+
+    func isComplete(session: UUID) throws -> Bool
 
     /// Fetch a job containg the given data, if a job does not exist yet, generate
     /// one.
