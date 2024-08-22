@@ -83,8 +83,18 @@ protocol JobStorable {
     /// - Parameter job: The job to place on the queue of pending jobs. 
     mutating func addJob(job: Job) throws
 
+    /// Retrieve the error associated with the given session.
+    /// 
+    /// This methods returns an error for a failed session. If the session has not failed, then `nil` is
+    /// returned.
+    /// - Parameter session: The unique identifier of the session we are fetching the error for.
+    /// - Returns: An optional error associated with the session.
     func error(session: UUID) throws -> ModelCheckerError?
 
+    /// Mark the given session as failed.
+    /// - Parameters:
+    ///   - id: The id of the session.
+    ///   - error: The error associated with the failed session.
     mutating func failSession(id: UUID, error: ModelCheckerError?) throws
 
     /// Have we seen this cycle before?
@@ -95,6 +105,9 @@ protocol JobStorable {
     /// `false`.
     mutating func inCycle(_ job: Job) throws -> Bool
 
+    /// Is the given session complete?
+    /// - Parameter session: The unique identifier of the session we are checking.
+    /// - Returns: Whether the session is complete.
     func isComplete(session: UUID) throws -> Bool
 
     /// Fetch a job containg the given data, if a job does not exist yet, generate
