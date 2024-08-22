@@ -22,7 +22,8 @@ class JobStorableTestCase: XCTestCase {
                 constraints: [PhysicalConstraint(cost: Cost(time: 12, energy: 12), constraint: .lessThan(constraint: .time(amount: 20, unit: .s)))],
                 successRevisit: try store.job(forData: revisit).id,
                 failRevisit: try store.job(forData: revisit).id,
-                session: UUID()
+                session: UUID(),
+                sessionRevisit: nil
             )
         }
     }
@@ -37,7 +38,8 @@ class JobStorableTestCase: XCTestCase {
             constraints: [],
             successRevisit: nil,
             failRevisit: nil,
-            session: nil
+            session: nil,
+            sessionRevisit: nil
         )
     }
 

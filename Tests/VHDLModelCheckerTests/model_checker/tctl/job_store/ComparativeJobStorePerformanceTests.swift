@@ -80,7 +80,8 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             constraints: [],
             successRevisit: nil,
             failRevisit: nil,
-            session: nil
+            session: nil,
+            sessionRevisit: nil
         )
     }
 
@@ -99,7 +100,8 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             ],
             successRevisit: try store.job(forData: revisit).id,
             failRevisit: try store.job(forData: revisit).id,
-            session: nil
+            session: nil,
+            sessionRevisit: nil
         )
     }
 

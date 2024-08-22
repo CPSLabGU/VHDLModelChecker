@@ -89,7 +89,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     constraints: [],
                     successRevisit: nil,
                     failRevisit: nil,
-                    session: nil
+                    session: nil,
+                    sessionRevisit: nil
                 )
                 try self.store.addJob(data: job)
             }
@@ -107,21 +108,6 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
-        }
-        if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
-            let newJob = JobData(
-                nodeId: job.nodeId,
-                expression: job.expression,
-                history: [],
-                currentBranch: [],
-                historyExpression: historyExpression,
-                constraints: job.constraints,
-                successRevisit: job.successRevisit,
-                failRevisit: job.failRevisit,
-                session: nil
-            )
-            try self.store.addJob(data: newJob)
-            return
         }
         let results: [VerifyStatus]
         do {
@@ -173,7 +159,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 guard !successors.isEmpty else {
                     throw ModelCheckerError.internalError
                 }
-                return successors.map { JobData(expression: expression, successor: $0, job: job) }
+                let session = job.historyExpression != expression ? UUID() : job.session
+                return successors.map {
+                    JobData(expression: expression, successor: $0, job: job, session: session)
+                }
             case .revisitting(let expression, let revisit):
                 return [try JobData(expression: expression, revisit: revisit, job: job, store: &self.store)]
             }
@@ -184,6 +173,16 @@ final class TCTLModelChecker<T> where T: JobStorable {
         if let revisitId = job.successRevisit {
             let revisit = try self.store.job(withId: revisitId)
             try self.store.addJob(job: revisit)
+            return
+        }
+        if let revisit = job.sessionRevisit {
+            guard let session = job.session else {
+                throw ModelCheckerError.internalError
+            }
+            if try self.store.isComplete(session: session) {
+                let revisit = try self.store.job(withId: revisit)
+                try self.store.addJob(job: revisit)
+            }
         }
     }
 
@@ -216,7 +215,22 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
 private extension JobData {
 
-    convenience init(expression: Expression, successor: NodeEdge, job: Job) {
+    convenience init(expression: Expression, successor: NodeEdge, job: Job, session: UUID?) {
+        guard session == job.session else {
+            self.init(
+                nodeId: successor.destination,
+                expression: expression,
+                history: [],
+                currentBranch: [],
+                historyExpression: expression,
+                constraints: [],
+                successRevisit: nil,
+                failRevisit: job.failRevisit,
+                session: session,
+                sessionRevisit: job.successRevisit
+            )
+            return
+        }
         self.init(
             nodeId: successor.destination,
             expression: expression,
@@ -228,7 +242,8 @@ private extension JobData {
             },
             successRevisit: job.successRevisit,
             failRevisit: job.failRevisit,
-            session: nil
+            session: job.session,
+            sessionRevisit: job.sessionRevisit
         )
     }
 
@@ -244,7 +259,8 @@ private extension JobData {
             },
             successRevisit: job.successRevisit,
             failRevisit: job.failRevisit,
-            session: nil
+            session: nil,
+            sessionRevisit: nil
         )
     }
 
@@ -263,7 +279,8 @@ private extension JobData {
                 constraints: job.constraints,
                 successRevisit: successRevisit,
                 failRevisit: failRevisit,
-                session: nil
+                session: nil,
+                sessionRevisit: nil
             )
         ).id
         let revisitSuccess: UUID?
@@ -283,7 +300,8 @@ private extension JobData {
                     constraints: job.constraints,
                     successRevisit: nil,
                     failRevisit: nil,
-                    session: nil
+                    session: nil,
+                    sessionRevisit: nil
                 )).id
             }
         case .required:
@@ -302,7 +320,8 @@ private extension JobData {
             constraints: job.constraints,
             successRevisit: revisitSuccess,
             failRevisit: revisitFail,
-            session: nil
+            session: nil,
+            sessionRevisit: nil
         )
     }
 
