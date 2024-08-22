@@ -159,41 +159,47 @@ final class TCTLModelChecker<T> where T: JobStorable {
         } catch let error {
             throw error
         }
-        guard !results.isEmpty else {
-            if let failingConstraint = job.constraints.first(where: {
-                (try? $0.verify(node: node)) == nil
-            }) {
-                try fail(structure: structure, job: job) {
-                    ModelCheckerError.constraintViolation(
-                        branch: $0 + [node],
-                        cost: failingConstraint.cost,
-                        constraint: failingConstraint.constraint
-                    )
-                }
-            }
-            try succeed(job: job)
+        guard results.isEmpty else {
+            try createNewJobs(currentJob: job, structure: structure, results: results)
             return
         }
-        try self.store.addManyJobs(
-            jobs: try createNewJobs(currentJob: job, structure: structure, results: results)
-        )
+        if let failingConstraint = job.constraints.first(where: {
+            (try? $0.verify(node: node)) == nil
+        }) {
+            try fail(structure: structure, job: job) {
+                ModelCheckerError.constraintViolation(
+                    branch: $0 + [node],
+                    cost: failingConstraint.cost,
+                    constraint: failingConstraint.constraint
+                )
+            }
+        }
+        try succeed(job: job)
     }
 
     private func createNewJobs(
         currentJob job: Job, structure: KripkeStructureIterator, results: [VerifyStatus]
-    ) throws -> [JobData] {
+    ) throws {
         lazy var successors = structure.edges[job.nodeId] ?? []
-        return try results.flatMap { (result: VerifyStatus) -> [JobData] in
+        for result in results {
             switch result {
             case .addConstraints(let expression, let constraints):
-                return [JobData(expression: expression, constraints: constraints, job: job)]
+                try self.store.addJob(
+                    data: JobData(expression: expression, constraints: constraints, job: job)
+                )
             case .successor(let expression):
                 guard !successors.isEmpty else {
                     throw ModelCheckerError.internalError
                 }
-                return successors.map { JobData(expression: expression, successor: $0, job: job) }
+                for successor in successors {
+                    try self.store.addJob(
+                        data: JobData(expression: expression, successor: successor, job: job)
+                    )
+                }
             case .revisitting(let expression, let revisit):
-                return [try JobData(expression: expression, revisit: revisit, job: job, store: &self.store)]
+                try self.store.addJob(
+                    data: try JobData(expression: expression, revisit: revisit, job: job, store: &self.store)
+                )
             }
         }
     }
