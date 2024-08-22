@@ -59,12 +59,12 @@ import VHDLKripkeStructures
 /// Add verify methods to expression.
 extension GloballyQuantifiedExpression {
 
-    var historyExpression: GloballyQuantifiedExpression? {
+    var historyExpression: Expression? {
         switch pathQuantifier {
         case .globally, .finally, .weak, .until:
-            return self
-        default:
-            return nil
+            return .quantified(expression: self)
+        case .next(let expression):
+            return expression
         }
     }
 

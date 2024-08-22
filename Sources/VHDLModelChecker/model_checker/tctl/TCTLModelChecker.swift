@@ -109,6 +109,26 @@ final class TCTLModelChecker<T> where T: JobStorable {
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
         }
+        if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
+            print("New session:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
+            fflush(stdout)
+            let newJob = JobData(
+                nodeId: job.nodeId,
+                expression: job.expression,
+                history: [],
+                currentBranch: [],
+                historyExpression: historyExpression,
+                constraints: job.constraints,
+                successRevisit: nil,
+                failRevisit: job.failRevisit,
+                session: UUID(),
+                sessionRevisit: job.successRevisit ?? job.sessionRevisit
+            )
+            try self.store.addJob(data: newJob)
+            return
+        }
+        print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
+        fflush(stdout)
         let results: [VerifyStatus]
         do {
             results = try job.expression.verify(
@@ -159,10 +179,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 guard !successors.isEmpty else {
                     throw ModelCheckerError.internalError
                 }
-                let session = job.historyExpression != expression ? UUID() : job.session
-                return successors.map {
-                    JobData(expression: expression, successor: $0, job: job, session: session)
-                }
+                return successors.map { JobData(expression: expression, successor: $0, job: job) }
             case .revisitting(let expression, let revisit):
                 return [try JobData(expression: expression, revisit: revisit, job: job, store: &self.store)]
             }
@@ -215,22 +232,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
 private extension JobData {
 
-    convenience init(expression: Expression, successor: NodeEdge, job: Job, session: UUID?) {
-        guard session == job.session else {
-            self.init(
-                nodeId: successor.destination,
-                expression: expression,
-                history: [],
-                currentBranch: [],
-                historyExpression: expression,
-                constraints: [],
-                successRevisit: nil,
-                failRevisit: job.failRevisit,
-                session: session,
-                sessionRevisit: job.successRevisit
-            )
-            return
-        }
+    convenience init(expression: Expression, successor: NodeEdge, job: Job) {
         self.init(
             nodeId: successor.destination,
             expression: expression,
@@ -267,62 +269,138 @@ private extension JobData {
     convenience init<T>(
         expression: Expression, revisit: RevisitExpression, job: Job, store: inout T
     ) throws where T: JobStorable {
-        let successRevisit = job.successRevisit
-        let failRevisit = job.failRevisit
-        let newRevisit = try store.job(
-            forData: JobData(
+        // let successRevisit = job.successRevisit
+        // let failRevisit = job.failRevisit
+        // let newRevisit = try store.job(
+        //     forData: JobData(
+        //         nodeId: job.nodeId,
+        //         expression: expression,
+        //         history: job.history,
+        //         currentBranch: job.currentBranch,
+        //         historyExpression: job.historyExpression,
+        //         constraints: job.constraints,
+        //         successRevisit: successRevisit,
+        //         failRevisit: failRevisit,
+        //         session: nil,
+        //         sessionRevisit: nil
+        //     )
+        // ).id
+        // let revisitSuccess: UUID?
+        // let revisitFail: UUID?
+        switch revisit {
+        case .ignored:
+            let newRevisit = JobData(
                 nodeId: job.nodeId,
                 expression: expression,
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
                 constraints: job.constraints,
-                successRevisit: successRevisit,
-                failRevisit: failRevisit,
+                successRevisit: job.successRevisit,
+                failRevisit: job.failRevisit,
+                session: job.session,
+                sessionRevisit: job.sessionRevisit
+            )
+            let trueJob = JobData(
+                nodeId: job.nodeId,
+                expression: .language(expression: .vhdl(expression: .true)),
+                history: [],
+                currentBranch: [],
+                historyExpression: nil,
+                constraints: [],
+                successRevisit: job.successRevisit,
+                failRevisit: nil,
+                session: job.session,
+                sessionRevisit: job.sessionRevisit
+            )
+            self.init(
+                nodeId: job.nodeId,
+                expression: revisit.expression,
+                history: job.history,
+                currentBranch: job.currentBranch,
+                historyExpression: job.historyExpression,
+                constraints: job.constraints,
+                successRevisit: try store.job(forData: newRevisit).id,
+                failRevisit: try store.job(forData: trueJob).id,
                 session: nil,
                 sessionRevisit: nil
             )
-        ).id
-        let revisitSuccess: UUID?
-        let revisitFail: UUID?
-        switch revisit {
-        case .ignored:
-            revisitSuccess = newRevisit
-            if let successRevisit {
-                revisitFail = successRevisit
-            } else {
-                revisitFail = try store.job(forData: JobData(
-                    nodeId: job.nodeId,
-                    expression: .language(expression: .vhdl(expression: .true)),
-                    history: job.history,
-                    currentBranch: job.currentBranch,
-                    historyExpression: job.historyExpression,
-                    constraints: job.constraints,
-                    successRevisit: nil,
-                    failRevisit: nil,
-                    session: nil,
-                    sessionRevisit: nil
-                )).id
-            }
         case .required:
-            revisitSuccess = newRevisit
-            revisitFail = failRevisit
+            let newRevisit = JobData(
+                nodeId: job.nodeId,
+                expression: expression,
+                history: job.history,
+                currentBranch: job.currentBranch,
+                historyExpression: job.historyExpression,
+                constraints: job.constraints,
+                successRevisit: job.successRevisit,
+                failRevisit: job.failRevisit,
+                session: job.session,
+                sessionRevisit: job.sessionRevisit
+            )
+            let id = try store.job(forData: newRevisit).id
+            self.init(
+                nodeId: job.nodeId,
+                expression: revisit.expression,
+                history: job.history,
+                currentBranch: job.currentBranch,
+                historyExpression: job.historyExpression,
+                constraints: job.constraints,
+                successRevisit: id,
+                failRevisit: job.failRevisit,
+                session: nil,
+                sessionRevisit: nil
+            )
         case .skip:
-            revisitSuccess = successRevisit
-            revisitFail = newRevisit
+            let newRevisit = JobData(
+                nodeId: job.nodeId,
+                expression: expression,
+                history: job.history,
+                currentBranch: job.currentBranch,
+                historyExpression: job.historyExpression,
+                constraints: job.constraints,
+                successRevisit: job.successRevisit,
+                failRevisit: job.failRevisit,
+                session: job.session,
+                sessionRevisit: job.sessionRevisit
+            )
+            let trueJob = JobData(
+                nodeId: job.nodeId,
+                expression: .language(expression: .vhdl(expression: .true)),
+                history: [],
+                currentBranch: [],
+                historyExpression: nil,
+                constraints: [],
+                successRevisit: job.successRevisit,
+                failRevisit: nil,
+                session: job.session,
+                sessionRevisit: job.sessionRevisit
+            )
+            self.init(
+                nodeId: job.nodeId,
+                expression: revisit.expression,
+                history: job.history,
+                currentBranch: job.currentBranch,
+                historyExpression: job.historyExpression,
+                constraints: job.constraints,
+                successRevisit: try store.job(forData: trueJob).id,
+                failRevisit: try store.job(forData: newRevisit).id,
+                session: nil,
+                sessionRevisit: nil
+            )
         }
-        self.init(
-            nodeId: job.nodeId,
-            expression: revisit.expression,
-            history: job.history,
-            currentBranch: job.currentBranch,
-            historyExpression: job.historyExpression,
-            constraints: job.constraints,
-            successRevisit: revisitSuccess,
-            failRevisit: revisitFail,
-            session: nil,
-            sessionRevisit: nil
-        )
+        // self.init(
+        //     nodeId: job.nodeId,
+        //     expression: revisit.expression,
+        //     history: job.history,
+        //     currentBranch: job.currentBranch,
+        //     historyExpression: job.historyExpression,
+        //     constraints: job.constraints,
+        //     successRevisit: revisitSuccess,
+        //     failRevisit: revisitFail,
+        //     session: nil,
+        //     sessionRevisit: nil
+        // )
     }
 
 }

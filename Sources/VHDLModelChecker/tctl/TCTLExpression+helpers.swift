@@ -61,7 +61,7 @@ extension Expression {
     var historyExpression: Expression? {
         switch self {
         case .quantified(let expression):
-            return expression.historyExpression.map { .quantified(expression: $0) }
+            return expression.historyExpression
         default:
             return nil
         }
