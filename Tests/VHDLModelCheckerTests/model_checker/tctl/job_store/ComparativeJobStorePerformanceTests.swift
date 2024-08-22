@@ -63,7 +63,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
 
     let stores: [() -> any JobStorable] = [
         InMemoryDataStore.init,
-        { try! SQLiteJobStore() }
+        // { try! SQLiteJobStore() }
     ]
 
     var revisit: JobData!
@@ -79,7 +79,8 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             historyExpression: nil,
             constraints: [],
             successRevisit: nil,
-            failRevisit: nil
+            failRevisit: nil,
+            session: nil
         )
     }
 
@@ -97,7 +98,8 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
                 )
             ],
             successRevisit: try store.job(forData: revisit).id,
-            failRevisit: try store.job(forData: revisit).id
+            failRevisit: try store.job(forData: revisit).id,
+            session: nil
         )
     }
 

@@ -21,7 +21,8 @@ class JobStorableTestCase: XCTestCase {
                 historyExpression: Expression.language(expression: .vhdl(expression: .false)),
                 constraints: [PhysicalConstraint(cost: Cost(time: 12, energy: 12), constraint: .lessThan(constraint: .time(amount: 20, unit: .s)))],
                 successRevisit: try store.job(forData: revisit).id,
-                failRevisit: try store.job(forData: revisit).id
+                failRevisit: try store.job(forData: revisit).id,
+                session: UUID()
             )
         }
     }
@@ -35,7 +36,8 @@ class JobStorableTestCase: XCTestCase {
             historyExpression: nil,
             constraints: [],
             successRevisit: nil,
-            failRevisit: nil
+            failRevisit: nil,
+            session: nil
         )
     }
 
@@ -46,7 +48,9 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(Job(id: jobId, data: job), result)
         let resultId = try store.job(forData: result.data).id
         XCTAssertEqual(jobId, resultId)
+        XCTAssertFalse(try store.isComplete(session: job.session!))
         let nextJobId = try store.next
+        XCTAssertTrue(try store.isComplete(session: job.session!))
         XCTAssertEqual(jobId, nextJobId)
         XCTAssertNil(try store.next)
     }
