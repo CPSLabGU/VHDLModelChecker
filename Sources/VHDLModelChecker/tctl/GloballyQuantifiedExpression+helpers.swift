@@ -160,53 +160,10 @@ extension GloballyQuantifiedExpression {
             return try self.expression.verify(
                 currentNode: node, inCycle: inCycle, quantifier: self.quantifier
             )
-        case .eventually(let pathQuantifier):
-            // E X e :: .newSession(.succ(e))
-            // E G e :: .newSession(.revisit(E X E G e, .required(e)))
-            // E F e :: .newSession(.revisit(E X E F e, .skip(e)))
-            // return results.map {
-            //     .newSession(status: $0)
-            // }
-            let newExpression: Expression
-            switch pathQuantifier {
-            case .globally(let expression):
-                // E G e === ! A F !e
-                newExpression = .not(expression: .quantified(expression: .always(
-                    expression: .finally(expression: .not(expression: expression))
-                )))
-                // E F e === ! A G !e
-            case .finally(let expression):
-                newExpression = .not(expression: .quantified(expression: .always(
-                    expression: .globally(expression: .not(expression: expression))
-                )))
-                // E X e === ! A X !e
-            case .next(let expression):
-                newExpression = .not(expression: .quantified(expression: .always(
-                    expression: .next(expression: .not(expression: expression))
-                )))
-            case .until(let lhs, let rhs):
-                // E p U q === ! A !q W !q ^ !p
-                newExpression = .not(expression: .quantified(expression: .always(expression: .weak(
-                    lhs: .not(expression: rhs),
-                    rhs: .conjunction(lhs: .not(expression: rhs), rhs: .not(expression: lhs))
-                ))))
-            case .weak(let lhs, let rhs):
-                // E p W q === E p U q  V  E G p
-                // === (! A !q W !q ^ !p)  V  (! A F !p)
-                newExpression = .disjunction(
-                    lhs: .not(expression: .quantified(expression: .always(expression: .weak(
-                        lhs: .not(expression: rhs),
-                        rhs: .conjunction(lhs: .not(expression: rhs), rhs: .not(expression: lhs))
-                    )))),
-                    rhs: .not(expression: .quantified(expression: .always(
-                        expression: .finally(expression: .not(expression: lhs))
-                    )))
-                )
-                // newExpression = .not(expression: .quantified(expression: .always(expression: .until(
-                //     lhs: .not(expression: lhs), rhs: .not(expression: rhs)
-                // ))))
-            }
-            return try newExpression.verify(currentNode: node, inCycle: inCycle)
+        case .eventually:
+            fatalError(
+                "Cannot verify eventually quantified expression! Make sure you call `normalised` first."
+            )
         }
     }
 
