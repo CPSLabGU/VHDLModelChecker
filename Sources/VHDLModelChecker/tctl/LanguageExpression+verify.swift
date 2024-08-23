@@ -59,6 +59,10 @@ import VHDLKripkeStructures
 /// Add `verify` method.
 extension LanguageExpression {
 
+    var normalised: LanguageExpression {
+        self
+    }
+
     /// Verify the `node` against this expression. This method will throw a ``VerificationError`` if the
     /// node fails to verify.
     /// - Parameter node: The node to verify against.

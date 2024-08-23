@@ -62,6 +62,8 @@ extension Expression {
         switch self {
         case .quantified(let expression):
             return expression.historyExpression
+        case .constrained(let expression):
+            return expression.expression.historyExpression
         default:
             return nil
         }
@@ -73,6 +75,47 @@ extension Expression {
             return expression.constraints
         default:
             return nil
+        }
+    }
+
+    var normalised: Expression {
+        switch self {
+        case .conjunction(let lhs, let rhs):
+            return .conjunction(lhs: lhs.normalised, rhs: rhs.normalised)
+        case .constrained(let expression):
+            switch expression.expression.normalised {
+            case .quantified(let quantified):
+                return .constrained(expression: ConstrainedExpression(
+                    expression: quantified, constraints: expression.constraints
+                ))
+            case .not(.quantified(let quantified)):
+                return .not(expression: .constrained(expression: ConstrainedExpression(
+                    expression: quantified, constraints: expression.constraints
+                )))
+            case .disjunction(lhs: .not(.quantified(let lhs)), rhs: .not(.quantified(let rhs))):
+                return .disjunction(
+                    lhs: .not(expression: .constrained(expression: ConstrainedExpression(
+                        expression: lhs, constraints: expression.constraints
+                    ))),
+                    rhs: .not(expression: .constrained(expression: ConstrainedExpression(
+                        expression: rhs, constraints: expression.constraints
+                    )))
+                )
+            default:
+                fatalError("Cannot normalise invalid constrained expression!\n\(self.rawValue)")
+            }
+        case .disjunction(let lhs, let rhs):
+            return .disjunction(lhs: lhs.normalised, rhs: rhs.normalised)
+        case .implies(let lhs, let rhs):
+            return .implies(lhs: lhs.normalised, rhs: rhs.normalised)
+        case .language(let language):
+            return .language(expression: language.normalised)
+        case .not(let expression):
+            return .not(expression: expression.normalised)
+        case .precedence(let expression):
+            return .precedence(expression: expression.normalised)
+        case .quantified(let expression):
+            return expression.normalised
         }
     }
 

@@ -85,6 +85,59 @@ extension GloballyQuantifiedExpression {
         }
     }
 
+    var normalised: Expression {
+        switch self {
+        case .always(let expression):
+            return .quantified(expression: .always(expression: expression.normalised))
+        case .eventually(let path):
+            switch path {
+            case .globally(let expression):
+                // E G e === ! A F !e
+                return .not(expression: .quantified(expression: .always(
+                    expression: .finally(expression: .not(expression: expression.normalised))
+                )))
+                // E F e === ! A G !e
+            case .finally(let expression):
+                return .not(expression: .quantified(expression: .always(
+                    expression: .globally(expression: .not(expression: expression.normalised))
+                )))
+                // E X e === ! A X !e
+            case .next(let expression):
+                return .not(expression: .quantified(expression: .always(
+                    expression: .next(expression: .not(expression: expression.normalised))
+                )))
+            case .until(let lhs, let rhs):
+                let rhsNormalised = rhs.normalised
+                // E p U q === ! A !q W !q ^ !p
+                return .not(expression: .quantified(expression: .always(expression: .weak(
+                    lhs: .not(expression: rhsNormalised),
+                    rhs: .conjunction(
+                        lhs: .not(expression: rhsNormalised), rhs: .not(expression: lhs.normalised)
+                    )
+                ))))
+            case .weak(let lhs, let rhs):
+                let lhsNormalised = lhs.normalised
+                let rhsNormalised = rhs.normalised
+                // E p W q === E p U q  V  E G p
+                // === (! A !q W !q ^ !p)  V  (! A F !p)
+                return .disjunction(
+                    lhs: .not(expression: .quantified(expression: .always(expression: .weak(
+                        lhs: .not(expression: rhsNormalised),
+                        rhs: .conjunction(
+                            lhs: .not(expression: rhsNormalised), rhs: .not(expression: lhsNormalised)
+                        )
+                    )))),
+                    rhs: .not(expression: .quantified(expression: .always(
+                        expression: .finally(expression: .not(expression: lhsNormalised))
+                    )))
+                )
+                // newExpression = .not(expression: .quantified(expression: .always(expression: .until(
+                //     lhs: .not(expression: lhs), rhs: .not(expression: rhs)
+                // ))))
+            }
+        }
+    }
+
     /// Create an expression from it's quantifier and path quantified expression.
     /// - Parameters:
     ///   - quantifier: The quantifier to apply to the `expression`.

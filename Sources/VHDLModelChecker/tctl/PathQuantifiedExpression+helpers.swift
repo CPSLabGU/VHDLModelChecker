@@ -58,6 +58,21 @@ import VHDLKripkeStructures
 
 extension PathQuantifiedExpression {
 
+    var normalised: PathQuantifiedExpression {
+        switch self {
+        case .globally(let expression):
+            return .globally(expression: expression.normalised)
+        case .finally(let expression):
+            return .finally(expression: expression.normalised)
+        case .next(let expression):
+            return .next(expression: expression.normalised)
+        case .until(let lhs, let rhs):
+            return .until(lhs: lhs.normalised, rhs: rhs.normalised)
+        case .weak(let lhs, let rhs):
+            return .weak(lhs: lhs.normalised, rhs: rhs.normalised)
+        }
+    }
+
     func verify(
         currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType
     ) throws -> [VerifyStatus] {
