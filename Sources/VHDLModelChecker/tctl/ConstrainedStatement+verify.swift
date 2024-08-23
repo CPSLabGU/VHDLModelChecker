@@ -69,6 +69,143 @@ extension ConstrainedStatement {
         }
     }
 
+    func isMaxGreaterThan(value: ConstrainedStatement) -> Bool {
+        switch self {
+        case .equal(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .greaterThan, .greaterThanOrEqual:
+                return false
+            case .lessThan(let rhs):
+                return lhs.quantity >= rhs.quantity
+            case .lessThanOrEqual(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .notEqual:
+                return false
+            }
+        case .greaterThan(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .greaterThan, .greaterThanOrEqual:
+                return false
+            case .lessThan(let rhs):
+                guard lhs.quantity != rhs.quantity else {
+                    return false
+                }
+                return lhs.quantity >= rhs.quantity
+            case .lessThanOrEqual(let rhs):
+                return lhs.quantity >= rhs.quantity
+            case .notEqual:
+                return false
+            }
+        case .greaterThanOrEqual(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .greaterThan, .greaterThanOrEqual:
+                return false
+            case .lessThan(let rhs):
+                return lhs.quantity >= rhs.quantity
+            case .lessThanOrEqual(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .notEqual:
+                return false
+            }
+        case .lessThan(let lhs):
+            switch value {
+            case .equal(let rhs):
+                guard lhs.quantity != rhs.quantity else {
+                    return false
+                }
+                return lhs.quantity > rhs.quantity
+            case .greaterThan, .greaterThanOrEqual:
+                return false
+            case .lessThan(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .lessThanOrEqual(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .notEqual:
+                return false
+            }
+        case .lessThanOrEqual(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .greaterThan, .greaterThanOrEqual:
+                return false
+            case .lessThan(let rhs):
+                return lhs.quantity >= rhs.quantity
+            case .lessThanOrEqual(let rhs):
+                return lhs.quantity > rhs.quantity
+            case .notEqual:
+                return false
+            }
+        case .notEqual:
+            return false
+        }
+    }
+
+    func isMinLessThan(value: ConstrainedStatement) -> Bool {
+        switch self {
+        case .equal(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .greaterThan(let rhs):
+                return lhs.quantity <= rhs.quantity
+            case .greaterThanOrEqual(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .lessThan, .lessThanOrEqual:
+                return false
+            case .notEqual:
+                return false
+            }
+        case .greaterThan(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .greaterThan(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .greaterThanOrEqual(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .lessThan, .lessThanOrEqual:
+                return false
+            case .notEqual:
+                return false
+            }
+        case .greaterThanOrEqual(let lhs):
+            switch value {
+            case .equal(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .greaterThan(let rhs):
+                return lhs.quantity <= rhs.quantity
+            case .greaterThanOrEqual(let rhs):
+                return lhs.quantity < rhs.quantity
+            case .lessThan, .lessThanOrEqual:
+                return false
+            case .notEqual:
+                return false
+            }
+        case .lessThan, .lessThanOrEqual:
+            switch value {
+            case .equal(let rhs):
+                return .zero < rhs.quantity
+            case .greaterThan(let rhs):
+                return .zero <= rhs.quantity
+            case .greaterThanOrEqual(let rhs):
+                return .zero < rhs.quantity
+            case .lessThan, .lessThanOrEqual:
+                return false
+            case .notEqual:
+                return false
+            }
+        case .notEqual:
+            return true
+        }
+    }
+
     /// Verify that a node satisfies the cost constraint.
     /// - Parameters:
     ///   - node: The node to verify.

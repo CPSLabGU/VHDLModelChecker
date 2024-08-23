@@ -73,9 +73,9 @@ final class SQLiteJobStore: JobStorable {
 
     private var expressionKeys: [Expression: Int] = [:]
 
-    private var constraints: [[PhysicalConstraint]] = []
+    private var constraints: [Set<ConstrainedStatement>] = []
 
-    private var constraintKeys: [[PhysicalConstraint]: Int] = [:]
+    private var constraintKeys: [Set<ConstrainedStatement>: Int] = [:]
 
     private var currentJobs: [UUID] = {
         var arr: [UUID] = []
@@ -527,11 +527,16 @@ final class SQLiteJobStore: JobStorable {
             history: Set(history),
             currentBranch: currentBranch,
             historyExpression: historyExpression,
-            constraints: self.constraints[constraintsIndex],
+            constraints: Array(self.constraints[constraintsIndex]),
             successRevisit: successRevisit,
             failRevisit: failRevisit,
             session: nil,
-            sessionRevisit: nil
+            sessionRevisit: nil,
+            cost: .zero,
+            timeMinimum: .zero,
+            timeMaximum: .max,
+            energyMinimum: .zero,
+            energyMaximum: .max
         )
         return Job(id: id, data: data)
     }
@@ -621,7 +626,7 @@ final class SQLiteJobStore: JobStorable {
         try exec { sqlite3_finalize(self.insertJobStatement) }
     }
 
-    private func getConstraints(constraint: [PhysicalConstraint]) -> Int {
+    private func getConstraints(constraint: Set<ConstrainedStatement>) -> Int {
         guard let key = self.constraintKeys[constraint] else {
             let constraintId = self.constraints.count
             self.constraintKeys[constraint] = constraintId
@@ -674,7 +679,7 @@ final class SQLiteJobStore: JobStorable {
             try exec { sqlite3_bind_null(self.insertJobStatement, 6) }
         }
         try exec {
-            sqlite3_bind_int(self.insertJobStatement, 7, Int32(getConstraints(constraint: data.constraints)))
+            sqlite3_bind_int(self.insertJobStatement, 7, Int32(getConstraints(constraint: Set(data.constraints))))
         }
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
@@ -729,7 +734,7 @@ final class SQLiteJobStore: JobStorable {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 5) }
         }
         try exec {
-            sqlite3_bind_int(self.pluckJobSelect, 6, Int32(getConstraints(constraint: data.constraints)))
+            sqlite3_bind_int(self.pluckJobSelect, 6, Int32(getConstraints(constraint: Set(data.constraints))))
         }
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
@@ -811,11 +816,16 @@ final class SQLiteJobStore: JobStorable {
                 history: Set(history),
                 currentBranch: currentBranch,
                 historyExpression: historyExpression,
-                constraints: self.constraints[constraintsIndex],
+                constraints: Array(self.constraints[constraintsIndex]),
                 successRevisit: successRevisit,
                 failRevisit: failRevisit,
                 session: nil,
-                sessionRevisit: nil
+                sessionRevisit: nil,
+                cost: .zero,
+                timeMinimum: .zero,
+                timeMaximum: .max,
+                energyMinimum: .zero,
+                energyMaximum: .max
             )
             return Job(id: id, data: data)
         }
