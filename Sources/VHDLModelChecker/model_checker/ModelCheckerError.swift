@@ -66,6 +66,8 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
 
     case notSupported(expression: Expression)
 
+    case mismatchedConstraints(constraints: [ConstrainedStatement])
+
     public var description: String {
         switch self {
         case .notSupported(let expression):
@@ -85,6 +87,11 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
             \(constraint.rawValue)
             Counter Example:
             \(branch.map(\.description).joined(separator: "\n"))
+            """
+        case .mismatchedConstraints(let constraints):
+            return """
+            The following constraints are mismatched:
+            \(constraints.map(\.rawValue).joined(separator: "\n"))
             """
         }
     }

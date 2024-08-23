@@ -62,4 +62,8 @@ extension ScientificQuantity {
 
     static let twous = ScientificQuantity(amount: 2, unit: .us)
 
+    static let tenuJ = ScientificQuantity(amount: 10, unit: .uJ)
+
+    static let twentyuJ = ScientificQuantity(amount: 20, unit: .uJ)
+
 }
