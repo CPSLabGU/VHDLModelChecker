@@ -180,7 +180,6 @@ final class TCTLModelChecker<T> where T: JobStorable {
     private func createNewJobs(
         currentJob job: Job, structure: KripkeStructureIterator, results: [VerifyStatus]
     ) throws {
-        lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
             switch result {
             case .addConstraints(let expression, let constraints):
@@ -188,14 +187,21 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     data: JobData(expression: expression, constraints: constraints, job: job)
                 )
             case .successor(let expression):
+                let successors = structure.edges[job.nodeId] ?? []
                 guard !successors.isEmpty else {
                     throw ModelCheckerError.internalError
                 }
-                for successor in successors {
-                    try self.store.addJob(
-                        data: JobData(expression: expression, successor: successor, job: job)
-                    )
+                guard !job.constraints.isEmpty else {
+                    for successor in successors {
+                        try self.store.addJob(
+                            data: JobData(expression: expression, successor: successor, job: job)
+                        )
+                    }
+                    return
                 }
+                try self.addValidSuccessors(
+                    job: job, successors: successors, structure: structure, expression: expression
+                )
             case .revisitting(let expression, let revisit):
                 try self.store.addJob(
                     data: try JobData(expression: expression, revisit: revisit, job: job, store: &self.store)
@@ -248,6 +254,71 @@ final class TCTLModelChecker<T> where T: JobStorable {
             return ModelCheckerError.internalError
         }
         return computeError(currentNodes)
+    }
+
+    private func addValidSuccessors(
+        job: Job, successors: [NodeEdge], structure: KripkeStructureIterator, expression: Expression
+    ) throws {
+        let greaterThanConstraints = Set(job.constraints.filter {
+            switch $0.constraint {
+            case .greaterThan, .greaterThanOrEqual:
+                return true
+            default:
+                return false
+            }
+        })
+        for successor in successors {
+            guard let node = structure.nodes[successor.destination] else {
+                throw ModelCheckerError.internalError
+            }
+            let transisitionCost = successor.cost
+            let constraints = job.constraints.map {
+                PhysicalConstraint(cost: $0.cost + transisitionCost, constraint: $0.constraint)
+            }
+            guard !constraints.isEmpty else {
+                try self.store.addJob(data: JobData(expression: expression, successor: successor, job: job))
+                return
+            }
+            let status = constraints.reduce(ConstraintStatus.addNow) { status, constraint in
+                guard status != .failed else {
+                    return .failed
+                }
+                guard greaterThanConstraints.contains(constraint) else {
+                    if (try? constraint.verify(node: node)) != nil {
+                        return status
+                    }
+                    return .failed
+                }
+                if (try? constraint.verify(node: node)) != nil {
+                    return status
+                } else {
+                    return .addFuture
+                }
+            }
+            switch status {
+            case .addNow:
+                try self.store.addJob(data: JobData(expression: expression, successor: successor, job: job))
+            case .failed:
+                continue
+            case .addFuture:
+                try self.store.addJob(
+                    data: JobData(
+                        nodeId: successor.destination,
+                        expression: job.expression,
+                        history: job.history.union([job.nodeId]),
+                        currentBranch: job.currentBranch + [job.nodeId],
+                        historyExpression: job.historyExpression,
+                        constraints: job.constraints.map {
+                            PhysicalConstraint(cost: $0.cost + transisitionCost, constraint: $0.constraint)
+                        },
+                        successRevisit: job.successRevisit,
+                        failRevisit: job.failRevisit,
+                        session: job.session,
+                        sessionRevisit: job.sessionRevisit
+                    )
+                )
+            }
+        }
     }
 
 }
@@ -394,5 +465,15 @@ private extension JobData {
             )
         }
     }
+
+}
+
+private enum ConstraintStatus {
+
+    case addNow
+
+    case addFuture
+
+    case failed
 
 }
