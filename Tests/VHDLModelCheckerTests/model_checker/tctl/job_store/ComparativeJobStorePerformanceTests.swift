@@ -81,7 +81,12 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             successRevisit: nil,
             failRevisit: nil,
             session: nil,
-            sessionRevisit: nil
+            sessionRevisit: nil,
+            cost: Cost(time: 0, energy: 0),
+            timeMinimum: .zero,
+            timeMaximum: .max,
+            energyMinimum: .zero,
+            energyMaximum: .max
         )
     }
 
@@ -92,16 +97,16 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             history: [UUID(), UUID()],
             currentBranch: [UUID(), UUID()],
             historyExpression: Expression.language(expression: .vhdl(expression: .false)),
-            constraints: [
-                PhysicalConstraint(
-                    cost: Cost(time: 12, energy: 12),
-                    constraint: .lessThan(constraint: .time(amount: 20, unit: .s))
-                )
-            ],
+            constraints: [.lessThan(constraint: .time(amount: 20, unit: .s))],
             successRevisit: try store.job(forData: revisit).id,
             failRevisit: try store.job(forData: revisit).id,
             session: nil,
-            sessionRevisit: nil
+            sessionRevisit: nil,
+            cost: Cost(time: 12, energy: 12),
+            timeMinimum: .zero,
+            timeMaximum: .max,
+            energyMinimum: .zero,
+            energyMaximum: .max
         )
     }
 
