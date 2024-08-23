@@ -67,7 +67,7 @@ extension ConstrainedExpression {
     /// - Returns: An array of statuses for the verification.
     func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         [
-            .addConstraints(expression: expression, constraints: constraints)
+            .addConstraints(expression: .quantified(expression: expression), constraints: constraints)
         ]
     }
 

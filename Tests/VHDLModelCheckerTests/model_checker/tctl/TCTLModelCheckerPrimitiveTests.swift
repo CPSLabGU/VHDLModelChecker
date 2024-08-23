@@ -643,7 +643,15 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        {true}_{t >= 0 us}
+        {A G true}_{t >= 0 us}
+
+        {A F true}_{t >= 0 us}
+
+        {A X true}_{t >= 0 us}
+
+        {A true U true}_{t >= 0 us}
+
+        {A true W true}_{t >= 0 us}
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
@@ -653,7 +661,7 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        {true}_{t < 0 us}
+        {A F true}_{t < 0 us}
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
@@ -663,7 +671,15 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        {false}_{t >= 0 us}
+        {A G false}_{t >= 0 us}
+
+        {A F false}_{t >= 0 us}
+
+        {A X false}_{t >= 0 us}
+
+        {A true U false}_{t >= 0 us}
+
+        {A false W false}_{t >= 0 us}
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
@@ -673,7 +689,7 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         let specRaw = """
         // spec:language VHDL
 
-        {false}_{t < 0 us}
+        {A F false}_{t < 0 us}
         """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
