@@ -151,6 +151,31 @@ final class TCTLModelChecker<T> where T: JobStorable {
     // swiftlint:disable:next function_body_length
     private func handleJob(withId jobId: UUID, structure: KripkeStructureIterator) throws {
         let job = try self.store.job(withId: jobId)
+        if case .quantified(.always(.next)) = job.expression { } else {
+            guard !job.isBelowWindow else {
+                let newJob = JobData(
+                    nodeId: job.nodeId,
+                    expression: .quantified(
+                        expression: .always(expression: .next(expression: job.expression))
+                    ),
+                    history: job.history,
+                    currentBranch: job.currentBranch,
+                    historyExpression: job.historyExpression,
+                    constraints: job.constraints,
+                    successRevisit: job.successRevisit,
+                    failRevisit: job.failRevisit,
+                    session: job.session,
+                    sessionRevisit: job.sessionRevisit,
+                    cost: job.cost,
+                    timeMinimum: job.timeMinimum,
+                    timeMaximum: job.timeMaximum,
+                    energyMinimum: job.energyMinimum,
+                    energyMaximum: job.energyMaximum
+                )
+                try self.store.addJob(data: newJob)
+                return
+            }
+        }
         guard !(try store.inCycle(job)) else {
             guard
                 let session = job.session,

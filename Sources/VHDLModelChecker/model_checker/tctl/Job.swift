@@ -192,6 +192,10 @@ final class JobData: Equatable, Hashable {
         )
     }
 
+    var isBelowWindow: Bool {
+        self.cost.time < timeMinimum || self.cost.energy < energyMinimum
+    }
+
     init(
         nodeId: UUID,
         expression: Expression,
@@ -331,6 +335,10 @@ final class Job: Equatable, Hashable, Identifiable {
 
     var energyMaximum: ScientificQuantity {
         data.energyMaximum
+    }
+
+    var isBelowWindow: Bool {
+        data.isBelowWindow
     }
 
     convenience init(
