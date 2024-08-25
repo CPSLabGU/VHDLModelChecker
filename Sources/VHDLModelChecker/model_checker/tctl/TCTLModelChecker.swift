@@ -185,10 +185,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     session: UUID(),
                     sessionRevisit: job.successRevisit ?? job.sessionRevisit,
                     cost: .zero,
-                    timeMinimum: .zero,
-                    timeMaximum: .max,
-                    energyMinimum: .zero,
-                    energyMaximum: .max
+                    timeMinimum: job.timeMinimum,
+                    timeMaximum: job.timeMaximum,
+                    energyMinimum: job.energyMinimum,
+                    energyMaximum: job.energyMaximum
                 )
                 try self.store.addJob(data: newJob)
                 return
@@ -213,8 +213,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
             try self.store.addJob(data: newJob)
             return
         }
-        // print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
-        // fflush(stdout)
+        print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
+        fflush(stdout)
         let successors = try getValidSuccessors(job: job, structure: structure)
         let results: [VerifyStatus]
         do {
