@@ -58,26 +58,26 @@ import VHDLKripkeStructures
 
 extension Expression {
 
-    var granularity: ScientificQuantity? {
-        switch self {
-        case .conjunction(let lhs, let rhs), .disjunction(let lhs, let rhs), .implies(let lhs, let rhs):
-            return [lhs, rhs].compactMap { $0.granularity }.min()
-        case .not(let expression), .precedence(let expression):
-            return expression.granularity
-        case .language:
-            return nil
-        case .quantified(let expression):
-            let path = expression.pathQuantifier
-            switch path {
-            case .globally(let expression), .finally(let expression), .next(let expression):
-                return expression.granularity
-            case .until(let lhs, let rhs), .weak(let lhs, let rhs):
-                return [lhs, rhs].compactMap { $0.granularity }.min()
-            }
-        case .constrained(let expression):
-            return expression.granularity
-        }
-    }
+    // var granularity: ScientificQuantity? {
+    //     switch self {
+    //     case .conjunction(let lhs, let rhs), .disjunction(let lhs, let rhs), .implies(let lhs, let rhs):
+    //         return [lhs, rhs].compactMap { $0.granularity }.min()
+    //     case .not(let expression), .precedence(let expression):
+    //         return expression.granularity
+    //     case .language:
+    //         return nil
+    //     case .quantified(let expression):
+    //         let path = expression.pathQuantifier
+    //         switch path {
+    //         case .globally(let expression), .finally(let expression), .next(let expression):
+    //             return expression.granularity
+    //         case .until(let lhs, let rhs), .weak(let lhs, let rhs):
+    //             return [lhs, rhs].compactMap { $0.granularity }.min()
+    //         }
+    //     case .constrained(let expression):
+    //         return expression.granularity
+    //     }
+    // }
 
     var historyExpression: Expression? {
         switch self {

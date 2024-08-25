@@ -59,8 +59,60 @@ import VHDLKripkeStructures
 /// Add verification support.
 extension ConstrainedExpression {
 
-    var granularity: ScientificQuantity? {
-        guard let quantity = self.constraints.map({ $0.constraint.quantity }).min() else {
+    var energyConstraints: [ConstrainedStatement] {
+        constraints.filter { $0.isEnergy }
+    }
+
+    var energyGranularity: ScientificQuantity? {
+        granularity(constraints: energyConstraints)
+    }
+
+    var energyMaximum: ScientificQuantity? {
+        get throws {
+            guard let energyGranularity else {
+                return nil
+            }
+            return try energyConstraints.map({ try $0.max(granularity: energyGranularity) }).max()
+        }
+    }
+
+    var energyMinimum: ScientificQuantity? {
+        get throws {
+            guard let energyGranularity else {
+                return nil
+            }
+            return try energyConstraints.map({ try $0.min(granularity: energyGranularity) }).min()
+        }
+    }
+
+    var timeConstraints: [ConstrainedStatement] {
+        constraints.filter { $0.isTime }
+    }
+
+    var timeGranularity: ScientificQuantity? {
+        granularity(constraints: timeConstraints)
+    }
+
+    var timeMaximum: ScientificQuantity? {
+        get throws {
+            guard let timeGranularity else {
+                return nil
+            }
+            return try timeConstraints.map({ try $0.max(granularity: timeGranularity) }).max()
+        }
+    }
+
+    var timeMinimum: ScientificQuantity? {
+        get throws {
+            guard let timeGranularity else {
+                return nil
+            }
+            return try timeConstraints.map({ try $0.min(granularity: timeGranularity) }).min()
+        }
+    }
+
+    func granularity(constraints: [ConstrainedStatement]) -> ScientificQuantity? {
+        guard let quantity = constraints.map({ $0.constraint.quantity }).min() else {
             return nil
         }
         let exponent = quantity.exponent

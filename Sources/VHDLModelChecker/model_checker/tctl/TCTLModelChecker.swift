@@ -72,79 +72,51 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
     private var debug = false
 
-    private var granularity: ScientificQuantity
-
     init(store: T) {
         self.store = store
-        self.granularity = .zero
     }
 
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
         try self.store.reset()
-        if let granularity = specification.requirements.compactMap(\.granularity).min() {
-            self.granularity = granularity
-            for id in structure.initialStates {
-                for expression in specification.requirements {
-                    let constraints = expression.constraints ?? []
-                    let timeConstraints = constraints.filter {
-                        switch $0.constraint {
-                        case .time:
-                            return true
-                        default:
-                            return false
-                        }
-                    }
-                    let energyConstraints = constraints.filter {
-                        switch $0.constraint {
-                        case .energy:
-                            return true
-                        default:
-                            return false
-                        }
-                    }
+        for id in structure.initialStates {
+            for expression in specification.requirements {
+                guard case .constrained(let jobExpression) = expression else {
                     let job = JobData(
                         nodeId: id,
                         expression: expression.normalised,
                         history: [],
                         currentBranch: [],
                         historyExpression: nil,
-                        constraints: constraints,
+                        constraints: [],
                         successRevisit: nil,
                         failRevisit: nil,
                         session: nil,
                         sessionRevisit: nil,
                         cost: .zero,
-                        timeMinimum: try timeConstraints.map { try $0.min(granularity: granularity) }.min()
-                            ?? .zero,
-                        timeMaximum: try timeConstraints.map { try $0.max(granularity: granularity) }.max()
-                            ?? .max,
-                        energyMinimum: try energyConstraints.map { try $0.min(granularity: granularity) }
-                            .min() ?? .zero,
-                        energyMaximum: try energyConstraints.map { try $0.max(granularity: granularity) }
-                            .max() ?? .max
+                        timeMinimum: .zero,
+                        timeMaximum: .max,
+                        energyMinimum: .zero,
+                        energyMaximum: .max
                     )
                     try self.store.addJob(data: job)
+                    continue
                 }
-            }
-        }
-        for id in structure.initialStates {
-            for expression in specification.requirements {
                 let job = JobData(
                     nodeId: id,
                     expression: expression.normalised,
                     history: [],
                     currentBranch: [],
                     historyExpression: nil,
-                    constraints: [],
+                    constraints: jobExpression.constraints,
                     successRevisit: nil,
                     failRevisit: nil,
                     session: nil,
                     sessionRevisit: nil,
                     cost: .zero,
-                    timeMinimum: .zero,
-                    timeMaximum: .max,
-                    energyMinimum: .zero,
-                    energyMaximum: .max
+                    timeMinimum: try jobExpression.timeMinimum ?? .zero,
+                    timeMaximum: try jobExpression.timeMaximum ?? .max,
+                    energyMinimum: try jobExpression.energyMinimum ?? .zero,
+                    energyMaximum: try jobExpression.energyMaximum ?? .max
                 )
                 try self.store.addJob(data: job)
             }
@@ -200,22 +172,43 @@ final class TCTLModelChecker<T> where T: JobStorable {
         if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
             // print("New session:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
             // fflush(stdout)
+            guard case .constrained(let jobExpression) = job.expression else {
+                let newJob = JobData(
+                    nodeId: job.nodeId,
+                    expression: job.expression,
+                    history: [],
+                    currentBranch: [],
+                    historyExpression: historyExpression,
+                    constraints: [],
+                    successRevisit: nil,
+                    failRevisit: job.failRevisit,
+                    session: UUID(),
+                    sessionRevisit: job.successRevisit ?? job.sessionRevisit,
+                    cost: .zero,
+                    timeMinimum: .zero,
+                    timeMaximum: .max,
+                    energyMinimum: .zero,
+                    energyMaximum: .max
+                )
+                try self.store.addJob(data: newJob)
+                return
+            }
             let newJob = JobData(
                 nodeId: job.nodeId,
                 expression: job.expression,
                 history: [],
                 currentBranch: [],
                 historyExpression: historyExpression,
-                constraints: [],
+                constraints: jobExpression.constraints,
                 successRevisit: nil,
                 failRevisit: job.failRevisit,
                 session: UUID(),
                 sessionRevisit: job.successRevisit ?? job.sessionRevisit,
                 cost: .zero,
-                timeMinimum: .zero,
-                timeMaximum: .max,
-                energyMinimum: .zero,
-                energyMaximum: .max
+                timeMinimum: try jobExpression.timeMinimum ?? .zero,
+                timeMaximum: try jobExpression.timeMaximum ?? .max,
+                energyMinimum: try jobExpression.energyMinimum ?? .zero,
+                energyMaximum: try jobExpression.energyMaximum ?? .max
             )
             try self.store.addJob(data: newJob)
             return
@@ -272,7 +265,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 )
             case .successor(let expression):
                 guard !successors.isEmpty else {
-                    throw ModelCheckerError.internalError
+                    if job.constraints.isEmpty {
+                        throw ModelCheckerError.internalError
+                    } else {
+                        throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+                    }
                 }
                 for successor in successors {
                     try self.store.addJob(

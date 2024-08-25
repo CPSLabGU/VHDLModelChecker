@@ -69,6 +69,24 @@ extension ConstrainedStatement {
         }
     }
 
+    var isEnergy: Bool {
+        switch self.constraint {
+        case .time:
+            return false
+        case .energy:
+            return true
+        }
+    }
+
+    var isTime: Bool {
+        switch self.constraint {
+        case .time:
+            return true
+        case .energy:
+            return false
+        }
+    }
+
     func isMaxGreaterThan(value: ConstrainedStatement) -> Bool {
         switch self {
         case .equal(let lhs):
