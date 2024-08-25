@@ -118,6 +118,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     energyMinimum: try jobExpression.energyMinimum ?? .zero,
                     energyMaximum: try jobExpression.energyMaximum ?? .max
                 )
+                guard job.timeMinimum <= job.timeMaximum, job.energyMinimum <= job.energyMaximum else {
+                    throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+                }
                 try self.store.addJob(data: job)
             }
         }
@@ -245,6 +248,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 try jobExpression.energyMaximum ?? .max,
                 job.energyMaximum == .max ? .max : job.energyMaximum - job.cost.energy
             )
+            guard newMaxTime >= adjustedTime, newMaxEnergy >= adjustedEnergy else {
+                throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+            }
             let newJob = JobData(
                 nodeId: job.nodeId,
                 expression: Expression.quantified(expression: jobExpression.expression),
