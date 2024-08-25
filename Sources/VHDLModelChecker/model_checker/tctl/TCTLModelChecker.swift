@@ -195,10 +195,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
             }
             let newJob = JobData(
                 nodeId: job.nodeId,
-                expression: job.expression,
+                expression: Expression.quantified(expression: jobExpression.expression),
                 history: [],
                 currentBranch: [],
-                historyExpression: historyExpression,
+                historyExpression: job.expression,
                 constraints: jobExpression.constraints,
                 successRevisit: nil,
                 failRevisit: job.failRevisit,
