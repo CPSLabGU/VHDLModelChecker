@@ -206,6 +206,43 @@ extension ConstrainedStatement {
         }
     }
 
+    func max(granularity: ScientificQuantity) throws -> ScientificQuantity {
+        switch self {
+        case .greaterThan, .greaterThanOrEqual:
+            return .max
+        case .equal(let constraint):
+            return constraint.quantity
+        case .notEqual(let constraint):
+            let amount = constraint.quantity
+            let difference = ScientificQuantity.max - amount
+            return difference > granularity ? .max : .max - granularity
+        case .lessThan(let constraint):
+            let quantity = constraint.quantity
+            guard quantity.coefficient != 0 else {
+                throw ModelCheckerError.internalError
+            }
+            return constraint.quantity - granularity
+        case .lessThanOrEqual(let constraint):
+            return constraint.quantity
+        }
+    }
+
+    func min(granularity: ScientificQuantity) throws -> ScientificQuantity {
+        switch self {
+        case .lessThan, .lessThanOrEqual:
+            return .zero
+        case .equal(let constraint):
+            return constraint.quantity
+        case .notEqual(let constraint):
+            let amount = constraint.quantity
+            return amount < granularity ? granularity : .zero
+        case .greaterThan(let constraint):
+            return constraint.quantity + granularity
+        case .greaterThanOrEqual(let constraint):
+            return constraint.quantity
+        }
+    }
+
     /// Verify that a node satisfies the cost constraint.
     /// - Parameters:
     ///   - node: The node to verify.

@@ -59,6 +59,21 @@ import VHDLKripkeStructures
 /// Add verification support.
 extension ConstrainedExpression {
 
+    var granularity: ScientificQuantity? {
+        guard let quantity = self.constraints.map({ $0.constraint.quantity }).min() else {
+            return nil
+        }
+        let exponent = quantity.exponent
+        let coefficient = quantity.coefficient
+        guard coefficient != 0 else {
+            return ScientificQuantity(coefficient: 1, exponent: -1)
+        }
+        guard coefficient == 1 else {
+            return ScientificQuantity(coefficient: 1, exponent: exponent)
+        }
+        return ScientificQuantity(coefficient: 1, exponent: exponent - 1)
+    }
+
     /// Verify that `node` satisfies the constraints.
     /// - Parameters:
     ///   - node: The node to verify.
