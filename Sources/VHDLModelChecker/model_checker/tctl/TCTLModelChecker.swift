@@ -80,22 +80,44 @@ final class TCTLModelChecker<T> where T: JobStorable {
         try self.store.reset()
         for id in structure.initialStates {
             for expression in specification.requirements {
+                let constraints = expression.constraints ?? []
+                let timeConstraints = constraints.filter {
+                    switch $0.constraint {
+                    case .time:
+                        return true
+                    default:
+                        return false
+                    }
+                }
+                let energyConstraints = constraints.filter {
+                    switch $0.constraint {
+                    case .energy:
+                        return true
+                    default:
+                        return false
+                    }
+                }
                 let job = JobData(
                     nodeId: id,
                     expression: expression.normalised,
                     history: [],
                     currentBranch: [],
                     historyExpression: nil,
-                    constraints: [],
+                    constraints: constraints,
                     successRevisit: nil,
                     failRevisit: nil,
                     session: nil,
                     sessionRevisit: nil,
                     cost: .zero,
-                    timeMinimum: .zero,
-                    timeMaximum: .max,
-                    energyMinimum: .zero,
-                    energyMaximum: .max
+                    timeMinimum: timeConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity
+                        ?? .zero,
+                    timeMaximum: timeConstraints.max { $0.isMaxGreaterThan(value: $1) }?.constraint.quantity
+                        ?? .max,
+                    energyMinimum: energyConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity
+                        ?? .zero,
+                    energyMaximum: energyConstraints.max {
+                        $0.isMaxGreaterThan(value: $1)
+                    }?.constraint.quantity ?? .max
                 )
                 try self.store.addJob(data: job)
             }
@@ -103,6 +125,28 @@ final class TCTLModelChecker<T> where T: JobStorable {
         while let jobId = try self.store.next {
             try handleJob(withId: jobId, structure: structure)
         }
+    }
+
+    private func getValidSuccessors(
+        job: Job, structure: KripkeStructureIterator
+    ) throws -> LazyFilterSequence<[NodeEdge]> {
+        guard let edges = structure.edges[job.nodeId], !edges.isEmpty else {
+            throw ModelCheckerError.internalError
+        }
+        return edges.lazy.filter {
+            let cost = job.cost + $0.cost
+            let time = cost.time
+            let energy = cost.energy
+            return job.timeMinimum <= time && time <= job.timeMaximum
+                && job.energyMinimum <= energy && energy <= job.energyMaximum
+        }
+    }
+
+    private func inCycle(job: Job, edges: LazyFilterSequence<[NodeEdge]>) -> Bool {
+        guard !job.history.contains(job.nodeId) else {
+            return true
+        }
+        return edges.isEmpty
     }
 
     // swiftlint:disable:next function_body_length
@@ -151,11 +195,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         // print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
         // fflush(stdout)
+        let successors = try getValidSuccessors(job: job, structure: structure)
         let results: [VerifyStatus]
         do {
             results = try job.expression.verify(
-                currentNode: node,
-                inCycle: job.history.contains(job.nodeId) || (structure.edges[job.nodeId] ?? []).isEmpty
+                currentNode: node, inCycle: self.inCycle(job: job, edges: successors)
             )
         } catch let error as VerificationError {
             try fail(structure: structure, job: job) {
@@ -170,7 +214,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
             throw error
         }
         guard results.isEmpty else {
-            try createNewJobs(currentJob: job, structure: structure, results: results)
+            try createNewJobs(currentJob: job, structure: structure, results: results, successors: successors)
             return
         }
         if let failingConstraint = job.constraints.first(where: {
@@ -188,9 +232,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
     }
 
     private func createNewJobs(
-        currentJob job: Job, structure: KripkeStructureIterator, results: [VerifyStatus]
+        currentJob job: Job,
+        structure: KripkeStructureIterator,
+        results: [VerifyStatus],
+        successors: LazyFilterSequence<[NodeEdge]>
     ) throws {
-        lazy var successors = structure.edges[job.nodeId] ?? []
         for result in results {
             switch result {
             case .addConstraints(let expression, let constraints):
