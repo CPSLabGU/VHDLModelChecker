@@ -151,30 +151,35 @@ final class TCTLModelChecker<T> where T: JobStorable {
     // swiftlint:disable:next function_body_length
     private func handleJob(withId jobId: UUID, structure: KripkeStructureIterator) throws {
         let job = try self.store.job(withId: jobId)
-        if case .quantified(.always(.next)) = job.expression { } else {
-            guard !job.isBelowWindow else {
+        guard !job.isAboveWindow else {
+            try fail(structure: structure, job: job) { _ in
+                ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+            }
+            return
+        }
+        guard !job.isBelowWindow else {
+            let successors = structure.edges[job.nodeId] ?? []
+            for successor in successors {
                 let newJob = JobData(
-                    nodeId: job.nodeId,
-                    expression: .quantified(
-                        expression: .always(expression: .next(expression: job.expression))
-                    ),
-                    history: job.history,
-                    currentBranch: job.currentBranch,
-                    historyExpression: job.historyExpression,
+                    nodeId: successor.destination,
+                    expression: job.expression,
+                    history: [],
+                    currentBranch: [],
+                    historyExpression: nil,
                     constraints: job.constraints,
                     successRevisit: job.successRevisit,
                     failRevisit: job.failRevisit,
                     session: job.session,
                     sessionRevisit: job.sessionRevisit,
-                    cost: job.cost,
+                    cost: job.cost + successor.cost,
                     timeMinimum: job.timeMinimum,
                     timeMaximum: job.timeMaximum,
                     energyMinimum: job.energyMinimum,
                     energyMaximum: job.energyMaximum
                 )
                 try self.store.addJob(data: newJob)
-                return
             }
+            return
         }
         guard !(try store.inCycle(job)) else {
             guard
@@ -315,7 +320,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     if job.constraints.isEmpty {
                         throw ModelCheckerError.internalError
                     } else {
-                        throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+                        try fail(structure: structure, job: job) { _ in
+                            ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+                        }
+                        return
                     }
                 }
                 for successor in successors {

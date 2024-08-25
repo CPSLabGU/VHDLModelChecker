@@ -454,7 +454,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .constraintViolation(let branches, let cost, let constraint) = error
+                case .mismatchedConstraints = error
             else {
                 XCTFail("Got incorrect error!")
                 return

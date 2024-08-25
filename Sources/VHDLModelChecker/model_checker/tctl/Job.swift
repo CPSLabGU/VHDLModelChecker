@@ -192,6 +192,10 @@ final class JobData: Equatable, Hashable {
         )
     }
 
+    var isAboveWindow: Bool {
+        self.cost.time > timeMaximum || self.cost.energy > energyMaximum
+    }
+
     var isBelowWindow: Bool {
         self.cost.time < timeMinimum || self.cost.energy < energyMinimum
     }
@@ -335,6 +339,10 @@ final class Job: Equatable, Hashable, Identifiable {
 
     var energyMaximum: ScientificQuantity {
         data.energyMaximum
+    }
+
+    var isAboveWindow: Bool {
+        data.isAboveWindow
     }
 
     var isBelowWindow: Bool {
