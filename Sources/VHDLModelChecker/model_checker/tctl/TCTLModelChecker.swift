@@ -179,20 +179,42 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     history: [],
                     currentBranch: [],
                     historyExpression: historyExpression,
-                    constraints: [],
+                    constraints: job.constraints,
                     successRevisit: nil,
                     failRevisit: job.failRevisit,
                     session: UUID(),
                     sessionRevisit: job.successRevisit ?? job.sessionRevisit,
                     cost: .zero,
-                    timeMinimum: job.timeMinimum,
-                    timeMaximum: job.timeMaximum,
-                    energyMinimum: job.energyMinimum,
-                    energyMaximum: job.energyMaximum
+                    timeMinimum: job.timeMinimum > job.cost.time ? job.timeMinimum - job.cost.time : .zero,
+                    timeMaximum: job.timeMaximum == .max ? .max : job.timeMaximum - job.cost.time,
+                    energyMinimum: job.energyMinimum > job.cost.energy ? job.energyMinimum - job.cost.energy : .zero,
+                    energyMaximum: job.energyMaximum == .max ? .max : job.energyMaximum - job.cost.energy
                 )
                 try self.store.addJob(data: newJob)
                 return
             }
+            let adjustedTime: ScientificQuantity
+            let currentTime = try jobExpression.timeMinimum ?? .zero
+            if job.timeMinimum > job.cost.time {
+                adjustedTime = max(job.timeMinimum - job.cost.time, currentTime)
+            } else {
+                adjustedTime = currentTime
+            }
+            let adjustedEnergy: ScientificQuantity
+            let currentEnergy = try jobExpression.energyMinimum ?? .zero
+            if job.energyMinimum > job.cost.energy {
+                adjustedEnergy = max(job.energyMinimum - job.cost.energy, currentEnergy)
+            } else {
+                adjustedEnergy = currentEnergy
+            }
+            let newMaxTime = min(
+                try jobExpression.timeMaximum ?? .max,
+                job.timeMaximum == .max ? .max : job.timeMaximum - job.cost.time
+            )
+            let newMaxEnergy = min(
+                try jobExpression.energyMaximum ?? .max,
+                job.energyMaximum == .max ? .max : job.energyMaximum - job.cost.energy
+            )
             let newJob = JobData(
                 nodeId: job.nodeId,
                 expression: Expression.quantified(expression: jobExpression.expression),
@@ -205,16 +227,16 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 session: UUID(),
                 sessionRevisit: job.successRevisit ?? job.sessionRevisit,
                 cost: .zero,
-                timeMinimum: try jobExpression.timeMinimum ?? .zero,
-                timeMaximum: try jobExpression.timeMaximum ?? .max,
-                energyMinimum: try jobExpression.energyMinimum ?? .zero,
-                energyMaximum: try jobExpression.energyMaximum ?? .max
+                timeMinimum: adjustedTime,
+                timeMaximum: newMaxTime,
+                energyMinimum: adjustedEnergy,
+                energyMaximum: newMaxEnergy
             )
             try self.store.addJob(data: newJob)
             return
         }
-        print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
-        fflush(stdout)
+        // print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
+        // fflush(stdout)
         let successors = try getValidSuccessors(job: job, structure: structure)
         let results: [VerifyStatus]
         do {
