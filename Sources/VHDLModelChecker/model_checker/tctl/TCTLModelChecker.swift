@@ -72,52 +72,79 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
     private var debug = false
 
+    private var granularity: ScientificQuantity
+
     init(store: T) {
         self.store = store
+        self.granularity = .zero
     }
 
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
         try self.store.reset()
+        if let granularity = specification.requirements.compactMap(\.granularity).min() {
+            self.granularity = granularity
+            for id in structure.initialStates {
+                for expression in specification.requirements {
+                    let constraints = expression.constraints ?? []
+                    let timeConstraints = constraints.filter {
+                        switch $0.constraint {
+                        case .time:
+                            return true
+                        default:
+                            return false
+                        }
+                    }
+                    let energyConstraints = constraints.filter {
+                        switch $0.constraint {
+                        case .energy:
+                            return true
+                        default:
+                            return false
+                        }
+                    }
+                    let job = JobData(
+                        nodeId: id,
+                        expression: expression.normalised,
+                        history: [],
+                        currentBranch: [],
+                        historyExpression: nil,
+                        constraints: constraints,
+                        successRevisit: nil,
+                        failRevisit: nil,
+                        session: nil,
+                        sessionRevisit: nil,
+                        cost: .zero,
+                        timeMinimum: try timeConstraints.map { try $0.min(granularity: granularity) }.min()
+                            ?? .zero,
+                        timeMaximum: try timeConstraints.map { try $0.max(granularity: granularity) }.max()
+                            ?? .max,
+                        energyMinimum: try energyConstraints.map { try $0.min(granularity: granularity) }
+                            .min() ?? .zero,
+                        energyMaximum: try energyConstraints.map { try $0.max(granularity: granularity) }
+                            .max() ?? .max
+                    )
+                    try self.store.addJob(data: job)
+                }
+            }
+        }
         for id in structure.initialStates {
             for expression in specification.requirements {
-                let constraints = expression.constraints ?? []
-                let timeConstraints = constraints.filter {
-                    switch $0.constraint {
-                    case .time:
-                        return true
-                    default:
-                        return false
-                    }
-                }
-                let energyConstraints = constraints.filter {
-                    switch $0.constraint {
-                    case .energy:
-                        return true
-                    default:
-                        return false
-                    }
-                }
                 let job = JobData(
                     nodeId: id,
                     expression: expression.normalised,
                     history: [],
                     currentBranch: [],
                     historyExpression: nil,
-                    constraints: constraints,
+                    constraints: [],
                     successRevisit: nil,
                     failRevisit: nil,
                     session: nil,
                     sessionRevisit: nil,
                     cost: .zero,
-                    timeMinimum: timeConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity
-                        ?? .zero,
-                    timeMaximum: timeConstraints.max { $0.isMaxGreaterThan(value: $1) }?.constraint.quantity
-                        ?? .max,
-                    energyMinimum: energyConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity
-                        ?? .zero,
-                    energyMaximum: energyConstraints.max {
-                        $0.isMaxGreaterThan(value: $1)
-                    }?.constraint.quantity ?? .max
+                    timeMinimum: .zero,
+                    timeMaximum: .max,
+                    energyMinimum: .zero,
+                    energyMaximum: .max
                 )
                 try self.store.addJob(data: job)
             }
