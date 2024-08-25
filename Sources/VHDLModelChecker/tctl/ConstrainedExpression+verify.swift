@@ -66,12 +66,9 @@ extension ConstrainedExpression {
         let exponent = quantity.exponent
         let coefficient = quantity.coefficient
         guard coefficient != 0 else {
-            return ScientificQuantity(coefficient: 1, exponent: -1)
+            return ScientificQuantity(coefficient: 5, exponent: -2)
         }
-        guard coefficient == 1 else {
-            return ScientificQuantity(coefficient: 1, exponent: exponent)
-        }
-        return ScientificQuantity(coefficient: 1, exponent: exponent - 1)
+        return ScientificQuantity(coefficient: 5, exponent: exponent - 2)
     }
 
     /// Verify that `node` satisfies the constraints.
