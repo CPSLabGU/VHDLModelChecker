@@ -78,8 +78,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
         try self.store.reset()
-        for id in structure.initialStates {
-            for expression in specification.requirements {
+        let clock = ContinuousClock()
+        for expression in specification.requirements.reversed() {
+            print("Verifying: \(expression.rawValue)")
+            for id in structure.initialStates {
                 let job = JobData(
                     nodeId: id,
                     expression: expression.normalised,
@@ -99,9 +101,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 )
                 try self.store.addJob(data: job)
             }
-        }
-        while let jobId = try self.store.next {
-            try handleJob(withId: jobId, structure: structure)
+            fflush(stdout)
+            let elapsedTime = try clock.measure {
+                while let jobId = try self.store.next {
+                    try handleJob(withId: jobId, structure: structure)
+                }
+            }
+            print("Finished \(expression.rawValue) in \(elapsedTime) (± \(clock.minimumResolution)).")
+            fflush(stdout)
         }
     }
 
