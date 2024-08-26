@@ -231,14 +231,26 @@ final class TCTLModelChecker<T> where T: JobStorable {
         //     try self.store.addJob(data: newJob)
         //     return
         // }
+        guard let allSuccessors = structure.edges[job.nodeId] else {
+            throw ModelCheckerError.internalError
+        }
         let successors = try getValidSuccessors(job: job, structure: structure)
+        let invalidSuccessors = Set(allSuccessors).subtracting(successors)
         print("""
         Verifying:
             inCycle: \(self.inCycle(job: job, edges: successors))\n\n
         """)
         fflush(stdout)
+        let invalidResults: [VerifyStatus]
         let results: [VerifyStatus]
         do {
+            if !invalidSuccessors.isEmpty {
+                invalidResults = try job.expression.verify(
+                    currentNode: node, inCycle: self.inCycle(job: job, edges: successors)
+                )
+            } else {
+                invalidResults = []
+            }
             results = try job.expression.verify(
                 currentNode: node, inCycle: self.inCycle(job: job, edges: successors)
             )
@@ -253,6 +265,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
             throw ModelCheckerError(error: error, expression: job.expression)
         } catch let error {
             throw error
+        }
+        if !invalidResults.isEmpty {
+            try createNewJobs(
+                currentJob: job, structure: structure, results: invalidResults, successors: invalidSuccessors
+            )
+            if results.isEmpty {
+                return
+            }
         }
         guard results.isEmpty else {
             try createNewJobs(currentJob: job, structure: structure, results: results, successors: successors)
@@ -272,12 +292,12 @@ final class TCTLModelChecker<T> where T: JobStorable {
         try succeed(job: job)
     }
 
-    private func createNewJobs(
+    private func createNewJobs<S: Sequence>(
         currentJob job: Job,
         structure: KripkeStructureIterator,
         results: [VerifyStatus],
-        successors: LazyFilterSequence<[NodeEdge]>
-    ) throws {
+        successors: S
+    ) throws where S.Iterator.Element == NodeEdge {
         for result in results {
             switch result {
             case .addConstraints(let expression, let constraints):
@@ -286,7 +306,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 //     data: JobData(expression: expression, constraints: constraints, job: job)
                 // )
             case .successor(let expression):
-                guard !successors.isEmpty else {
+                guard nil != successors.first(where: { _ in true }) else {
                     if job.constraints.isEmpty {
                         throw ModelCheckerError.internalError
                     } else {
