@@ -120,11 +120,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
     }
 
-    private func inCycle(job: Job, structure: KripkeStructureIterator, edges: LazyFilterSequence<[NodeEdge]>) -> Bool {
+    private func inCycle(job: Job, edges: LazyFilterSequence<[NodeEdge]>) -> Bool {
         guard !job.history.contains(job.nodeId) else {
             return true
         }
-        return structure.edges[job.nodeId]?.count != edges.count
+        return edges.isEmpty
     }
 
     // swiftlint:disable:next function_body_length
@@ -234,13 +234,13 @@ final class TCTLModelChecker<T> where T: JobStorable {
         let successors = try getValidSuccessors(job: job, structure: structure)
         print("""
         Verifying:
-            inCycle: \(self.inCycle(job: job, structure: structure, edges: successors))\n\n
+            inCycle: \(self.inCycle(job: job, edges: successors))\n\n
         """)
         fflush(stdout)
         let results: [VerifyStatus]
         do {
             results = try job.expression.verify(
-                currentNode: node, inCycle: self.inCycle(job: job, structure: structure, edges: successors)
+                currentNode: node, inCycle: self.inCycle(job: job, edges: successors)
             )
         } catch let error as VerificationError {
             try fail(structure: structure, job: job) {
