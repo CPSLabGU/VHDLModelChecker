@@ -130,30 +130,30 @@ final class TCTLModelChecker<T> where T: JobStorable {
     // swiftlint:disable:next function_body_length
     private func handleJob(withId jobId: UUID, structure: KripkeStructureIterator) throws {
         let job = try self.store.job(withId: jobId)
-        print("""
-        Job:
-            node id: \(job.nodeId.uuidString)
-            expression: \(job.expression.rawValue)
-            Cost: \(job.cost)
-            Session Revisit ID: \(job.sessionRevisit?.uuidString ?? "nil")
-            Window:
-                Time: [\(job.timeMinimum), \(job.timeMaximum)]
-                Energy: [\(job.energyMinimum), \(job.energyMaximum)]
-            properties:
-                \(structure.nodes[job.nodeId]!.properties)
-        """)
-        fflush(stdout)
+        // print("""
+        // Job:
+        //     node id: \(job.nodeId.uuidString)
+        //     expression: \(job.expression.rawValue)
+        //     Cost: \(job.cost)
+        //     Session Revisit ID: \(job.sessionRevisit?.uuidString ?? "nil")
+        //     Window:
+        //         Time: [\(job.timeMinimum), \(job.timeMaximum)]
+        //         Energy: [\(job.energyMinimum), \(job.energyMaximum)]
+        //     properties:
+        //         \(structure.nodes[job.nodeId]!.properties)
+        // """)
+        // fflush(stdout)
         guard !job.isAboveWindow else {
-            print("Above Window\n\n")
-            fflush(stdout)
+            // print("Above Window\n\n")
+            // fflush(stdout)
             try fail(structure: structure, job: job) { _ in
                 ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
             }
             return
         }
         guard !job.isBelowWindow else {
-            print("Below Window\n\n")
-            fflush(stdout)
+            // print("Below Window\n\n")
+            // fflush(stdout)
             let successors = structure.edges[job.nodeId] ?? []
             for successor in successors {
                 let newJob = JobData(
@@ -178,8 +178,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
             return
         }
         guard !(try store.inCycle(job)) else {
-            print("In Cycle\n\n")
-            fflush(stdout)
+            // print("In Cycle\n\n")
+            // fflush(stdout)
             guard
                 let session = job.session,
                 try self.store.isComplete(session: session),
@@ -192,16 +192,16 @@ final class TCTLModelChecker<T> where T: JobStorable {
             return
         }
         if let session = job.session, try self.store.error(session: session) != nil {
-            print("Session Error\n\n")
-            fflush(stdout)
+            // print("Session Error\n\n")
+            // fflush(stdout)
             return
         }
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
         }
         if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
-            print("New session\n\n")
-            fflush(stdout)
+            // print("New session\n\n")
+            // fflush(stdout)
             let newJob = try JobData(
                 newSessionFor: job, historyExpression: historyExpression, structure: structure
             )
@@ -236,17 +236,19 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         let successors = try getValidSuccessors(job: job, structure: structure)
         let invalidSuccessors = Set(allSuccessors).subtracting(successors)
-        print("""
-        Verifying:
-            inCycle: \(self.inCycle(job: job, edges: successors))\n\n
-        """)
-        fflush(stdout)
+        // print("""
+        // Verifying:
+        //     inCycle: \(self.inCycle(job: job, edges: successors))\n\n
+        // """)
+        // fflush(stdout)
         let invalidResults: [VerifyStatus]
         let results: [VerifyStatus]
         let inCycle = self.inCycle(job: job, edges: successors)
         do {
             if !inCycle && !invalidSuccessors.isEmpty {
-                invalidResults = try job.expression.verify(currentNode: node, inCycle: true)
+                invalidResults = (try job.expression.verify(currentNode: node, inCycle: true)).filter {
+                    !$0.isSuccessor
+                }
             } else {
                 invalidResults = []
             }
@@ -267,17 +269,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         if !invalidResults.isEmpty {
             try createNewJobs(
-                currentJob: job,
-                structure: structure,
-                results: invalidResults.filter {
-                    switch $0 {
-                    case .successor:
-                        return false
-                    default:
-                        return true
-                    }
-                },
-                successors: invalidSuccessors
+                currentJob: job, structure: structure, results: invalidResults, successors: invalidSuccessors
             )
             if results.isEmpty {
                 return
@@ -340,14 +332,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
     private func succeed(job: Job) throws {
         if let revisitId = job.successRevisit {
-            print("Revisiting success revisit: \(revisitId)")
-            fflush(stdout)
+            // print("Revisiting success revisit: \(revisitId)")
+            // fflush(stdout)
             let revisit = try self.store.job(withId: revisitId)
             try self.store.addJob(job: revisit)
         }
         if let revisit = job.sessionRevisit {
-            print("Revisiting Session: \(revisit)")
-            fflush(stdout)
+            // print("Revisiting Session: \(revisit)")
+            // fflush(stdout)
             guard let session = job.session else {
                 throw ModelCheckerError.internalError
             }
