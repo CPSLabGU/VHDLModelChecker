@@ -105,9 +105,9 @@ struct KripkeStructureIterator {
             edges[myID] = currentEdges + newEdges
         }
         let timeGranularity = minTimeExponent != .max
-            ? ScientificQuantity(coefficient: 5, exponent: minEnergyExponent - 2) : .zero
-        let energyGranularity = minEnergyExponent != .max
             ? ScientificQuantity(coefficient: 5, exponent: minTimeExponent - 2) : .zero
+        let energyGranularity = minEnergyExponent != .max
+            ? ScientificQuantity(coefficient: 5, exponent: minEnergyExponent - 2) : .zero
         self.init(
             nodes: nodes,
             edges: edges,

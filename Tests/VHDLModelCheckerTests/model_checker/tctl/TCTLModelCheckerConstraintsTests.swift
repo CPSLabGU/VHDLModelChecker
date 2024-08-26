@@ -70,7 +70,7 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
 
     let z = VariableName(rawValue: "z")!
 
-    func testConstraintsAlwaysFutureGlobalPasses() {
+    func testConstraintsAlwaysFutureGlobalPassesSimple() {
         let checker = TCTLModelChecker(store: InMemoryDataStore())
         let aNode = Node(
             type: .read,
@@ -150,7 +150,7 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
             currentState: a,
             executeOnEntry: false,
             nextState: a,
-            properties: [x: .boolean(value: true), y: .boolean(value: false)]
+            properties: [x: .boolean(value: false), y: .boolean(value: true)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
             nodes: [aNode, bNode, cNode, dNode],
@@ -568,7 +568,7 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
 
         {A X x = true}_{t < 1500 ns}
 
-        {A X x = true}_{t <= 0 us}
+        {A X x = true}_{t >= 0 us}
         """
         let specification = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: specification))

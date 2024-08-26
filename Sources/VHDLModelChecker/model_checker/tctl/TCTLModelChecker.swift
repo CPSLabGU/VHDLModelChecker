@@ -80,51 +80,23 @@ final class TCTLModelChecker<T> where T: JobStorable {
         try self.store.reset()
         for id in structure.initialStates {
             for expression in specification.requirements {
-                guard case .constrained(let jobExpression) = expression else {
-                    let job = JobData(
-                        nodeId: id,
-                        expression: expression.normalised,
-                        history: [],
-                        currentBranch: [],
-                        historyExpression: nil,
-                        constraints: [],
-                        successRevisit: nil,
-                        failRevisit: nil,
-                        session: nil,
-                        sessionRevisit: nil,
-                        cost: .zero,
-                        timeMinimum: .zero,
-                        timeMaximum: .max,
-                        energyMinimum: .zero,
-                        energyMaximum: .max
-                    )
-                    try self.store.addJob(data: job)
-                    continue
-                }
                 let job = JobData(
                     nodeId: id,
                     expression: expression.normalised,
                     history: [],
                     currentBranch: [],
                     historyExpression: nil,
-                    constraints: jobExpression.constraints,
+                    constraints: [],
                     successRevisit: nil,
                     failRevisit: nil,
                     session: nil,
                     sessionRevisit: nil,
                     cost: .zero,
-                    timeMinimum: try jobExpression.timeMinimum(granularity: structure.timeGranularity)
-                        ?? .zero,
-                    timeMaximum: try jobExpression.timeMaximum(granularity: structure.timeGranularity)
-                        ?? .max,
-                    energyMinimum: try jobExpression.energyMinimum(granularity: structure.energyGranularity)
-                        ?? .zero,
-                    energyMaximum: try jobExpression.energyMaximum(granularity: structure.energyGranularity)
-                        ?? .max
+                    timeMinimum: .zero,
+                    timeMaximum: .max,
+                    energyMinimum: .zero,
+                    energyMaximum: .max
                 )
-                guard job.timeMinimum <= job.timeMaximum, job.energyMinimum <= job.energyMaximum else {
-                    throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
-                }
                 try self.store.addJob(data: job)
             }
         }
@@ -158,13 +130,30 @@ final class TCTLModelChecker<T> where T: JobStorable {
     // swiftlint:disable:next function_body_length
     private func handleJob(withId jobId: UUID, structure: KripkeStructureIterator) throws {
         let job = try self.store.job(withId: jobId)
+        print("""
+        Job:
+            node id: \(job.nodeId.uuidString)
+            expression: \(job.expression.rawValue)
+            Cost: \(job.cost)
+            Session Revisit ID: \(job.sessionRevisit?.uuidString ?? "nil")
+            Window:
+                Time: [\(job.timeMinimum), \(job.timeMaximum)]
+                Energy: [\(job.energyMinimum), \(job.energyMaximum)]
+            properties:
+                \(structure.nodes[job.nodeId]!.properties)
+        """)
+        fflush(stdout)
         guard !job.isAboveWindow else {
+            print("Above Window\n\n")
+            fflush(stdout)
             try fail(structure: structure, job: job) { _ in
                 ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
             }
             return
         }
         guard !job.isBelowWindow else {
+            print("Below Window\n\n")
+            fflush(stdout)
             let successors = structure.edges[job.nodeId] ?? []
             for successor in successors {
                 let newJob = JobData(
@@ -172,7 +161,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     expression: job.expression,
                     history: [],
                     currentBranch: [],
-                    historyExpression: nil,
+                    historyExpression: job.historyExpression,
                     constraints: job.constraints,
                     successRevisit: job.successRevisit,
                     failRevisit: job.failRevisit,
@@ -189,6 +178,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
             return
         }
         guard !(try store.inCycle(job)) else {
+            print("In Cycle\n\n")
+            fflush(stdout)
             guard
                 let session = job.session,
                 try self.store.isComplete(session: session),
@@ -201,23 +192,51 @@ final class TCTLModelChecker<T> where T: JobStorable {
             return
         }
         if let session = job.session, try self.store.error(session: session) != nil {
+            print("Session Error\n\n")
+            fflush(stdout)
             return
         }
         guard let node = structure.nodes[job.nodeId] else {
             throw ModelCheckerError.internalError
         }
         if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
-            // print("New session:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
-            // fflush(stdout)
+            print("New session\n\n")
+            fflush(stdout)
             let newJob = try JobData(
                 newSessionFor: job, historyExpression: historyExpression, structure: structure
             )
             try self.store.addJob(data: newJob)
             return
         }
-        // print("Verifying:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n    properties: \(structure.nodes[job.nodeId]!.properties)\n\n")
-        // fflush(stdout)
+        // if job.expression.historyExpression == nil {
+        //     print("Removing Constraints!")
+        //     fflush(stdout)
+        //     let newJob = JobData(
+        //         nodeId: job.nodeId,
+        //         expression: job.expression,
+        //         history: job.history,
+        //         currentBranch: job.currentBranch,
+        //         historyExpression: job.historyExpression,
+        //         constraints: job.constraints,
+        //         successRevisit: job.successRevisit,
+        //         failRevisit: job.failRevisit,
+        //         session: job.session,
+        //         sessionRevisit: job.sessionRevisit,
+        //         cost: .zero,
+        //         timeMinimum: .zero,
+        //         timeMaximum: .max,
+        //         energyMinimum: .zero,
+        //         energyMaximum: .max
+        //     )
+        //     try self.store.addJob(data: newJob)
+        //     return
+        // }
         let successors = try getValidSuccessors(job: job, structure: structure)
+        print("""
+        Verifying:
+            inCycle: \(self.inCycle(job: job, edges: successors))\n\n
+        """)
+        fflush(stdout)
         let results: [VerifyStatus]
         do {
             results = try job.expression.verify(
@@ -262,9 +281,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
         for result in results {
             switch result {
             case .addConstraints(let expression, let constraints):
-                try self.store.addJob(
-                    data: JobData(expression: expression, constraints: constraints, job: job)
-                )
+                fatalError("Should never add constraints!")
+                // try self.store.addJob(
+                //     data: JobData(expression: expression, constraints: constraints, job: job)
+                // )
             case .successor(let expression):
                 guard !successors.isEmpty else {
                     if job.constraints.isEmpty {
@@ -291,10 +311,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
     private func succeed(job: Job) throws {
         if let revisitId = job.successRevisit {
+            print("Revisiting success revisit: \(revisitId)")
+            fflush(stdout)
             let revisit = try self.store.job(withId: revisitId)
             try self.store.addJob(job: revisit)
         }
         if let revisit = job.sessionRevisit {
+            print("Revisiting Session: \(revisit)")
+            fflush(stdout)
             guard let session = job.session else {
                 throw ModelCheckerError.internalError
             }
@@ -349,42 +373,24 @@ private extension JobData {
                 history: [],
                 currentBranch: [],
                 historyExpression: historyExpression,
-                constraints: job.constraints,
+                constraints: [],
                 successRevisit: nil,
                 failRevisit: job.failRevisit,
                 session: UUID(),
                 sessionRevisit: job.successRevisit ?? job.sessionRevisit,
                 cost: .zero,
-                timeMinimum: job.timeMinimum > job.cost.time ? job.timeMinimum - job.cost.time : .zero,
-                timeMaximum: job.timeMaximum == .max ? .max : job.timeMaximum - job.cost.time,
-                energyMinimum: job.energyMinimum > job.cost.energy ? job.energyMinimum - job.cost.energy : .zero,
-                energyMaximum: job.energyMaximum == .max ? .max : job.energyMaximum - job.cost.energy
+                timeMinimum: .zero,
+                timeMaximum: .max,
+                energyMinimum: .zero,
+                energyMaximum: .max
             )
             return
         }
-        let adjustedTime: ScientificQuantity
-        let currentTime = try jobExpression.timeMinimum(granularity: structure.timeGranularity) ?? .zero
-        if job.timeMinimum > job.cost.time {
-            adjustedTime = max(job.timeMinimum - job.cost.time, currentTime)
-        } else {
-            adjustedTime = currentTime
-        }
-        let adjustedEnergy: ScientificQuantity
-        let currentEnergy = try jobExpression.energyMinimum(granularity: structure.energyGranularity) ?? .zero
-        if job.energyMinimum > job.cost.energy {
-            adjustedEnergy = max(job.energyMinimum - job.cost.energy, currentEnergy)
-        } else {
-            adjustedEnergy = currentEnergy
-        }
-        let newMaxTime = min(
-            try jobExpression.timeMaximum(granularity: structure.timeGranularity) ?? .max,
-            job.timeMaximum == .max ? .max : job.timeMaximum - job.cost.time
-        )
-        let newMaxEnergy = min(
-            try jobExpression.energyMaximum(granularity: structure.energyGranularity) ?? .max,
-            job.energyMaximum == .max ? .max : job.energyMaximum - job.cost.energy
-        )
-        guard newMaxTime >= adjustedTime, newMaxEnergy >= adjustedEnergy else {
+        let newMinTime = try jobExpression.timeMinimum(granularity: structure.timeGranularity) ?? .zero
+        let newMaxTime = try jobExpression.timeMaximum(granularity: structure.timeGranularity) ?? .max
+        let newMinEnergy = try jobExpression.energyMinimum(granularity: structure.energyGranularity) ?? .zero
+        let newMaxEnergy = try jobExpression.energyMaximum(granularity: structure.energyGranularity) ?? .max
+        guard newMaxTime >= newMinTime, newMaxEnergy >= newMinEnergy else {
             throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
         }
         self.init(
@@ -392,16 +398,16 @@ private extension JobData {
             expression: Expression.quantified(expression: jobExpression.expression),
             history: [],
             currentBranch: [],
-            historyExpression: job.expression,
+            historyExpression: historyExpression,
             constraints: jobExpression.constraints,
             successRevisit: nil,
             failRevisit: job.failRevisit,
             session: UUID(),
             sessionRevisit: job.successRevisit ?? job.sessionRevisit,
             cost: .zero,
-            timeMinimum: adjustedTime,
+            timeMinimum: newMinTime,
             timeMaximum: newMaxTime,
-            energyMinimum: adjustedEnergy,
+            energyMinimum: newMinEnergy,
             energyMaximum: newMaxEnergy
         )
     }
