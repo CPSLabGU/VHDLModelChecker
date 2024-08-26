@@ -1362,7 +1362,7 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
             currentState: a,
             executeOnEntry: false,
             nextState: a,
-            properties: [x: .boolean(value: false), y: .boolean(value: true)]
+            properties: [x: .boolean(value: false), y: .boolean(value: false)]
         )
         let iterator = KripkeStructureIterator(structure: KripkeStructure(
             nodes: [aNode, bNode, cNode, dNode],
