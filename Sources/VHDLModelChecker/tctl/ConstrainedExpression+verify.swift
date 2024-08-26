@@ -63,65 +63,37 @@ extension ConstrainedExpression {
         constraints.filter { $0.isEnergy }
     }
 
-    var energyGranularity: ScientificQuantity? {
-        granularity(constraints: energyConstraints)
-    }
-
-    var energyMaximum: ScientificQuantity? {
-        get throws {
-            guard let energyGranularity else {
-                return nil
-            }
-            return try energyConstraints.map({ try $0.max(granularity: energyGranularity) }).max()
-        }
-    }
-
-    var energyMinimum: ScientificQuantity? {
-        get throws {
-            guard let energyGranularity else {
-                return nil
-            }
-            return try energyConstraints.map({ try $0.min(granularity: energyGranularity) }).min()
-        }
-    }
-
     var timeConstraints: [ConstrainedStatement] {
         constraints.filter { $0.isTime }
     }
 
-    var timeGranularity: ScientificQuantity? {
-        granularity(constraints: timeConstraints)
+    func energyMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+        try energyConstraints.map { try $0.max(granularity: granularity) }.max()
     }
 
-    var timeMaximum: ScientificQuantity? {
-        get throws {
-            guard let timeGranularity else {
-                return nil
-            }
-            return try timeConstraints.map({ try $0.max(granularity: timeGranularity) }).max()
-        }
+    func energyMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+        try energyConstraints.map { try $0.min(granularity: granularity) }.min()
     }
 
-    var timeMinimum: ScientificQuantity? {
-        get throws {
-            guard let timeGranularity else {
-                return nil
-            }
-            return try timeConstraints.map({ try $0.min(granularity: timeGranularity) }).min()
-        }
+    func timeMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+        try timeConstraints.map { try $0.max(granularity: granularity) }.max()
     }
 
-    func granularity(constraints: [ConstrainedStatement]) -> ScientificQuantity? {
-        guard let quantity = constraints.map({ $0.constraint.quantity }).min() else {
-            return nil
-        }
-        let exponent = quantity.exponent
-        let coefficient = quantity.coefficient
-        guard coefficient != 0 else {
-            return ScientificQuantity(coefficient: 5, exponent: -2)
-        }
-        return ScientificQuantity(coefficient: 5, exponent: exponent - 2)
+    func timeMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+        try timeConstraints.map { try $0.min(granularity: granularity) }.min()
     }
+
+    // func granularity(constraints: [ConstrainedStatement]) -> ScientificQuantity? {
+    //     guard let quantity = constraints.map({ $0.constraint.quantity }).min() else {
+    //         return nil
+    //     }
+    //     let exponent = quantity.exponent
+    //     let coefficient = quantity.coefficient
+    //     guard coefficient != 0 else {
+    //         return ScientificQuantity(coefficient: 5, exponent: -2)
+    //     }
+    //     return ScientificQuantity(coefficient: 5, exponent: exponent - 2)
+    // }
 
     /// Verify that `node` satisfies the constraints.
     /// - Parameters:

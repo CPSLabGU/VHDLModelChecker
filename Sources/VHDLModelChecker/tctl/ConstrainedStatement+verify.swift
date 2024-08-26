@@ -239,6 +239,9 @@ extension ConstrainedStatement {
             guard quantity.coefficient != 0 else {
                 throw ModelCheckerError.internalError
             }
+            guard constraint.quantity > granularity else {
+                return .zero
+            }
             return constraint.quantity - granularity
         case .lessThanOrEqual(let constraint):
             return constraint.quantity

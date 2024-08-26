@@ -92,11 +92,17 @@ final class KripkeStructureIteratorTests: XCTestCase {
     /// Test the property init.
     func testInit() {
         let newIterator = KripkeStructureIterator(
-            nodes: iterator.nodes, edges: iterator.edges, initialStates: iterator.initialStates
+            nodes: iterator.nodes,
+            edges: iterator.edges,
+            initialStates: iterator.initialStates,
+            energyGranularity: iterator.energyGranularity,
+            timeGranularity: iterator.timeGranularity
         )
         XCTAssertEqual(newIterator.nodes, iterator.nodes)
         XCTAssertEqual(newIterator.edges, iterator.edges)
         XCTAssertEqual(newIterator.initialStates, iterator.initialStates)
+        XCTAssertEqual(newIterator.energyGranularity, iterator.energyGranularity)
+        XCTAssertEqual(newIterator.timeGranularity, iterator.timeGranularity)
     }
 
     /// Test that the dictionaries are created correctly.

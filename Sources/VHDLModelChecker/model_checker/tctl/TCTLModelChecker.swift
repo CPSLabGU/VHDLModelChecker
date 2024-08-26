@@ -113,10 +113,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     session: nil,
                     sessionRevisit: nil,
                     cost: .zero,
-                    timeMinimum: try jobExpression.timeMinimum ?? .zero,
-                    timeMaximum: try jobExpression.timeMaximum ?? .max,
-                    energyMinimum: try jobExpression.energyMinimum ?? .zero,
-                    energyMaximum: try jobExpression.energyMaximum ?? .max
+                    timeMinimum: try jobExpression.timeMinimum(granularity: structure.timeGranularity)
+                        ?? .zero,
+                    timeMaximum: try jobExpression.timeMaximum(granularity: structure.timeGranularity)
+                        ?? .max,
+                    energyMinimum: try jobExpression.energyMinimum(granularity: structure.energyGranularity)
+                        ?? .zero,
+                    energyMaximum: try jobExpression.energyMaximum(granularity: structure.energyGranularity)
+                        ?? .max
                 )
                 guard job.timeMinimum <= job.timeMaximum, job.energyMinimum <= job.energyMaximum else {
                     throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
@@ -205,7 +209,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
         if let historyExpression = job.expression.historyExpression, job.historyExpression != historyExpression {
             // print("New session:\n    node id: \(job.nodeId.uuidString)\n    expression: \(job.expression.rawValue)\n\n")
             // fflush(stdout)
-            let newJob = try JobData(newSessionFor: job, historyExpression: historyExpression)
+            let newJob = try JobData(
+                newSessionFor: job, historyExpression: historyExpression, structure: structure
+            )
             try self.store.addJob(data: newJob)
             return
         }
@@ -333,7 +339,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
 
 private extension JobData {
 
-    convenience init(newSessionFor job: Job, historyExpression: Expression) throws {
+    convenience init(
+        newSessionFor job: Job, historyExpression: Expression, structure: KripkeStructureIterator
+    ) throws {
         guard case .constrained(let jobExpression) = job.expression else {
             self.init(
                 nodeId: job.nodeId,
@@ -355,25 +363,25 @@ private extension JobData {
             return
         }
         let adjustedTime: ScientificQuantity
-        let currentTime = try jobExpression.timeMinimum ?? .zero
+        let currentTime = try jobExpression.timeMinimum(granularity: structure.timeGranularity) ?? .zero
         if job.timeMinimum > job.cost.time {
             adjustedTime = max(job.timeMinimum - job.cost.time, currentTime)
         } else {
             adjustedTime = currentTime
         }
         let adjustedEnergy: ScientificQuantity
-        let currentEnergy = try jobExpression.energyMinimum ?? .zero
+        let currentEnergy = try jobExpression.energyMinimum(granularity: structure.energyGranularity) ?? .zero
         if job.energyMinimum > job.cost.energy {
             adjustedEnergy = max(job.energyMinimum - job.cost.energy, currentEnergy)
         } else {
             adjustedEnergy = currentEnergy
         }
         let newMaxTime = min(
-            try jobExpression.timeMaximum ?? .max,
+            try jobExpression.timeMaximum(granularity: structure.timeGranularity) ?? .max,
             job.timeMaximum == .max ? .max : job.timeMaximum - job.cost.time
         )
         let newMaxEnergy = min(
-            try jobExpression.energyMaximum ?? .max,
+            try jobExpression.energyMaximum(granularity: structure.energyGranularity) ?? .max,
             job.energyMaximum == .max ? .max : job.energyMaximum - job.cost.energy
         )
         guard newMaxTime >= adjustedTime, newMaxEnergy >= adjustedEnergy else {
