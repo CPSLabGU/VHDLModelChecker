@@ -131,11 +131,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
     }
 
-    private func inCycle(job: Job, edges: LazyFilterSequence<[NodeEdge]>) -> Bool {
+    private func inCycle<S: Sequence>(job: Job, edges: S) -> Bool where S.Iterator.Element == NodeEdge {
         guard !job.history.contains(job.nodeId) else {
             return true
         }
-        return edges.isEmpty
+        return !edges.contains { _ in true }
     }
 
     // swiftlint:disable:next function_body_length
@@ -242,14 +242,12 @@ final class TCTLModelChecker<T> where T: JobStorable {
         //     try self.store.addJob(data: newJob)
         //     return
         // }
-        guard let allSuccessors = structure.edges[job.nodeId]?.lazy, !allSuccessors.isEmpty else {
+        guard let allEdges = structure.edges[job.nodeId]?.lazy, !allEdges.isEmpty else {
             throw ModelCheckerError.internalError
         }
-        let successors = try getValidSuccessors(job: job, edges: allSuccessors)
-        let invalidSuccessors = allSuccessors.filter {
-            let cost = $0.cost + job.cost
-            return cost.time > job.timeMaximum || cost.energy > job.energyMaximum
-        }
+        let allSuccessors = allEdges.map { Successor(job: job, edge: $0) }
+        let successors = allSuccessors.filter { $0.isValid }.map { $0.edge }
+        let invalidSuccessors = allSuccessors.filter { !$0.isValid }.map { $0.edge }
         // print("""
         // Verifying:
         //     inCycle: \(self.inCycle(job: job, edges: successors))\n\n
