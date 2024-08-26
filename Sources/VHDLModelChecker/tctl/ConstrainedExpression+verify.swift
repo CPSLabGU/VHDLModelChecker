@@ -68,19 +68,19 @@ extension ConstrainedExpression {
     }
 
     func energyMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try energyConstraints.map { try $0.max(granularity: granularity) }.max()
+        try energyConstraints.map { try $0.max(granularity: granularity) }.min()
     }
 
     func energyMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try energyConstraints.map { try $0.min(granularity: granularity) }.min()
+        try energyConstraints.map { try $0.min(granularity: granularity) }.max()
     }
 
     func timeMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try timeConstraints.map { try $0.max(granularity: granularity) }.max()
+        try timeConstraints.map { try $0.max(granularity: granularity) }.min()
     }
 
     func timeMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try timeConstraints.map { try $0.min(granularity: granularity) }.min()
+        try timeConstraints.map { try $0.min(granularity: granularity) }.max()
     }
 
     // func granularity(constraints: [ConstrainedStatement]) -> ScientificQuantity? {

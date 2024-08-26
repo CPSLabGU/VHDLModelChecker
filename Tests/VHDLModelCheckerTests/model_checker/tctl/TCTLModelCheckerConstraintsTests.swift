@@ -286,14 +286,11 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
                 XCTFail("Expected mismatchedConstraints ModelCheckerError, got \(error)")
                 return
             }
-            XCTAssertEqual(
-                constraints,
-                [
-                    ConstrainedStatement.greaterThan(constraint: Constraint.energy(amount: 15, unit: .uJ)),
-                    ConstrainedStatement.lessThanOrEqual(constraint: Constraint.time(amount: 10, unit: .us)),
-                    ConstrainedStatement.lessThan(constraint: Constraint.time(amount: 2, unit: .us))
-                ]
-            )
+            XCTAssertEqual(constraints, [
+                ConstrainedStatement.greaterThan(constraint: Constraint.energy(amount: 15, unit: .uJ)),
+                ConstrainedStatement.lessThanOrEqual(constraint: Constraint.time(amount: 10, unit: .us)),
+                ConstrainedStatement.lessThan(constraint: Constraint.time(amount: 2, unit: .us))
+            ])
         }
     }
 
