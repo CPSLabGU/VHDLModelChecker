@@ -120,12 +120,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
     }
 
     private func getValidSuccessors(
-        job: Job, structure: KripkeStructureIterator
+        job: Job, edges: LazySequence<[NodeEdge]>
     ) throws -> LazyFilterSequence<[NodeEdge]> {
-        guard let edges = structure.edges[job.nodeId], !edges.isEmpty else {
-            throw ModelCheckerError.internalError
-        }
-        return edges.lazy.filter {
+        edges.filter {
             let cost = job.cost + $0.cost
             let time = cost.time
             let energy = cost.energy
@@ -245,11 +242,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
         //     try self.store.addJob(data: newJob)
         //     return
         // }
-        guard let allSuccessors = structure.edges[job.nodeId] else {
+        guard let allSuccessors = structure.edges[job.nodeId]?.lazy, !allSuccessors.isEmpty else {
             throw ModelCheckerError.internalError
         }
-        let successors = try getValidSuccessors(job: job, structure: structure)
-        let invalidSuccessors = Set(allSuccessors).subtracting(successors)
+        let successors = try getValidSuccessors(job: job, edges: allSuccessors)
+        let invalidSuccessors = allSuccessors.filter {
+            let cost = $0.cost + job.cost
+            return cost.time > job.timeMaximum || cost.energy > job.energyMaximum
+        }
         // print("""
         // Verifying:
         //     inCycle: \(self.inCycle(job: job, edges: successors))\n\n
