@@ -38,6 +38,7 @@ let package = Package(
         .target(
             name: "VHDLModelChecker",
             dependencies: [
+                .product(name: "StringHelpers", package: "VHDLParsing"),
                 .product(name: "VHDLParsing", package: "VHDLParsing"),
                 .product(name: "TCTLParser", package: "TCTLParser"),
                 .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
