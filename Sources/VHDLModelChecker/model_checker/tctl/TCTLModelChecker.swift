@@ -243,11 +243,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
         fflush(stdout)
         let invalidResults: [VerifyStatus]
         let results: [VerifyStatus]
+        let inCycle = self.inCycle(job: job, edges: successors)
         do {
-            if !invalidSuccessors.isEmpty {
-                invalidResults = try job.expression.verify(
-                    currentNode: node, inCycle: self.inCycle(job: job, edges: successors)
-                )
+            if !inCycle && !invalidSuccessors.isEmpty {
+                invalidResults = try job.expression.verify(currentNode: node, inCycle: true)
             } else {
                 invalidResults = []
             }
@@ -268,7 +267,17 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         if !invalidResults.isEmpty {
             try createNewJobs(
-                currentJob: job, structure: structure, results: invalidResults, successors: invalidSuccessors
+                currentJob: job,
+                structure: structure,
+                results: invalidResults.filter {
+                    switch $0 {
+                    case .successor:
+                        return false
+                    default:
+                        return true
+                    }
+                },
+                successors: invalidSuccessors
             )
             if results.isEmpty {
                 return
