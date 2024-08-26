@@ -56,6 +56,7 @@
 import Foundation
 import TCTLParser
 import VHDLKripkeStructures
+import StringHelpers
 
 // 1. Create initial jobs.
 // 2. For current job, check if not in session ID and return if not there, otherwise forward.
@@ -79,8 +80,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
     func check(structure: KripkeStructureIterator, specification: Specification) throws {
         try self.store.reset()
         let clock = ContinuousClock()
-        for expression in specification.requirements.reversed() {
-            print("Verifying: \(expression.rawValue)")
+        let totalRequirements = specification.requirements.count
+        for (index, expression) in specification.requirements.enumerated() {
+            print(
+                """
+                Verifying Requirement (\(index + 1)/\(totalRequirements)):
+                \(expression.rawValue.indent(amount: 1))
+                """
+            )
             for id in structure.initialStates {
                 let job = JobData(
                     nodeId: id,
@@ -107,7 +114,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     try handleJob(withId: jobId, structure: structure)
                 }
             }
-            print("Finished \(expression.rawValue) in \(elapsedTime) (± \(clock.minimumResolution)).")
+            print("Finished Requirement \(index + 1) in \(elapsedTime).\n\n")
             fflush(stdout)
         }
     }
