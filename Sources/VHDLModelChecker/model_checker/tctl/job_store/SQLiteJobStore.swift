@@ -56,6 +56,7 @@
 import CSQLite
 import Foundation
 import TCTLParser
+import VHDLKripkeStructures
 
 final class SQLiteJobStore: JobStorable {
 
@@ -154,11 +155,29 @@ final class SQLiteJobStore: JobStorable {
                 history_expression INTEGER,
                 constraints INTEGER NOT NULL,
                 success_revisit VARCHAR(36),
-                fail_revisit VARCHAR(36)
+                fail_revisit VARCHAR(36),
+                current_time_coefficient INTEGER NOT NULL,
+                current_time_exponent INTEGER NOT NULL,
+                current_energy_coefficient INTEGER NOT NULL,
+                current_energy_exponent INTEGER NOT NULL,
+                time_minimum_coefficient INTEGER NOT NULL,
+                time_minimum_exponent INTEGER NOT NULL,
+                time_maximum_coefficient INTEGER NOT NULL,
+                time_maximum_exponent INTEGER NOT NULL,
+                energy_minimum_coefficient INTEGER NOT NULL,
+                energy_minimum_exponent INTEGER NOT NULL,
+                energy_maximum_coefficient INTEGER NOT NULL,
+                energy_maximum_exponent INTEGER NOT NULL
             );
+            """,
+            """
             CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
                 node_id, expression, history, current_branch, history_expression, constraints,
-                success_revisit, fail_revisit
+                success_revisit, fail_revisit, current_time_coefficient, current_time_exponent,
+                current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                energy_maximum_exponent
             );
             """,
             """
@@ -170,9 +189,25 @@ final class SQLiteJobStore: JobStorable {
                 constraints INTEGER NOT NULL,
                 success_revisit VARCHAR(36),
                 fail_revisit VARCHAR(36),
+                current_time_coefficient INTEGER NOT NULL,
+                current_time_exponent INTEGER NOT NULL,
+                current_energy_coefficient INTEGER NOT NULL,
+                current_energy_exponent INTEGER NOT NULL,
+                time_minimum_coefficient INTEGER NOT NULL,
+                time_minimum_exponent INTEGER NOT NULL,
+                time_maximum_coefficient INTEGER NOT NULL,
+                time_maximum_exponent INTEGER NOT NULL,
+                energy_minimum_coefficient INTEGER NOT NULL,
+                energy_minimum_exponent INTEGER NOT NULL,
+                energy_maximum_coefficient INTEGER NOT NULL,
+                energy_maximum_exponent INTEGER NOT NULL
                 PRIMARY KEY (
                     node_id, expression, in_cycle, history_expression, constraints, success_revisit,
-                    fail_revisit
+                    fail_revisit, current_time_coefficient, current_time_exponent,
+                    current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                    time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                    energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                    energy_maximum_exponent
                 )
             );
             """
@@ -198,9 +233,13 @@ final class SQLiteJobStore: JobStorable {
             query: """
             INSERT INTO cycles(
                 node_id, expression, in_cycle, history_expression, constraints, success_revisit,
-                fail_revisit
+                fail_revisit, current_time_coefficient, current_time_exponent,
+                current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                energy_maximum_exponent
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19
             );
             """
         )
@@ -218,7 +257,19 @@ final class SQLiteJobStore: JobStorable {
                 history_expression = ?4 AND
                 constraints = ?5 AND
                 success_revisit = ?6 AND
-                fail_revisit = ?7;
+                fail_revisit = ?7 AND
+                current_time_coefficient = ?8 AND
+                current_time_exponent = ?9 AND
+                current_energy_coefficient = ?10 AND
+                current_energy_exponent = ?11 AND
+                time_minimum_coefficient = ?12 AND
+                time_minimum_exponent = ?13 AND
+                time_maximum_coefficient = ?14 AND
+                time_maximum_exponent = ?15 AND
+                energy_minimum_coefficient = ?16 AND
+                energy_minimum_exponent = ?17 AND
+                energy_maximum_coefficient = ?18 AND
+                energy_maximum_exponent = ?19;
             """
         )
         let pluckJobSelect = try OpaquePointer(
@@ -236,7 +287,19 @@ final class SQLiteJobStore: JobStorable {
                 history_expression = ?5 AND
                 constraints = ?6 AND
                 success_revisit = ?7 AND
-                fail_revisit = ?8;
+                fail_revisit = ?8 AND
+                current_time_coefficient = ?9 AND
+                current_time_exponent = ?10 AND
+                current_energy_coefficient = ?11 AND
+                current_energy_exponent = ?12 AND
+                time_minimum_coefficient = ?13 AND
+                time_minimum_exponent = ?14 AND
+                time_maximum_coefficient = ?15 AND
+                time_maximum_exponent = ?16 AND
+                energy_minimum_coefficient = ?17 AND
+                energy_minimum_exponent = ?18 AND
+                energy_maximum_coefficient = ?19 AND
+                energy_maximum_exponent = ?20;
             """
         )
         let pluckJobSelectID = try OpaquePointer(db: db, query: "SELECT * FROM jobs WHERE id = ?1;")
@@ -245,9 +308,13 @@ final class SQLiteJobStore: JobStorable {
             query: """
             INSERT INTO jobs(
                 id, node_id, expression, history, current_branch, history_expression, constraints,
-                success_revisit, fail_revisit
+                success_revisit, fail_revisit, current_time_coefficient, current_time_exponent,
+                current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                energy_maximum_exponent
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21
             );
             """
         )
@@ -341,6 +408,46 @@ final class SQLiteJobStore: JobStorable {
         } else {
             try exec { sqlite3_bind_null(self.inCycleSelectStatement, 7) }
         }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 8, Int64(clamping: job.cost.time.coefficient))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 9, Int64(job.cost.time.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 10, Int64(clamping: job.cost.energy.coefficient))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 11, Int64(job.cost.energy.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 12, Int64(clamping: job.timeMinimum.coefficient))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 13, Int64(job.timeMinimum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 14, Int64(clamping: job.timeMaximum.coefficient))
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 15, Int64(job.timeMaximum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.inCycleSelectStatement, 16, Int64(clamping: job.energyMinimum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 17, Int64(job.energyMinimum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.inCycleSelectStatement, 18, Int64(clamping: job.energyMaximum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.inCycleSelectStatement, 19, Int64(job.energyMaximum.exponent))
+        }
         return try self.bind(data: strings, parameters: parameters, statement: self.inCycleSelectStatement) {
             guard $1 == SQLITE_DONE else {
                 guard $1 == SQLITE_ROW else {
@@ -375,6 +482,52 @@ final class SQLiteJobStore: JobStorable {
                 insertParameters.append(7)
             } else {
                 try exec { sqlite3_bind_null(self.inCycleInsertStatement, 7) }
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 8, Int64(clamping: job.cost.time.coefficient))
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 9, Int64(job.cost.time.exponent))
+            }
+            try exec {
+                sqlite3_bind_int64(
+                    self.inCycleInsertStatement, 10, Int64(clamping: job.cost.energy.coefficient)
+                )
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 11, Int64(job.cost.energy.exponent))
+            }
+            try exec {
+                sqlite3_bind_int64(
+                    self.inCycleInsertStatement, 12, Int64(clamping: job.timeMinimum.coefficient)
+                )
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 13, Int64(job.timeMinimum.exponent))
+            }
+            try exec {
+                sqlite3_bind_int64(
+                    self.inCycleInsertStatement, 14, Int64(clamping: job.timeMaximum.coefficient)
+                )
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 15, Int64(job.timeMaximum.exponent))
+            }
+            try exec {
+                sqlite3_bind_int64(
+                    self.inCycleInsertStatement, 16, Int64(clamping: job.energyMinimum.coefficient)
+                )
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 17, Int64(job.energyMinimum.exponent))
+            }
+            try exec {
+                sqlite3_bind_int64(
+                    self.inCycleInsertStatement, 18, Int64(clamping: job.energyMaximum.coefficient)
+                )
+            }
+            try exec {
+                sqlite3_bind_int64(self.inCycleInsertStatement, 19, Int64(job.energyMaximum.exponent))
             }
             try self.bind(
                 data: insertStrings, parameters: insertParameters, statement: self.inCycleInsertStatement
@@ -521,6 +674,25 @@ final class SQLiteJobStore: JobStorable {
             ? try UUID(statement: statement, offset: 7) : nil
         let failRevisit = sqlite3_column_type(statement, 8) != SQLITE_NULL
             ? try UUID(statement: statement, offset: 8) : nil
+        let costTimeCoefficient = sqlite3_column_int64(statement, 9)
+        let costTimeExponent = sqlite3_column_int64(statement, 10)
+        let costEnergyCoefficient = sqlite3_column_int64(statement, 11)
+        let costEnergyExponent = sqlite3_column_int64(statement, 12)
+        let costTime = try ScientificQuantity(
+            sqliteCoefficient: costTimeCoefficient, sqliteExponent: costTimeExponent
+        )
+        let costEnergy = try ScientificQuantity(
+            sqliteCoefficient: costEnergyCoefficient, sqliteExponent: costEnergyExponent
+        )
+        let cost = Cost(time: costTime, energy: costEnergy)
+        let timeMinimumCoefficient = sqlite3_column_int64(statement, 13)
+        let timeMinimumExponent = sqlite3_column_int64(statement, 14)
+        let timeMaximumCoefficient = sqlite3_column_int64(statement, 15)
+        let timeMaximumExponent = sqlite3_column_int64(statement, 16)
+        let energyMinimumCoefficient = sqlite3_column_int64(statement, 17)
+        let energyMinimumExponent = sqlite3_column_int64(statement, 18)
+        let energyMaximumCoefficient = sqlite3_column_int64(statement, 19)
+        let energyMaximumExponent = sqlite3_column_int64(statement, 20)
         let data = JobData(
             nodeId: nodeId,
             expression: self.expressions[expressionIndex],
@@ -532,11 +704,19 @@ final class SQLiteJobStore: JobStorable {
             failRevisit: failRevisit,
             session: nil,
             sessionRevisit: nil,
-            cost: .zero,
-            timeMinimum: .zero,
-            timeMaximum: .max,
-            energyMinimum: .zero,
-            energyMaximum: .max
+            cost: cost,
+            timeMinimum: try ScientificQuantity(
+                sqliteCoefficient: timeMinimumCoefficient, sqliteExponent: timeMinimumExponent
+            ),
+            timeMaximum: try ScientificQuantity(
+                sqliteCoefficient: timeMaximumCoefficient, sqliteExponent: timeMaximumExponent
+            ),
+            energyMinimum: try ScientificQuantity(
+                sqliteCoefficient: energyMinimumCoefficient, sqliteExponent: energyMinimumExponent
+            ),
+            energyMaximum: try ScientificQuantity(
+                sqliteCoefficient: energyMaximumCoefficient, sqliteExponent: energyMaximumExponent
+            )
         )
         return Job(id: id, data: data)
     }
@@ -553,11 +733,29 @@ final class SQLiteJobStore: JobStorable {
                 history_expression INTEGER,
                 constraints INTEGER NOT NULL,
                 success_revisit VARCHAR(36),
-                fail_revisit VARCHAR(36)
+                fail_revisit VARCHAR(36),
+                current_time_coefficient INTEGER NOT NULL,
+                current_time_exponent INTEGER NOT NULL,
+                current_energy_coefficient INTEGER NOT NULL,
+                current_energy_exponent INTEGER NOT NULL,
+                time_minimum_coefficient INTEGER NOT NULL,
+                time_minimum_exponent INTEGER NOT NULL,
+                time_maximum_coefficient INTEGER NOT NULL,
+                time_maximum_exponent INTEGER NOT NULL,
+                energy_minimum_coefficient INTEGER NOT NULL,
+                energy_minimum_exponent INTEGER NOT NULL,
+                energy_maximum_coefficient INTEGER NOT NULL,
+                energy_maximum_exponent INTEGER NOT NULL
             );
+            """,
+            """
             CREATE UNIQUE INDEX IF NOT EXISTS job_data_index ON jobs(
                 node_id, expression, history, current_branch, history_expression, constraints,
-                success_revisit, fail_revisit
+                success_revisit, fail_revisit, current_time_coefficient, current_time_exponent,
+                current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                energy_maximum_exponent
             );
             """,
             """
@@ -569,9 +767,25 @@ final class SQLiteJobStore: JobStorable {
                 constraints INTEGER NOT NULL,
                 success_revisit VARCHAR(36),
                 fail_revisit VARCHAR(36),
+                current_time_coefficient INTEGER NOT NULL,
+                current_time_exponent INTEGER NOT NULL,
+                current_energy_coefficient INTEGER NOT NULL,
+                current_energy_exponent INTEGER NOT NULL,
+                time_minimum_coefficient INTEGER NOT NULL,
+                time_minimum_exponent INTEGER NOT NULL,
+                time_maximum_coefficient INTEGER NOT NULL,
+                time_maximum_exponent INTEGER NOT NULL,
+                energy_minimum_coefficient INTEGER NOT NULL,
+                energy_minimum_exponent INTEGER NOT NULL,
+                energy_maximum_coefficient INTEGER NOT NULL,
+                energy_maximum_exponent INTEGER NOT NULL
                 PRIMARY KEY (
                     node_id, expression, in_cycle, history_expression, constraints, success_revisit,
-                    fail_revisit
+                    fail_revisit, current_time_coefficient, current_time_exponent,
+                    current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                    time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                    energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                    energy_maximum_exponent
                 )
             );
             """
@@ -699,6 +913,52 @@ final class SQLiteJobStore: JobStorable {
         } else {
             try exec { sqlite3_bind_null(self.insertJobStatement, 9) }
         }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 10, Int64(clamping: data.cost.time.coefficient))
+        }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 11, Int64(data.cost.time.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.insertJobStatement, 12, Int64(clamping: data.cost.energy.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 13, Int64(data.cost.energy.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.insertJobStatement, 14, Int64(clamping: data.timeMinimum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 15, Int64(data.timeMinimum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.insertJobStatement, 16, Int64(clamping: data.timeMaximum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 17, Int64(data.timeMaximum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.insertJobStatement, 18, Int64(clamping: data.energyMinimum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 19, Int64(data.energyMinimum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.insertJobStatement, 20, Int64(clamping: data.energyMaximum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.insertJobStatement, 21, Int64(data.energyMaximum.exponent))
+        }
         try self.bind(data: strings, parameters: parameters, statement: self.insertJobStatement) {
             guard $1 == SQLITE_DONE else {
                 throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
@@ -753,6 +1013,52 @@ final class SQLiteJobStore: JobStorable {
             parameters.append(8)
         } else {
             try exec { sqlite3_bind_null(self.pluckJobSelect, 8) }
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 9, Int64(clamping: data.cost.time.coefficient))
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 10, Int64(data.cost.time.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.pluckJobSelect, 11, Int64(clamping: data.cost.energy.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 12, Int64(data.cost.energy.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.pluckJobSelect, 13, Int64(clamping: data.timeMinimum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 14, Int64(data.timeMinimum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.pluckJobSelect, 15, Int64(clamping: data.timeMaximum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 16, Int64(data.timeMaximum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.pluckJobSelect, 17, Int64(clamping: data.energyMinimum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 18, Int64(data.energyMinimum.exponent))
+        }
+        try exec {
+            sqlite3_bind_int64(
+                self.pluckJobSelect, 19, Int64(clamping: data.energyMaximum.coefficient)
+            )
+        }
+        try exec {
+            sqlite3_bind_int64(self.pluckJobSelect, 20, Int64(data.energyMaximum.exponent))
         }
         return try self.bind(data: strings, parameters: parameters, statement: self.pluckJobSelect) {
             guard $1 == SQLITE_ROW else {
@@ -810,6 +1116,25 @@ final class SQLiteJobStore: JobStorable {
                 ? try UUID(statement: $0, offset: 7) : nil
             let failRevisit = sqlite3_column_type($0, 8) != SQLITE_NULL
                 ? try UUID(statement: $0, offset: 8) : nil
+            let costTimeCoefficient = sqlite3_column_int64($0, 9)
+            let costTimeExponent = sqlite3_column_int64($0, 10)
+            let costEnergyCoefficient = sqlite3_column_int64($0, 11)
+            let costEnergyExponent = sqlite3_column_int64($0, 12)
+            let costTime = try ScientificQuantity(
+                sqliteCoefficient: costTimeCoefficient, sqliteExponent: costTimeExponent
+            )
+            let costEnergy = try ScientificQuantity(
+                sqliteCoefficient: costEnergyCoefficient, sqliteExponent: costEnergyExponent
+            )
+            let cost = Cost(time: costTime, energy: costEnergy)
+            let timeMinimumCoefficient = sqlite3_column_int64($0, 13)
+            let timeMinimumExponent = sqlite3_column_int64($0, 14)
+            let timeMaximumCoefficient = sqlite3_column_int64($0, 15)
+            let timeMaximumExponent = sqlite3_column_int64($0, 16)
+            let energyMinimumCoefficient = sqlite3_column_int64($0, 17)
+            let energyMinimumExponent = sqlite3_column_int64($0, 18)
+            let energyMaximumCoefficient = sqlite3_column_int64($0, 19)
+            let energyMaximumExponent = sqlite3_column_int64($0, 20)
             let data = JobData(
                 nodeId: nodeId,
                 expression: self.expressions[expressionIndex],
@@ -821,11 +1146,19 @@ final class SQLiteJobStore: JobStorable {
                 failRevisit: failRevisit,
                 session: nil,
                 sessionRevisit: nil,
-                cost: .zero,
-                timeMinimum: .zero,
-                timeMaximum: .max,
-                energyMinimum: .zero,
-                energyMaximum: .max
+                cost: cost,
+                timeMinimum: try ScientificQuantity(
+                    sqliteCoefficient: timeMinimumCoefficient, sqliteExponent: timeMinimumExponent
+                ),
+                timeMaximum: try ScientificQuantity(
+                    sqliteCoefficient: timeMaximumCoefficient, sqliteExponent: timeMaximumExponent
+                ),
+                energyMinimum: try ScientificQuantity(
+                    sqliteCoefficient: energyMinimumCoefficient, sqliteExponent: energyMinimumExponent
+                ),
+                energyMaximum: try ScientificQuantity(
+                    sqliteCoefficient: energyMaximumCoefficient, sqliteExponent: energyMaximumExponent
+                )
             )
             return Job(id: id, data: data)
         }
@@ -837,9 +1170,13 @@ final class SQLiteJobStore: JobStorable {
             query: """
             INSERT INTO cycles(
                 node_id, expression, in_cycle, history_expression, constraints, success_revisit,
-                fail_revisit
+                fail_revisit, current_time_coefficient, current_time_exponent,
+                current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                energy_maximum_exponent
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19
             );
             """
         )
@@ -857,7 +1194,19 @@ final class SQLiteJobStore: JobStorable {
                 history_expression = ?4 AND
                 constraints = ?5 AND
                 success_revisit = ?6 AND
-                fail_revisit = ?7;
+                fail_revisit = ?7 AND
+                current_time_coefficient = ?8 AND
+                current_time_exponent = ?9 AND
+                current_energy_coefficient = ?10 AND
+                current_energy_exponent = ?11 AND
+                time_minimum_coefficient = ?12 AND
+                time_minimum_exponent = ?13 AND
+                time_maximum_coefficient = ?14 AND
+                time_maximum_exponent = ?15 AND
+                energy_minimum_coefficient = ?16 AND
+                energy_minimum_exponent = ?17 AND
+                energy_maximum_coefficient = ?18 AND
+                energy_maximum_exponent = ?19;
             """
         )
         self.pluckJobSelect = try OpaquePointer(
@@ -875,7 +1224,19 @@ final class SQLiteJobStore: JobStorable {
                 history_expression = ?5 AND
                 constraints = ?6 AND
                 success_revisit = ?7 AND
-                fail_revisit = ?8;
+                fail_revisit = ?8 AND
+                current_time_coefficient = ?9 AND
+                current_time_exponent = ?10 AND
+                current_energy_coefficient = ?11 AND
+                current_energy_exponent = ?12 AND
+                time_minimum_coefficient = ?13 AND
+                time_minimum_exponent = ?14 AND
+                time_maximum_coefficient = ?15 AND
+                time_maximum_exponent = ?16 AND
+                energy_minimum_coefficient = ?17 AND
+                energy_minimum_exponent = ?18 AND
+                energy_maximum_coefficient = ?19 AND
+                energy_maximum_exponent = ?20;
             """
         )
         self.pluckJobSelectID = try OpaquePointer(db: self.db, query: "SELECT * FROM jobs WHERE id = ?1;")
@@ -884,9 +1245,13 @@ final class SQLiteJobStore: JobStorable {
             query: """
             INSERT INTO jobs(
                 id, node_id, expression, history, current_branch, history_expression, constraints,
-                success_revisit, fail_revisit
+                success_revisit, fail_revisit, current_time_coefficient, current_time_exponent,
+                current_energy_coefficient, current_energy_exponent, time_minimum_coefficient,
+                time_minimum_exponent, time_maximum_coefficient, time_maximum_exponent,
+                energy_minimum_coefficient, energy_minimum_exponent, energy_maximum_coefficient,
+                energy_maximum_exponent
             ) VALUES(
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21
             );
             """
         )
@@ -987,6 +1352,21 @@ private extension OpaquePointer {
             throw SQLiteError.corruptDatabase
         }
         self = statement
+    }
+
+}
+
+private extension ScientificQuantity {
+
+    init(sqliteCoefficient coefficient: Int64, sqliteExponent exponent: Int64) throws {
+        guard coefficient >= 0 else {
+            throw SQLiteError.corruptDatabase
+        }
+        guard (coefficient == Int64(clamping: UInt.max)) && exponent == .max else {
+            self.init(coefficient: UInt(coefficient), exponent: Int(exponent))
+            return
+        }
+        self = .max
     }
 
 }
