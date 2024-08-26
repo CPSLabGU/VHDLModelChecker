@@ -1219,12 +1219,13 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
                 XCTFail("Expected ModelCheckerError")
                 return
             }
-            guard case .mismatchedConstraints = error else {
-                XCTFail("Expected mismatchedConstraints ModelCheckerError, got \(error)")
+            guard case .unsatisfied(let branch, let expression, let base) = error else {
+                XCTFail("Expected unsatisfied ModelCheckerError, got \(error)")
                 return
             }
-            print(error)
-            fflush(stdout)
+            XCTAssertEqual(branch, [aNode])
+            XCTAssertEqual(expression, Expression(rawValue: "y = true"))
+            XCTAssertEqual(base, Expression(rawValue: "A x = true U y = true"))
         }
     }
 
