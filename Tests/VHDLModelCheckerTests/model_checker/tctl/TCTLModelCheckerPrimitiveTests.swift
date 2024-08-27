@@ -124,6 +124,30 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))
     }
 
+    func testAlwaysFalseWithTrueExpression() throws {
+        let specRaw = """
+        // spec:language VHDL
+
+        A G true
+
+        ! A G true
+        """
+        let spec = Specification(rawValue: specRaw)!
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
+            guard let error = $0 as? ModelCheckerError else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            guard case .unsatisfied(let branches, let expression, let base) = error else {
+                XCTFail("Got incorrect error!")
+                return
+            }
+            XCTAssertEqual(branches.count, 1)
+            XCTAssertEqual(expression, Expression(rawValue: "false"))
+            XCTAssertNil(base)
+        }
+    }
+
     // MARK: Eventually Global.
 
     /// Eventually true.
