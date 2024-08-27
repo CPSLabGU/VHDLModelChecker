@@ -82,11 +82,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             failRevisit: nil,
             session: nil,
             sessionRevisit: nil,
-            cost: Cost(time: 0, energy: 0),
-            timeMinimum: .zero,
-            timeMaximum: .max,
-            energyMinimum: .zero,
-            energyMaximum: .max
+            window: nil
         )
     }
 
@@ -102,11 +98,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
             failRevisit: try store.job(forData: revisit).id,
             session: nil,
             sessionRevisit: nil,
-            cost: Cost(time: 12, energy: 12),
-            timeMinimum: .zero,
-            timeMaximum: .max,
-            energyMinimum: .zero,
-            energyMaximum: .max
+            window: ConstrainedWindow(cost: Cost(time: 12, energy: 12))
         )
     }
 

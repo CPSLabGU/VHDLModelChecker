@@ -95,14 +95,12 @@ final class KripkeStructureIteratorTests: XCTestCase {
             nodes: iterator.nodes,
             edges: iterator.edges,
             initialStates: iterator.initialStates,
-            energyGranularity: iterator.energyGranularity,
-            timeGranularity: iterator.timeGranularity
+            granularities: iterator.granularities
         )
         XCTAssertEqual(newIterator.nodes, iterator.nodes)
         XCTAssertEqual(newIterator.edges, iterator.edges)
         XCTAssertEqual(newIterator.initialStates, iterator.initialStates)
-        XCTAssertEqual(newIterator.energyGranularity, iterator.energyGranularity)
-        XCTAssertEqual(newIterator.timeGranularity, iterator.timeGranularity)
+        XCTAssertEqual(newIterator.granularities, iterator.granularities)
     }
 
     /// Test that the dictionaries are created correctly.

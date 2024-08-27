@@ -76,14 +76,15 @@ public struct VHDLModelChecker {
                 specification: specification
             )
         case .sqlite:
-            guard let path else {
-                throw ModelCheckerError.internalError
-            }
-            try self.verify(
-                checker: TCTLModelChecker(store: try SQLiteJobStore(path: path)),
-                structure: structure,
-                specification: specification
-            )
+            throw UnrecoverableError.notSupported
+            // guard let path else {
+            //     throw ModelCheckerError.internalError
+            // }
+            // try self.verify(
+            //     checker: TCTLModelChecker(store: try SQLiteJobStore(path: path)),
+            //     structure: structure,
+            //     specification: specification
+            // )
         }
     }
 
