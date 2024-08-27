@@ -420,7 +420,7 @@ final class SQLiteJobStore: JobStorable {
 
     func addJob(job: Job) throws {
         if let session = job.session {
-            guard let currentCount = try self.sessionCount(id: session), currentCount >= 0 else {
+            guard let currentCount = try self.sessionCount(id: session) else {
                 throw SQLiteError.corruptDatabase
             }
             try self.updateSessionCount(id: session, count: currentCount + 1)
@@ -1127,6 +1127,10 @@ final class SQLiteJobStore: JobStorable {
             guard $1 == SQLITE_DONE else {
                 throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
             }
+            guard let session = data.session, try self.sessionCount(id: session) == nil else {
+                return
+            }
+            try self.insertSession(id: session, count: 0, error: nil)
         }
         return id
     }
