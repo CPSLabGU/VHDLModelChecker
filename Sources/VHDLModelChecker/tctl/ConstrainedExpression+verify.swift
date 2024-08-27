@@ -78,7 +78,7 @@ extension ConstrainedExpression {
             }
             let maxConstraint = try constraint.max(granularity: granularity)
             if let currentMax = maximums[symbol] {
-                maximums[symbol] = max(maxConstraint, currentMax)
+                maximums[symbol] = min(maxConstraint, currentMax)
             } else {
                 maximums[symbol] = maxConstraint
             }
