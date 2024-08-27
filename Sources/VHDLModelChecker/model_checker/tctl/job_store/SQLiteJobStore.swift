@@ -98,9 +98,26 @@ final class SQLiteJobStore: JobStorable {
 
     private var selectSessionCountStatement: OpaquePointer
 
+    private var updateSessionCount: OpaquePointer
+
+    private var updateSessionError: OpaquePointer
+
+    private var insertSession: OpaquePointer
+
     var next: UUID? {
         get throws {
-            self.currentJobs.popLast()
+            guard let id = self.currentJobs.popLast() else {
+                return nil
+            }
+            let job = try self.job(withId: id)
+            guard let session = job.session else {
+                return id
+            }
+            guard let currentCount = try self.sessionCount(id: session), currentCount > 0 else {
+                throw SQLiteError.corruptDatabase
+            }
+            try self.updateSessionCount(id: session, count: currentCount - 1)
+            return id
         }
     }
 
@@ -339,12 +356,19 @@ final class SQLiteJobStore: JobStorable {
             """
         )
         let selectSessionStatement = try OpaquePointer(
-            db: db,
-            query: "SELECT error FROM sessions where id = ?1;"
+            db: db, query: "SELECT error FROM sessions where id = ?1;"
         )
         let selectSessionCountStatement = try OpaquePointer(
-            db: db,
-            query: "SELECT count FROM sessions where id = ?1;"
+            db: db, query: "SELECT count FROM sessions where id = ?1;"
+        )
+        let updateSessionCount = try OpaquePointer(
+            db: db, query: "UPDATE sessions SET count = ?1 WHERE id = ?2;"
+        )
+        let updateSessionError = try OpaquePointer(
+            db: db, query: "UPDATE sessions SET error = ?1 WHERE id = ?2;"
+        )
+        let insertSession = try OpaquePointer(
+            db: db, query: "INSERT INTO sessions(id, count, error) VALUES(?1, ?2, ?3);"
         )
         self.init(
             db: db,
@@ -354,7 +378,10 @@ final class SQLiteJobStore: JobStorable {
             pluckJobSelectID: pluckJobSelectID,
             insertJobStatement: insertJobStatement,
             selectSessionStatement: selectSessionStatement,
-            selectSessionCountStatement: selectSessionCountStatement
+            selectSessionCountStatement: selectSessionCountStatement,
+            updateSessionCount: updateSessionCount,
+            updateSessionError: updateSessionError,
+            insertSession: insertSession
         )
     }
 
@@ -366,7 +393,10 @@ final class SQLiteJobStore: JobStorable {
         pluckJobSelectID: OpaquePointer,
         insertJobStatement: OpaquePointer,
         selectSessionStatement: OpaquePointer,
-        selectSessionCountStatement: OpaquePointer
+        selectSessionCountStatement: OpaquePointer,
+        updateSessionCount: OpaquePointer,
+        updateSessionError: OpaquePointer,
+        insertSession: OpaquePointer
     ) {
         self.db = db
         self.inCycleInsertStatement = inCycleInsertStatement
@@ -376,6 +406,9 @@ final class SQLiteJobStore: JobStorable {
         self.insertJobStatement = insertJobStatement
         self.selectSessionStatement = selectSessionStatement
         self.selectSessionCountStatement = selectSessionCountStatement
+        self.updateSessionCount = updateSessionCount
+        self.updateSessionError = updateSessionError
+        self.insertSession = insertSession
     }
 
     @discardableResult
@@ -386,11 +419,13 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func addJob(job: Job) throws {
+        if let session = job.session {
+            guard let currentCount = try self.sessionCount(id: session), currentCount >= 0 else {
+                throw SQLiteError.corruptDatabase
+            }
+            try self.updateSessionCount(id: session, count: currentCount + 1)
+        }
         self.currentJobs.append(job.id)
-    }
-
-    func addManyJobs(jobs: [JobData]) throws {
-        self.currentJobs.append(contentsOf: try jobs.map { try self.job(forData: $0).id })
     }
 
     func error(session: UUID) throws -> ModelCheckerError? {
@@ -410,7 +445,7 @@ final class SQLiteJobStore: JobStorable {
     }
 
     func failSession(id: UUID, error: ModelCheckerError?) throws {
-        throw UnrecoverableError.notSupported
+        try self.updateSessionError(id: id, error: error)
     }
 
     func inCycle(_ job: Job) throws -> Bool {
@@ -632,7 +667,7 @@ final class SQLiteJobStore: JobStorable {
             guard $1 == SQLITE_ROW else {
                 throw SQLiteError.corruptDatabase
             }
-            return sqlite3_column_int(self.selectSessionCountStatement, 0) == 0
+            return sqlite3_column_int64(self.selectSessionCountStatement, 0) == 0
         }
     }
 
@@ -944,6 +979,9 @@ final class SQLiteJobStore: JobStorable {
         try exec { sqlite3_finalize(self.insertJobStatement) }
         try exec { sqlite3_finalize(self.selectSessionStatement) }
         try exec { sqlite3_finalize(self.selectSessionCountStatement) }
+        try exec { sqlite3_finalize(self.updateSessionCount) }
+        try exec { sqlite3_finalize(self.updateSessionError) }
+        try exec { sqlite3_finalize(self.insertSession) }
     }
 
     private func getConstraints(constraint: Set<ConstrainedStatement>) -> Int {
@@ -999,7 +1037,9 @@ final class SQLiteJobStore: JobStorable {
             try exec { sqlite3_bind_null(self.insertJobStatement, 6) }
         }
         try exec {
-            sqlite3_bind_int(self.insertJobStatement, 7, Int32(getConstraints(constraint: Set(data.constraints))))
+            sqlite3_bind_int(
+                self.insertJobStatement, 7, Int32(getConstraints(constraint: Set(data.constraints)))
+            )
         }
         if let success = data.successRevisit?.uuidString {
             guard let cStr = success.cString(using: .utf8) else {
@@ -1089,6 +1129,31 @@ final class SQLiteJobStore: JobStorable {
             }
         }
         return id
+    }
+
+    private func insertSession(id: UUID, count: Int, error: ModelCheckerError?) throws {
+        guard let cStr = id.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
+        }
+        var strings = [cStr]
+        var parameters: [Int32] = [1]
+        if let error {
+            let data = try encoder.encode(error)
+            let jsonString = String(decoding: data, as: UTF8.self)
+            guard let jsonCStr = jsonString.cString(using: .utf8) else {
+                throw ModelCheckerError.internalError
+            }
+            strings.append(jsonCStr)
+            parameters.append(3)
+        } else {
+            try exec { sqlite3_bind_null(self.insertSession, 3) }
+        }
+        try exec { sqlite3_bind_int64(self.insertSession, 2, Int64(count)) }
+        try self.bind(data: strings, parameters: parameters, statement: self.insertSession) {
+            guard $1 == SQLITE_DONE else {
+                throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+            }
+        }
     }
 
     private func pluckJob(data: JobData) throws -> Job? {
@@ -1414,6 +1479,98 @@ final class SQLiteJobStore: JobStorable {
             db: db,
             query: "SELECT count FROM sessions where id = ?1;"
         )
+        self.updateSessionCount = try OpaquePointer(
+            db: db, query: "UPDATE sessions SET count = ?1 WHERE id = ?2;"
+        )
+        self.updateSessionError = try OpaquePointer(
+            db: db, query: "UPDATE sessions SET error = ?1 WHERE id = ?2;"
+        )
+        self.insertSession = try OpaquePointer(
+            db: db, query: "INSERT INTO sessions(id, count, error) VALUES(?1, ?2, ?3);"
+        )
+    }
+
+    private func sessionCount(id: UUID) throws -> Int? {
+        guard let cStr = id.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
+        }
+        return try self.bind(data: cStr, statement: self.selectSessionCountStatement) {
+            guard $1 == SQLITE_ROW else {
+                return nil
+            }
+            return Int(sqlite3_column_int64(self.selectSessionCountStatement, 0))
+        }
+    }
+
+    private func updateSessionCount(id: UUID, count: Int) throws {
+        guard let cStr = id.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
+        }
+        try self.bind(data: cStr, statement: self.selectSessionCountStatement) {
+            guard $1 == SQLITE_ROW else {
+                throw SQLiteError.corruptDatabase
+            }
+            let currentCount = sqlite3_column_int64(self.selectSessionCountStatement, 0)
+            let newCount = Int64(count)
+            guard newCount != currentCount else {
+                return
+            }
+            try exec { sqlite3_bind_int64(self.updateSessionCount, 1, newCount) }
+            try self.bind(data: cStr, offsets: [0], parameters: [2], statement: self.updateSessionCount) {
+                guard $1 == SQLITE_DONE else {
+                    throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+                }
+            }
+        }
+    }
+
+    private func updateSessionError(id: UUID, error: ModelCheckerError?) throws {
+        guard let cStr = id.uuidString.cString(using: .utf8) else {
+            throw ModelCheckerError.internalError
+        }
+        try self.bind(data: cStr, statement: self.selectSessionStatement) {
+            guard $1 == SQLITE_ROW else {
+                // try self.insertSession(id: id, count: 1, error: error)
+                // return
+                throw SQLiteError.corruptDatabase
+            }
+            var strings = [cStr]
+            var parameters: [Int32] = [2]
+            switch (error, sqlite3_column_type(self.selectSessionStatement, 0)) {
+            case (nil, SQLITE_NULL):
+                return
+            case (nil, SQLITE_TEXT):
+                try exec { sqlite3_bind_null(self.updateSessionError, 1) }
+            case (.some(let lhs), SQLITE_NULL):
+                let data = try encoder.encode(lhs)
+                let jsonString = String(decoding: data, as: UTF8.self)
+                guard let jsonCStr = jsonString.cString(using: .utf8) else {
+                    throw ModelCheckerError.internalError
+                }
+                strings.append(jsonCStr)
+                parameters.append(1)
+            case (.some(let lhs), SQLITE_TEXT):
+                let columnString = Data(try String(statement: self.selectSessionStatement, offset: 0).utf8)
+                let columnValue = try self.decoder.decode(ModelCheckerError.self, from: columnString)
+                guard lhs != columnValue else {
+                    return
+                }
+                let data = try encoder.encode(lhs)
+                let jsonString = String(decoding: data, as: UTF8.self)
+                guard let jsonCStr = jsonString.cString(using: .utf8) else {
+                    throw ModelCheckerError.internalError
+                }
+                strings.append(jsonCStr)
+                parameters.append(1)
+            default:
+                throw SQLiteError.corruptDatabase
+            }
+            try self.bind(data: strings, parameters: parameters, statement: self.updateSessionError) {
+                guard $1 == SQLITE_DONE else {
+                    throw SQLiteError.cDriverError(errno: $1, message: self.errorMessage)
+                }
+            }
+        }
     }
 
     deinit {
@@ -1424,6 +1581,9 @@ final class SQLiteJobStore: JobStorable {
         _ = sqlite3_finalize(self.insertJobStatement)
         _ = sqlite3_finalize(self.selectSessionStatement)
         _ = sqlite3_finalize(self.selectSessionCountStatement)
+        _ = sqlite3_finalize(self.updateSessionCount)
+        _ = sqlite3_finalize(self.updateSessionError)
+        _ = sqlite3_finalize(self.insertSession)
         _ = sqlite3_close(self.db)
     }
 
