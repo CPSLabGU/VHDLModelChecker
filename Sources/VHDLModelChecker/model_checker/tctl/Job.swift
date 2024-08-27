@@ -77,15 +77,7 @@ final class CycleData: Equatable, Hashable, Codable {
 
     var sessionRevisit: UUID?
 
-    var cost: Cost
-
-    var timeMinimum: ScientificQuantity
-
-    var timeMaximum: ScientificQuantity
-
-    var energyMinimum: ScientificQuantity
-
-    var energyMaximum: ScientificQuantity
+    var window: ConstrainedWindow?
 
     init(
         nodeId: UUID,
@@ -97,11 +89,7 @@ final class CycleData: Equatable, Hashable, Codable {
         failRevisit: UUID?,
         session: UUID?,
         sessionRevisit: UUID?,
-        cost: Cost,
-        timeMinimum: ScientificQuantity,
-        timeMaximum: ScientificQuantity,
-        energyMinimum: ScientificQuantity,
-        energyMaximum: ScientificQuantity
+        window: ConstrainedWindow?
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -112,11 +100,7 @@ final class CycleData: Equatable, Hashable, Codable {
         self.failRevisit = failRevisit
         self.session = session
         self.sessionRevisit = sessionRevisit
-        self.cost = cost
-        self.timeMinimum = timeMinimum
-        self.timeMaximum = timeMaximum
-        self.energyMinimum = energyMinimum
-        self.energyMaximum = energyMaximum
+        self.window = window
     }
 
     static func == (lhs: CycleData, rhs: CycleData) -> Bool {
@@ -129,11 +113,7 @@ final class CycleData: Equatable, Hashable, Codable {
             && lhs.failRevisit == rhs.failRevisit
             && lhs.session == rhs.session
             && lhs.sessionRevisit == rhs.sessionRevisit
-            && lhs.cost == rhs.cost
-            && lhs.timeMinimum == rhs.timeMinimum
-            && lhs.timeMaximum == rhs.timeMaximum
-            && lhs.energyMinimum == rhs.energyMinimum
-            && lhs.energyMaximum == rhs.energyMaximum
+            && lhs.window == rhs.window
     }
 
     func hash(into hasher: inout Hasher) {
@@ -146,11 +126,7 @@ final class CycleData: Equatable, Hashable, Codable {
         hasher.combine(failRevisit)
         hasher.combine(session)
         hasher.combine(sessionRevisit)
-        hasher.combine(cost)
-        hasher.combine(timeMinimum)
-        hasher.combine(timeMaximum)
-        hasher.combine(energyMinimum)
-        hasher.combine(energyMaximum)
+        hasher.combine(window)
     }
 
 }
@@ -166,11 +142,7 @@ final class JobData: Equatable, Hashable {
     var failRevisit: UUID?
     var session: UUID?
     var sessionRevisit: UUID?
-    var cost: Cost
-    var timeMinimum: ScientificQuantity
-    var timeMaximum: ScientificQuantity
-    var energyMinimum: ScientificQuantity
-    var energyMaximum: ScientificQuantity
+    var window: ConstrainedWindow?
     // var allSessionIds: SessionIdStore
 
     var cycleData: CycleData {
@@ -184,20 +156,16 @@ final class JobData: Equatable, Hashable {
             failRevisit: failRevisit,
             session: session,
             sessionRevisit: sessionRevisit,
-            cost: cost,
-            timeMinimum: timeMinimum,
-            timeMaximum: timeMaximum,
-            energyMinimum: energyMinimum,
-            energyMaximum: energyMaximum
+            window: window
         )
     }
 
     var isAboveWindow: Bool {
-        self.cost.time > timeMaximum || self.cost.energy > energyMaximum
+        self.window?.isAboveWindow ?? false
     }
 
     var isBelowWindow: Bool {
-        self.cost.time < timeMinimum || self.cost.energy < energyMinimum
+        self.window?.isBelowWindow ?? false
     }
 
     init(
@@ -211,11 +179,7 @@ final class JobData: Equatable, Hashable {
         failRevisit: UUID?,
         session: UUID?,
         sessionRevisit: UUID?,
-        cost: Cost,
-        timeMinimum: ScientificQuantity,
-        timeMaximum: ScientificQuantity,
-        energyMinimum: ScientificQuantity,
-        energyMaximum: ScientificQuantity
+        window: ConstrainedWindow?
     ) {
         self.nodeId = nodeId
         self.expression = expression
@@ -227,11 +191,7 @@ final class JobData: Equatable, Hashable {
         self.failRevisit = failRevisit
         self.session = session
         self.sessionRevisit = sessionRevisit
-        self.cost = cost
-        self.timeMinimum = timeMinimum
-        self.timeMaximum = timeMaximum
-        self.energyMinimum = energyMinimum
-        self.energyMaximum = energyMaximum
+        self.window = window
     }
 
     static func == (lhs: JobData, rhs: JobData) -> Bool {
@@ -245,11 +205,7 @@ final class JobData: Equatable, Hashable {
             && lhs.failRevisit == rhs.failRevisit
             && lhs.session == rhs.session
             && lhs.sessionRevisit == rhs.sessionRevisit
-            && lhs.cost == rhs.cost
-            && lhs.timeMinimum == rhs.timeMinimum
-            && lhs.timeMaximum == rhs.timeMaximum
-            && lhs.energyMinimum == rhs.energyMinimum
-            && lhs.energyMaximum == rhs.energyMaximum
+            && lhs.window == rhs.window
     }
 
     func hash(into hasher: inout Hasher) {
@@ -263,11 +219,7 @@ final class JobData: Equatable, Hashable {
         hasher.combine(failRevisit)
         hasher.combine(session)
         hasher.combine(sessionRevisit)
-        hasher.combine(cost)
-        hasher.combine(timeMinimum)
-        hasher.combine(timeMaximum)
-        hasher.combine(energyMinimum)
-        hasher.combine(energyMaximum)
+        hasher.combine(window)
     }
 
 }
@@ -321,24 +273,8 @@ final class Job: Equatable, Hashable, Identifiable {
         data.sessionRevisit
     }
 
-    var cost: Cost {
-        data.cost
-    }
-
-    var timeMinimum: ScientificQuantity {
-        data.timeMinimum
-    }
-
-    var timeMaximum: ScientificQuantity {
-        data.timeMaximum
-    }
-
-    var energyMinimum: ScientificQuantity {
-        data.energyMinimum
-    }
-
-    var energyMaximum: ScientificQuantity {
-        data.energyMaximum
+    var window: ConstrainedWindow? {
+        data.window
     }
 
     var isAboveWindow: Bool {
@@ -361,11 +297,7 @@ final class Job: Equatable, Hashable, Identifiable {
         failRevisit: UUID?,
         session: UUID?,
         sessionRevisit: UUID?,
-        cost: Cost,
-        timeMinimum: ScientificQuantity,
-        timeMaximum: ScientificQuantity,
-        energyMinimum: ScientificQuantity,
-        energyMaximum: ScientificQuantity
+        window: ConstrainedWindow?
     ) {
         self.init(
             id: id,
@@ -380,11 +312,7 @@ final class Job: Equatable, Hashable, Identifiable {
                 failRevisit: failRevisit,
                 session: session,
                 sessionRevisit: sessionRevisit,
-                cost: cost,
-                timeMinimum: timeMinimum,
-                timeMaximum: timeMaximum,
-                energyMinimum: energyMinimum,
-                energyMaximum: energyMaximum
+                window: window
             )
         )
     }
@@ -418,11 +346,7 @@ extension JobData: Codable {
         case failRevisit
         case session
         case sessionRevisit
-        case cost
-        case timeMinimum
-        case timeMaximum
-        case energyMinimum
-        case energyMaximum
+        case window
     }
 
     convenience init(from decoder: any Decoder) throws {
@@ -459,11 +383,7 @@ extension JobData: Codable {
             failRevisit: try container.decode(UUID?.self, forKey: .failRevisit),
             session: try container.decode(UUID?.self, forKey: .session),
             sessionRevisit: try container.decode(UUID?.self, forKey: .sessionRevisit),
-            cost: try container.decode(Cost.self, forKey: .cost),
-            timeMinimum: try container.decode(ScientificQuantity.self, forKey: .timeMinimum),
-            timeMaximum: try container.decode(ScientificQuantity.self, forKey: .timeMaximum),
-            energyMinimum: try container.decode(ScientificQuantity.self, forKey: .energyMinimum),
-            energyMaximum: try container.decode(ScientificQuantity.self, forKey: .energyMaximum)
+            window: try container.decode(ConstrainedWindow?.self, forKey: .window)
         )
     }
 
@@ -479,11 +399,7 @@ extension JobData: Codable {
         try container.encode(failRevisit, forKey: .failRevisit)
         try container.encode(session, forKey: .session)
         try container.encode(sessionRevisit, forKey: .sessionRevisit)
-        try container.encode(cost, forKey: .cost)
-        try container.encode(timeMinimum, forKey: .timeMinimum)
-        try container.encode(timeMaximum, forKey: .timeMaximum)
-        try container.encode(energyMinimum, forKey: .energyMinimum)
-        try container.encode(energyMaximum, forKey: .energyMaximum)
+        try container.encode(window, forKey: .window)
     }
 
 }

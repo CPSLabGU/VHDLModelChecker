@@ -69,9 +69,7 @@ struct KripkeStructureIterator {
     /// The initial states in the Kripke structure.
     let initialStates: Set<UUID>
 
-    let energyGranularity: ScientificQuantity
-
-    let timeGranularity: ScientificQuantity
+    let granularities: [ConstraintSymbol: ScientificQuantity]
 
     /// Create the iterator from the `VHDLKripkeStructures` format.
     /// - Parameter structure: The kripke structure to store.
@@ -108,12 +106,14 @@ struct KripkeStructureIterator {
             ? ScientificQuantity(coefficient: 5, exponent: minTimeExponent - 2) : .zero
         let energyGranularity = minEnergyExponent != .max
             ? ScientificQuantity(coefficient: 5, exponent: minEnergyExponent - 2) : .zero
+        let granularities: [ConstraintSymbol: ScientificQuantity] = [
+            "t": timeGranularity, "E": energyGranularity
+        ]
         self.init(
             nodes: nodes,
             edges: edges,
             initialStates: initialStates,
-            energyGranularity: energyGranularity,
-            timeGranularity: timeGranularity
+            granularities: granularities
         )
     }
 
@@ -126,14 +126,12 @@ struct KripkeStructureIterator {
         nodes: [UUID: Node],
         edges: [UUID: [NodeEdge]],
         initialStates: Set<UUID>,
-        energyGranularity: ScientificQuantity,
-        timeGranularity: ScientificQuantity
+        granularities: [ConstraintSymbol: ScientificQuantity]
     ) {
         self.nodes = nodes
         self.edges = edges
         self.initialStates = initialStates
-        self.energyGranularity = energyGranularity
-        self.timeGranularity = timeGranularity
+        self.granularities = granularities
     }
 
 }

@@ -63,12 +63,28 @@ struct ConstrainedWindow: Equatable, Hashable, Codable, Sendable {
 
     private let maximums: [ConstraintSymbol: ScientificQuantity]
 
+    var isAboveWindow: Bool {
+        self.maximums.contains {
+            self.currentCost(constraint: $0) > $1
+        }
+    }
+
+    var isBelowWindow: Bool {
+        self.minimums.contains {
+            self.currentCost(constraint: $0) < $1
+        }
+    }
+
+    var isWithinWindow: Bool {
+        !self.isAboveWindow && !self.isBelowWindow
+    }
+
     init(
         cost: Cost,
-        timeMinimum: ScientificQuantity?,
-        timeMaximum: ScientificQuantity?,
-        energyMinimum: ScientificQuantity?,
-        energyMaximum: ScientificQuantity?
+        timeMinimum: ScientificQuantity? = nil,
+        timeMaximum: ScientificQuantity? = nil,
+        energyMinimum: ScientificQuantity? = nil,
+        energyMaximum: ScientificQuantity? = nil
     ) {
         self.init(
             costs: .init(cost: cost),
@@ -84,7 +100,7 @@ struct ConstrainedWindow: Equatable, Hashable, Codable, Sendable {
     }
 
     init(
-        costs: [ConstraintSymbol: ScientificQuantity],
+        costs: [ConstraintSymbol: ScientificQuantity] = [:],
         minimums: [ConstraintSymbol: ScientificQuantity],
         maximums: [ConstraintSymbol: ScientificQuantity]
     ) {

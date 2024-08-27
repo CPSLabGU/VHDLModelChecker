@@ -59,29 +59,67 @@ import VHDLKripkeStructures
 /// Add verification support.
 extension ConstrainedExpression {
 
-    var energyConstraints: [ConstrainedStatement] {
-        constraints.filter { $0.isEnergy }
+    // var energyConstraints: [ConstrainedStatement] {
+    //     constraints.filter { $0.isEnergy }
+    // }
+
+    // var timeConstraints: [ConstrainedStatement] {
+    //     constraints.filter { $0.isTime }
+    // }
+
+    func maximums(
+        granularities: [ConstraintSymbol: ScientificQuantity]
+    ) throws -> [ConstraintSymbol: ScientificQuantity] {
+        var maximums: [ConstraintSymbol: ScientificQuantity] = [:]
+        try self.constraints.forEach { constraint in
+            let symbol = constraint.constraint.symbol
+            guard let granularity = granularities[symbol] else {
+                throw ModelCheckerError.internalError
+            }
+            let maxConstraint = try constraint.max(granularity: granularity)
+            if let currentMax = maximums[symbol] {
+                maximums[symbol] = max(maxConstraint, currentMax)
+            } else {
+                maximums[symbol] = maxConstraint
+            }
+        }
+        return maximums
     }
 
-    var timeConstraints: [ConstrainedStatement] {
-        constraints.filter { $0.isTime }
+    func minimums(
+        granularities: [ConstraintSymbol: ScientificQuantity]
+    ) throws -> [ConstraintSymbol: ScientificQuantity] {
+        var minimums: [ConstraintSymbol: ScientificQuantity] = [:]
+        try self.constraints.forEach { constraint in
+            let symbol = constraint.constraint.symbol
+            guard let granularity = granularities[symbol] else {
+                throw ModelCheckerError.internalError
+            }
+            let minConstraint = try constraint.min(granularity: granularity)
+            if let currentMin = minimums[symbol] {
+                minimums[symbol] = max(minConstraint, currentMin)
+            } else {
+                minimums[symbol] = minConstraint
+            }
+        }
+        return minimums
     }
 
-    func energyMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try energyConstraints.map { try $0.max(granularity: granularity) }.min()
-    }
+    // func energyMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+    //     try energyConstraints.map { try $0.max(granularity: granularity) }.min()
+    // }
 
-    func energyMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try energyConstraints.map { try $0.min(granularity: granularity) }.max()
-    }
+    // func energyMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+    //     try energyConstraints.map { try $0.min(granularity: granularity) }.max()
+    // }
 
-    func timeMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try timeConstraints.map { try $0.max(granularity: granularity) }.min()
-    }
+    // func timeMaximum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+    //     try timeConstraints.map { try $0.max(granularity: granularity) }.min()
+    // }
 
-    func timeMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
-        try timeConstraints.map { try $0.min(granularity: granularity) }.max()
-    }
+    // func timeMinimum(granularity: ScientificQuantity) throws -> ScientificQuantity? {
+    //     try timeConstraints.map { try $0.min(granularity: granularity) }.max()
+    // }
 
     // func granularity(constraints: [ConstrainedStatement]) -> ScientificQuantity? {
     //     guard let quantity = constraints.map({ $0.constraint.quantity }).min() else {

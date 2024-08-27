@@ -76,15 +76,8 @@ enum Successor: Equatable, Hashable, Codable {
     }
 
     init(job: Job, edge: NodeEdge) {
-        let cost = job.cost + edge.cost
-        let time = cost.time
-        let energy = cost.energy
-        guard
-            time >= job.timeMinimum,
-            time <= job.timeMaximum,
-            energy >= job.energyMinimum,
-            energy <= job.energyMaximum
-        else {
+        let newWindow = job.window?.addCost(cost: edge.cost) ?? ConstrainedWindow(cost: edge.cost)
+        guard !newWindow.isAboveWindow, !newWindow.isBelowWindow else {
             self = .invalid(edge: edge)
             return
         }

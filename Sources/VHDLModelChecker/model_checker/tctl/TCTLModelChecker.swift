@@ -100,11 +100,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     failRevisit: nil,
                     session: nil,
                     sessionRevisit: nil,
-                    cost: .zero,
-                    timeMinimum: .zero,
-                    timeMaximum: .max,
-                    energyMinimum: .zero,
-                    energyMaximum: .max
+                    window: nil
                 )
                 try self.store.addJob(data: job)
             }
@@ -123,11 +119,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
         job: Job, edges: LazySequence<[NodeEdge]>
     ) throws -> LazyFilterSequence<[NodeEdge]> {
         edges.filter {
-            let cost = job.cost + $0.cost
-            let time = cost.time
-            let energy = cost.energy
-            return job.timeMinimum <= time && time <= job.timeMaximum
-                && job.energyMinimum <= energy && energy <= job.energyMaximum
+            let newWindow = job.window?.addCost(cost: $0.cost) ?? ConstrainedWindow(cost: $0.cost)
+            return newWindow.isWithinWindow
         }
     }
 
@@ -178,11 +171,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     failRevisit: job.failRevisit,
                     session: job.session,
                     sessionRevisit: job.sessionRevisit,
-                    cost: job.cost + successor.cost,
-                    timeMinimum: job.timeMinimum,
-                    timeMaximum: job.timeMaximum,
-                    energyMinimum: job.energyMinimum,
-                    energyMaximum: job.energyMaximum
+                    window: job.window?.addCost(cost: successor.cost)
                 )
                 try self.store.addJob(data: newJob)
             }
@@ -291,17 +280,17 @@ final class TCTLModelChecker<T> where T: JobStorable {
             try createNewJobs(currentJob: job, structure: structure, results: results, successors: successors)
             return
         }
-        if let failingConstraint = job.constraints.first(where: {
-            (try? $0.verify(node: node, cost: job.cost)) == nil
-        }) {
-            try fail(structure: structure, job: job) {
-                ModelCheckerError.constraintViolation(
-                    branch: $0 + [node],
-                    cost: job.cost,
-                    constraint: failingConstraint
-                )
-            }
-        }
+        // if let failingConstraint = job.constraints.first(where: {
+        //     (try? $0.verify(node: node, cost: job.cost)) == nil
+        // }) {
+        //     try fail(structure: structure, job: job) {
+        //         ModelCheckerError.constraintViolation(
+        //             branch: $0 + [node],
+        //             cost: job.cost,
+        //             constraint: failingConstraint
+        //         )
+        //     }
+        // }
         try succeed(job: job)
     }
 
@@ -411,19 +400,16 @@ private extension JobData {
                 failRevisit: job.failRevisit,
                 session: UUID(),
                 sessionRevisit: job.successRevisit ?? job.sessionRevisit,
-                cost: .zero,
-                timeMinimum: .zero,
-                timeMaximum: .max,
-                energyMinimum: .zero,
-                energyMaximum: .max
+                window: nil
             )
             return
         }
-        let newMinTime = try jobExpression.timeMinimum(granularity: structure.timeGranularity) ?? .zero
-        let newMaxTime = try jobExpression.timeMaximum(granularity: structure.timeGranularity) ?? .max
-        let newMinEnergy = try jobExpression.energyMinimum(granularity: structure.energyGranularity) ?? .zero
-        let newMaxEnergy = try jobExpression.energyMaximum(granularity: structure.energyGranularity) ?? .max
-        guard newMaxTime >= newMinTime, newMaxEnergy >= newMinEnergy else {
+        let minimums = try jobExpression.minimums(granularities: structure.granularities)
+        let maximums = try jobExpression.maximums(granularities: structure.granularities)
+        guard
+            minimums.allSatisfy({ $0.value <= maximums[$0.key] ?? .max }),
+            maximums.allSatisfy({ $0.value >= minimums[$0.key] ?? .zero })
+        else {
             throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
         }
         self.init(
@@ -437,11 +423,7 @@ private extension JobData {
             failRevisit: job.failRevisit,
             session: UUID(),
             sessionRevisit: job.successRevisit ?? job.sessionRevisit,
-            cost: .zero,
-            timeMinimum: newMinTime,
-            timeMaximum: newMaxTime,
-            energyMinimum: newMinEnergy,
-            energyMaximum: newMaxEnergy
+            window: ConstrainedWindow(minimums: minimums, maximums: maximums)
         )
     }
 
@@ -457,51 +439,48 @@ private extension JobData {
             failRevisit: job.failRevisit,
             session: job.session,
             sessionRevisit: job.sessionRevisit,
-            cost: job.cost + successor.cost,
-            timeMinimum: job.timeMinimum,
-            timeMaximum: job.timeMaximum,
-            energyMinimum: job.energyMinimum,
-            energyMaximum: job.energyMaximum
+            window: job.window?.addCost(cost: successor.cost)
         )
     }
 
     convenience init(expression: Expression, constraints: [ConstrainedStatement], job: Job) {
-        let allConstraints = constraints.lazy
-        let timeConstraints = allConstraints.filter {
-            switch $0.constraint {
-            case .time:
-                return true
-            default:
-                return false
-            }
-        }
-        let energyConstraints = allConstraints.filter {
-            switch $0.constraint {
-            case .energy:
-                return true
-            default:
-                return false
-            }
-        }
-        self.init(
-            nodeId: job.nodeId,
-            expression: expression,
-            history: job.history,
-            currentBranch: job.currentBranch,
-            historyExpression: job.historyExpression,
-            constraints: constraints,
-            successRevisit: job.successRevisit,
-            failRevisit: job.failRevisit,
-            session: job.session,
-            sessionRevisit: job.sessionRevisit,
-            cost: .zero,
-            timeMinimum: timeConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity ?? .zero,
-            timeMaximum: timeConstraints.max { $0.isMaxGreaterThan(value: $1) }?.constraint.quantity ?? .max,
-            energyMinimum: energyConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity
-                ?? .zero,
-            energyMaximum: energyConstraints.max { $0.isMaxGreaterThan(value: $1) }?.constraint.quantity
-                ?? .max
-        )
+        fatalError("Should never add constraints!")
+        // let allConstraints = constraints.lazy
+        // let timeConstraints = allConstraints.filter {
+        //     switch $0.constraint {
+        //     case .time:
+        //         return true
+        //     default:
+        //         return false
+        //     }
+        // }
+        // let energyConstraints = allConstraints.filter {
+        //     switch $0.constraint {
+        //     case .energy:
+        //         return true
+        //     default:
+        //         return false
+        //     }
+        // }
+        // self.init(
+        //     nodeId: job.nodeId,
+        //     expression: expression,
+        //     history: job.history,
+        //     currentBranch: job.currentBranch,
+        //     historyExpression: job.historyExpression,
+        //     constraints: constraints,
+        //     successRevisit: job.successRevisit,
+        //     failRevisit: job.failRevisit,
+        //     session: job.session,
+        //     sessionRevisit: job.sessionRevisit,
+        //     cost: .zero,
+        //     timeMinimum: timeConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity ?? .zero,
+        //     timeMaximum: timeConstraints.max { $0.isMaxGreaterThan(value: $1) }?.constraint.quantity ?? .max,
+        //     energyMinimum: energyConstraints.min { $0.isMinLessThan(value: $1) }?.constraint.quantity
+        //         ?? .zero,
+        //     energyMaximum: energyConstraints.max { $0.isMaxGreaterThan(value: $1) }?.constraint.quantity
+        //         ?? .max
+        // )
     }
 
     convenience init<T>(
@@ -520,11 +499,7 @@ private extension JobData {
                 failRevisit: job.failRevisit,
                 session: job.session,
                 sessionRevisit: job.sessionRevisit,
-                cost: job.cost,
-                timeMinimum: job.timeMinimum,
-                timeMaximum: job.timeMaximum,
-                energyMinimum: job.energyMinimum,
-                energyMaximum: job.energyMaximum
+                window: job.window
             )
             let trueJob = JobData(
                 nodeId: job.nodeId,
@@ -537,11 +512,7 @@ private extension JobData {
                 failRevisit: nil,
                 session: job.session,
                 sessionRevisit: job.sessionRevisit,
-                cost: .zero,
-                timeMinimum: .zero,
-                timeMaximum: .max,
-                energyMinimum: .zero,
-                energyMaximum: .max
+                window: nil
             )
             self.init(
                 nodeId: job.nodeId,
@@ -554,11 +525,7 @@ private extension JobData {
                 failRevisit: try store.job(forData: trueJob).id,
                 session: nil,
                 sessionRevisit: nil,
-                cost: job.cost,
-                timeMinimum: job.timeMinimum,
-                timeMaximum: job.timeMaximum,
-                energyMinimum: job.energyMinimum,
-                energyMaximum: job.energyMaximum
+                window: job.window
             )
         case .required:
             let newRevisit = JobData(
@@ -572,11 +539,7 @@ private extension JobData {
                 failRevisit: job.failRevisit,
                 session: job.session,
                 sessionRevisit: job.sessionRevisit,
-                cost: job.cost,
-                timeMinimum: job.timeMinimum,
-                timeMaximum: job.timeMaximum,
-                energyMinimum: job.energyMinimum,
-                energyMaximum: job.energyMaximum
+                window: job.window
             )
             let id = try store.job(forData: newRevisit).id
             self.init(
@@ -590,11 +553,7 @@ private extension JobData {
                 failRevisit: job.failRevisit,
                 session: job.session,
                 sessionRevisit: job.sessionRevisit,
-                cost: job.cost,
-                timeMinimum: job.timeMinimum,
-                timeMaximum: job.timeMaximum,
-                energyMinimum: job.energyMinimum,
-                energyMaximum: job.energyMaximum
+                window: job.window
             )
         case .skip:
             let newRevisit = JobData(
@@ -608,11 +567,7 @@ private extension JobData {
                 failRevisit: job.failRevisit,
                 session: job.session,
                 sessionRevisit: job.sessionRevisit,
-                cost: job.cost,
-                timeMinimum: job.timeMinimum,
-                timeMaximum: job.timeMaximum,
-                energyMinimum: job.energyMinimum,
-                energyMaximum: job.energyMaximum
+                window: job.window
             )
             let trueJob = JobData(
                 nodeId: job.nodeId,
@@ -625,11 +580,7 @@ private extension JobData {
                 failRevisit: nil,
                 session: job.session,
                 sessionRevisit: job.sessionRevisit,
-                cost: .zero,
-                timeMinimum: .zero,
-                timeMaximum: .max,
-                energyMinimum: .zero,
-                energyMaximum: .max
+                window: nil
             )
             self.init(
                 nodeId: job.nodeId,
@@ -642,11 +593,7 @@ private extension JobData {
                 failRevisit: try store.job(forData: newRevisit).id,
                 session: nil,
                 sessionRevisit: nil,
-                cost: job.cost,
-                timeMinimum: job.timeMinimum,
-                timeMaximum: job.timeMaximum,
-                energyMinimum: job.energyMinimum,
-                energyMaximum: job.energyMaximum
+                window: job.window
             )
         }
     }
