@@ -67,8 +67,6 @@ final class CycleData: Equatable, Hashable, Codable {
 
     var historyExpression: Expression?
 
-    var constraints: Set<ConstrainedStatement>
-
     var successRevisit: UUID?
 
     var failRevisit: UUID?
@@ -84,7 +82,6 @@ final class CycleData: Equatable, Hashable, Codable {
         expression: Expression,
         inCycle: Bool,
         historyExpression: Expression?,
-        constraints: Set<ConstrainedStatement>,
         successRevisit: UUID?,
         failRevisit: UUID?,
         session: UUID?,
@@ -95,7 +92,6 @@ final class CycleData: Equatable, Hashable, Codable {
         self.expression = expression
         self.inCycle = inCycle
         self.historyExpression = historyExpression
-        self.constraints = constraints
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
         self.session = session
@@ -108,7 +104,6 @@ final class CycleData: Equatable, Hashable, Codable {
             && lhs.expression == rhs.expression
             && lhs.inCycle == rhs.inCycle
             && lhs.historyExpression == rhs.historyExpression
-            && lhs.constraints == rhs.constraints
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
             && lhs.session == rhs.session
@@ -121,7 +116,6 @@ final class CycleData: Equatable, Hashable, Codable {
         hasher.combine(expression)
         hasher.combine(inCycle)
         hasher.combine(historyExpression)
-        hasher.combine(constraints)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
         hasher.combine(session)
@@ -137,7 +131,6 @@ final class JobData: Equatable, Hashable {
     var history: Set<UUID>
     var currentBranch: [UUID]
     var historyExpression: Expression?
-    var constraints: [ConstrainedStatement]
     var successRevisit: UUID?
     var failRevisit: UUID?
     var session: UUID?
@@ -151,7 +144,6 @@ final class JobData: Equatable, Hashable {
             expression: expression,
             inCycle: history.contains(nodeId),
             historyExpression: historyExpression,
-            constraints: Set(constraints),
             successRevisit: successRevisit,
             failRevisit: failRevisit,
             session: session,
@@ -174,7 +166,6 @@ final class JobData: Equatable, Hashable {
         history: Set<UUID>,
         currentBranch: [UUID],
         historyExpression: Expression?,
-        constraints: [ConstrainedStatement],
         successRevisit: UUID?,
         failRevisit: UUID?,
         session: UUID?,
@@ -186,7 +177,6 @@ final class JobData: Equatable, Hashable {
         self.history = history
         self.currentBranch = currentBranch
         self.historyExpression = historyExpression
-        self.constraints = constraints
         self.successRevisit = successRevisit
         self.failRevisit = failRevisit
         self.session = session
@@ -200,7 +190,6 @@ final class JobData: Equatable, Hashable {
             && lhs.history == rhs.history
             && lhs.currentBranch == rhs.currentBranch
             && lhs.historyExpression == rhs.historyExpression
-            && lhs.constraints == rhs.constraints
             && lhs.successRevisit == rhs.successRevisit
             && lhs.failRevisit == rhs.failRevisit
             && lhs.session == rhs.session
@@ -214,7 +203,6 @@ final class JobData: Equatable, Hashable {
         hasher.combine(history)
         hasher.combine(currentBranch)
         hasher.combine(historyExpression)
-        hasher.combine(constraints)
         hasher.combine(successRevisit)
         hasher.combine(failRevisit)
         hasher.combine(session)
@@ -253,10 +241,6 @@ final class Job: Equatable, Hashable, Identifiable {
         data.historyExpression
     }
 
-    var constraints: [ConstrainedStatement] {
-        data.constraints
-    }
-
     var successRevisit: UUID? {
         data.successRevisit
     }
@@ -292,7 +276,6 @@ final class Job: Equatable, Hashable, Identifiable {
         history: Set<UUID>,
         currentBranch: [UUID],
         historyExpression: Expression?,
-        constraints: [ConstrainedStatement],
         successRevisit: UUID?,
         failRevisit: UUID?,
         session: UUID?,
@@ -307,7 +290,6 @@ final class Job: Equatable, Hashable, Identifiable {
                 history: history,
                 currentBranch: currentBranch,
                 historyExpression: historyExpression,
-                constraints: constraints,
                 successRevisit: successRevisit,
                 failRevisit: failRevisit,
                 session: session,
@@ -341,7 +323,6 @@ extension JobData: Codable {
         case history
         case currentBranch
         case historyExpression
-        case constraints
         case successRevisit
         case failRevisit
         case session
@@ -378,7 +359,6 @@ extension JobData: Codable {
             history: Set(try container.decode([UUID].self, forKey: .history)),
             currentBranch: try container.decode([UUID].self, forKey: .currentBranch),
             historyExpression: historyExpression,
-            constraints: try container.decode([ConstrainedStatement].self, forKey: .constraints),
             successRevisit: try container.decode(UUID?.self, forKey: .successRevisit),
             failRevisit: try container.decode(UUID?.self, forKey: .failRevisit),
             session: try container.decode(UUID?.self, forKey: .session),
@@ -394,7 +374,6 @@ extension JobData: Codable {
         try container.encode(history.sorted { $0.uuidString < $1.uuidString }, forKey: .history)
         try container.encode(currentBranch, forKey: .currentBranch)
         try container.encode(historyExpression?.rawValue, forKey: .historyExpression)
-        try container.encode(constraints, forKey: .constraints)
         try container.encode(successRevisit, forKey: .successRevisit)
         try container.encode(failRevisit, forKey: .failRevisit)
         try container.encode(session, forKey: .session)

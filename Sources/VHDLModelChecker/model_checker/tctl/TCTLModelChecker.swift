@@ -95,7 +95,6 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     history: [],
                     currentBranch: [],
                     historyExpression: nil,
-                    constraints: [],
                     successRevisit: nil,
                     failRevisit: nil,
                     session: nil,
@@ -151,7 +150,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
             // print("Above Window\n\n")
             // fflush(stdout)
             try fail(structure: structure, job: job) { _ in
-                ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+                ModelCheckerError.mismatchedConstraints(constraints: [])
             }
             return
         }
@@ -166,7 +165,6 @@ final class TCTLModelChecker<T> where T: JobStorable {
                     history: [],
                     currentBranch: [],
                     historyExpression: job.historyExpression,
-                    constraints: job.constraints,
                     successRevisit: job.successRevisit,
                     failRevisit: job.failRevisit,
                     session: job.session,
@@ -309,11 +307,11 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 // )
             case .successor(let expression):
                 guard nil != successors.first(where: { _ in true }) else {
-                    if job.constraints.isEmpty {
+                    if job.window == nil {
                         throw ModelCheckerError.internalError
                     } else {
                         try fail(structure: structure, job: job) { _ in
-                            ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+                            ModelCheckerError.mismatchedConstraints(constraints: [])
                         }
                         return
                     }
@@ -395,7 +393,6 @@ private extension JobData {
                 history: [],
                 currentBranch: [],
                 historyExpression: historyExpression,
-                constraints: [],
                 successRevisit: nil,
                 failRevisit: job.failRevisit,
                 session: UUID(),
@@ -410,7 +407,7 @@ private extension JobData {
             minimums.allSatisfy({ $0.value <= maximums[$0.key] ?? .max }),
             maximums.allSatisfy({ $0.value >= minimums[$0.key] ?? .zero })
         else {
-            throw ModelCheckerError.mismatchedConstraints(constraints: job.constraints)
+            throw ModelCheckerError.mismatchedConstraints(constraints: [])
         }
         self.init(
             nodeId: job.nodeId,
@@ -418,7 +415,6 @@ private extension JobData {
             history: [],
             currentBranch: [],
             historyExpression: historyExpression,
-            constraints: jobExpression.constraints,
             successRevisit: nil,
             failRevisit: job.failRevisit,
             session: UUID(),
@@ -434,7 +430,6 @@ private extension JobData {
             history: job.history.union([job.nodeId]),
             currentBranch: job.currentBranch + [job.nodeId],
             historyExpression: job.historyExpression,
-            constraints: job.constraints,
             successRevisit: job.successRevisit,
             failRevisit: job.failRevisit,
             session: job.session,
@@ -494,7 +489,6 @@ private extension JobData {
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
-                constraints: job.constraints,
                 successRevisit: job.successRevisit,
                 failRevisit: job.failRevisit,
                 session: job.session,
@@ -507,7 +501,6 @@ private extension JobData {
                 history: [],
                 currentBranch: [],
                 historyExpression: nil,
-                constraints: [],
                 successRevisit: job.successRevisit,
                 failRevisit: nil,
                 session: job.session,
@@ -520,7 +513,6 @@ private extension JobData {
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
-                constraints: job.constraints,
                 successRevisit: try store.job(forData: newRevisit).id,
                 failRevisit: try store.job(forData: trueJob).id,
                 session: nil,
@@ -534,7 +526,6 @@ private extension JobData {
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
-                constraints: job.constraints,
                 successRevisit: job.successRevisit,
                 failRevisit: job.failRevisit,
                 session: job.session,
@@ -548,7 +539,6 @@ private extension JobData {
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
-                constraints: job.constraints,
                 successRevisit: id,
                 failRevisit: job.failRevisit,
                 session: job.session,
@@ -562,7 +552,6 @@ private extension JobData {
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
-                constraints: job.constraints,
                 successRevisit: job.successRevisit,
                 failRevisit: job.failRevisit,
                 session: job.session,
@@ -575,7 +564,6 @@ private extension JobData {
                 history: [],
                 currentBranch: [],
                 historyExpression: nil,
-                constraints: [],
                 successRevisit: job.successRevisit,
                 failRevisit: nil,
                 session: job.session,
@@ -588,7 +576,6 @@ private extension JobData {
                 history: job.history,
                 currentBranch: job.currentBranch,
                 historyExpression: job.historyExpression,
-                constraints: job.constraints,
                 successRevisit: try store.job(forData: trueJob).id,
                 failRevisit: try store.job(forData: newRevisit).id,
                 session: nil,
