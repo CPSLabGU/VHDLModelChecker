@@ -68,6 +68,8 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
 
     case mismatchedConstraints(constraints: [ConstrainedStatement])
 
+    case corruptKripkeStructure(node: Node, edges: Int)
+
     public var description: String {
         switch self {
         case .notSupported(let expression):
@@ -92,6 +94,12 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
             return """
             The following constraints are mismatched:
             \(constraints.map(\.rawValue).joined(separator: "\n"))
+            """
+        case .corruptKripkeStructure(let node, let edges):
+            return """
+            The following node is corrupt:
+            \(node.description)
+            Edges: \(edges)
             """
         }
     }

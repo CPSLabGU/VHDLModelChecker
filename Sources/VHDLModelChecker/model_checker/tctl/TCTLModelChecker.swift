@@ -230,7 +230,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
         //     return
         // }
         guard let allEdges = structure.edges[job.nodeId]?.lazy, !allEdges.isEmpty else {
-            throw ModelCheckerError.internalError
+            throw ModelCheckerError.corruptKripkeStructure(
+                node: node, edges: structure.edges[job.nodeId]?.count ?? 0
+            )
         }
         let allSuccessors = allEdges.map { Successor(job: job, edge: $0) }
         let successors = allSuccessors.filter { $0.isValid }.map { $0.edge }
