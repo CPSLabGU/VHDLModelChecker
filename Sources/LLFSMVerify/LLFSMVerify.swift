@@ -117,6 +117,29 @@ struct LLFSMVerify: ParsableCommand {
         machine ? "build/verification/verification.db" : storePath
     }
 
+    var specRaw: [String] {
+        get throws {
+            guard !query else {
+                let queries = requirements.joined(separator: "\n\n")
+                return [
+                    """
+                    // spec:language VHDL
+
+                    \(queries)
+
+                    """
+                ]
+            }
+            let specs = try requirements.compactMap {
+                try String(contentsOf: URL(fileURLWithPath: $0, isDirectory: false))
+            }
+            guard specs.count == requirements.count else {
+                throw ModelCheckerError.internalError
+            }
+            return specs
+        }
+    }
+
     func run() throws {
         let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
         let structureURL = machine
@@ -126,28 +149,8 @@ struct LLFSMVerify: ParsableCommand {
     }
 
     func verify(structureURL: URL) throws {
-        let specRaw: [String]
-        if query {
-            let queries = requirements.joined(separator: "\n\n")
-            specRaw = [
-                """
-                // spec:language VHDL
-
-                \(queries)
-
-                """
-            ]
-        } else {
-            let specs = try requirements.compactMap {
-                try String(contentsOf: URL(fileURLWithPath: $0, isDirectory: false))
-            }
-            guard specs.count == requirements.count else {
-                throw ModelCheckerError.internalError
-            }
-            specRaw = specs
-        }
-        let requirements = specRaw.compactMap { RequirementsSpecification(rawValue: $0) }
-        guard requirements.count == specRaw.count else {
+        let requirements = try specRaw.compactMap { RequirementsSpecification(rawValue: $0) }
+        guard requirements.count == (try specRaw.count) else {
             throw ModelCheckerError.internalError
         }
         let structureData = try Data(contentsOf: structureURL)
