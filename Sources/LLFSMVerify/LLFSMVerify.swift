@@ -76,6 +76,9 @@ struct LLFSMVerify: ParsableCommand {
     )
     var structurePath: String
 
+    @Flag(help: "Whether the requirements are raw CTL queries.")
+    var query = false
+
     @Argument(help: "The paths to the requirements specification files.")
     var requirements: [String]
 
@@ -123,12 +126,28 @@ struct LLFSMVerify: ParsableCommand {
     }
 
     func verify(structureURL: URL) throws {
-        let requirements = try requirements.compactMap {
-            RequirementsSpecification(
-                rawValue: try String(contentsOf: URL(fileURLWithPath: $0, isDirectory: false))
-            )
+        let specRaw: [String]
+        if query {
+            let queries = requirements.joined(separator: "\n\n")
+            specRaw = [
+                """
+                // spec:language VHDL
+
+                \(queries)
+
+                """
+            ]
+        } else {
+            let specs = try requirements.compactMap {
+                try String(contentsOf: URL(fileURLWithPath: $0, isDirectory: false))
+            }
+            guard specs.count == requirements.count else {
+                throw ModelCheckerError.internalError
+            }
+            specRaw = specs
         }
-        guard requirements.count == self.requirements.count else {
+        let requirements = specRaw.compactMap { RequirementsSpecification(rawValue: $0) }
+        guard requirements.count == specRaw.count else {
             throw ModelCheckerError.internalError
         }
         let structureData = try Data(contentsOf: structureURL)
