@@ -55,12 +55,16 @@
 
 import TCTLParser
 
+/// A symbol for a constraint.
 typealias ConstraintSymbol = String
 
+/// Add constant symbols.
 extension ConstraintSymbol {
 
+    /// The constraint symbol for energy.
     static let energySymbol: ConstraintSymbol = Constraint.energy(amount: 0, unit: .J).symbol
 
+    /// The constraint symbol for time.
     static let timeSymbol: ConstraintSymbol = Constraint.time(amount: 0, unit: .s).symbol
 
 }

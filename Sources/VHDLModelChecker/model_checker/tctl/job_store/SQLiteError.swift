@@ -55,16 +55,34 @@
 
 import Foundation
 
+/// Error for the `SQLite` job store.
 enum SQLiteError: Error {
 
+    /// An invalid path was provided.
+    ///
+    /// - Parameter url: The invalid path.
     case invalidPath(url: URL)
 
+    /// An error occurred while opening the database.
+    ///
+    /// - Parameters:
+    ///   - message: The error message.
     case connectionError(message: String)
 
+    /// The C driver encounted an error.
+    ///
+    /// - Parameters:
+    ///    - errno: The error number.
+    ///    - message: The error message.
     case cDriverError(errno: Int32, message: String)
 
+    /// An invalid SQLite state was encountered.
+    ///
+    /// - Parameter statement: The statement that caused the error.
+    /// - Parameter tail: The tail of the statement.
     case incompleteStatement(statement: String, tail: String)
 
+    /// The database is corrupted.
     case corruptDatabase
 
 }

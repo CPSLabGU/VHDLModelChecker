@@ -53,12 +53,16 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+/// The type of a revisit.
 enum RevisitType: Equatable, Hashable, Codable, Sendable, CaseIterable {
 
+    /// Skip the revisit on success.
     case skip
 
+    /// Ignore the revisit on fail.
     case ignored
 
+    /// Use the result of the revisit on success.
     case required
 
 }

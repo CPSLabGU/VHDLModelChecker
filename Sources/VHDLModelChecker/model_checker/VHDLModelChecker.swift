@@ -58,10 +58,18 @@ import TCTLParser
 import VHDLKripkeStructures
 import VHDLParsing
 
+/// A model checker for verifying VHDL LLFSMs.
 public struct VHDLModelChecker {
 
+    /// Creates a new model checker.
     public init() {}
 
+    /// Verify a VHDL LLFSM against a set of requirements.
+    /// - Parameters:
+    ///   - structure: The Kripke structure representing the VHDL LLFSM.
+    ///   - specification: The requirements to verify against the VHDL LLFSM.
+    ///   - store: The store to use throughout the verification.
+    ///   - path: The path to the store if required.
     public func verify(
         structure: KripkeStructure,
         against specification: [RequirementsSpecification],
@@ -88,6 +96,11 @@ public struct VHDLModelChecker {
         }
     }
 
+    /// Verify a VHDL LLFSM against a set of TCTL requirements.
+    /// - Parameters:
+    ///   - checker: The model checker to use.
+    ///   - structure: The Kripke structure representing the VHDL LLFSM.
+    ///   - specification: The requirements to verify against the VHDL LLFSM.
     func verify<T>(
         checker: TCTLModelChecker<T>, structure: KripkeStructure, specification: [RequirementsSpecification]
     ) throws {

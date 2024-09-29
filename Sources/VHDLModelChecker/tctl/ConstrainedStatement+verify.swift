@@ -69,6 +69,7 @@ extension ConstrainedStatement {
         }
     }
 
+    /// Is the constraint an Energy constraint?
     var isEnergy: Bool {
         switch self.constraint {
         case .time:
@@ -78,6 +79,7 @@ extension ConstrainedStatement {
         }
     }
 
+    /// Is the constraint a Time constraint?
     var isTime: Bool {
         switch self.constraint {
         case .time:
@@ -87,6 +89,11 @@ extension ConstrainedStatement {
         }
     }
 
+    // swiftlint:disable function_body_length
+
+    /// Is the maximum value of the constraint greater than the given value?
+    /// - Parameter value: The value to compare against.
+    /// - Returns: Whether the maximum value is greater than the given value.
     func isMaxGreaterThan(value: ConstrainedStatement) -> Bool {
         switch self {
         case .equal(let lhs):
@@ -165,6 +172,9 @@ extension ConstrainedStatement {
         }
     }
 
+    /// Is the minimum value of the constraint less than the given value?
+    /// - Parameter value: The value to compare against.
+    /// - Returns: Whether the minimum value is less than the given value.
     func isMinLessThan(value: ConstrainedStatement) -> Bool {
         switch self {
         case .equal(let lhs):
@@ -224,6 +234,11 @@ extension ConstrainedStatement {
         }
     }
 
+    // swiftlint:enable function_body_length
+
+    /// The maximum value of the constraint.
+    /// - Parameter granularity: The granularity of the constraint.
+    /// - Returns: The maximum value of the constraint.
     func max(granularity: ScientificQuantity) throws -> ScientificQuantity {
         switch self {
         case .greaterThan, .greaterThanOrEqual:
@@ -248,6 +263,9 @@ extension ConstrainedStatement {
         }
     }
 
+    /// The minimum value of the constraint.
+    /// - Parameter granularity: The granularity of the constraint.
+    /// - Returns: The minimum value of the constraint.
     func min(granularity: ScientificQuantity) throws -> ScientificQuantity {
         switch self {
         case .lessThan, .lessThanOrEqual:
