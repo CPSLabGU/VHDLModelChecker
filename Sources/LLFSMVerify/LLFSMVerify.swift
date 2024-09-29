@@ -58,36 +58,45 @@ import Foundation
 import VHDLKripkeStructures
 import VHDLModelChecker
 
+/// The main command line tool for verifying VHDL Kripke structures against requirements.
 @main
 struct LLFSMVerify: ParsableCommand {
 
+    /// The command configuration.
     static let configuration = CommandConfiguration(
         commandName: "llfsm-verify",
         abstract: "Verify a Kripke structure against a specification.",
-        version: "1.0.0"
+        version: "0.1.0"
     )
 
+    /// Whether the structure path is a URL to a machine.
     @Flag(help: "Whether the structure path is a URL to a machine.")
     var machine = false
 
+    /// The location of the Kripke structure.
     @Argument(
         // swiftlint:disable:next line_length
         help: "The location of the Kripke structure. This path may also be a URL to a machine by specifying the --machine flag"
     )
     var structurePath: String
 
+    /// Whether the requirements are raw CTL queries.
     @Flag(help: "Whether the requirements are raw CTL queries.")
     var query = false
 
+    /// The paths to the requirements specification files.
     @Argument(help: "The paths to the requirements specification files.")
     var requirements: [String]
 
+    /// Whether to write the counter example to a graphviz file.
     @Flag(help: "Write the counter example to a graphviz file called branch.dot")
     var writeGraphviz = false
 
+    /// The maximum number of states to return in the counter example.
     @Option(help: "The maximum number of states to return in the counter example.")
     var branchDepth: UInt?
 
+    /// Whether to write the entire Kripke structure.
     @Flag(
         help: """
         Write the entire Kripke Structure. This flag must also be used with the --write-graphviz flag.
@@ -96,6 +105,7 @@ struct LLFSMVerify: ParsableCommand {
     )
     var entireStructure = false
 
+    /// The store to use for verification jobs.
     @Option(
         help: """
         The store to use for verification jobs. Please make sure libsqlite-dev is installed on your system
@@ -104,6 +114,7 @@ struct LLFSMVerify: ParsableCommand {
     )
     var store: VerificationStore = .inMemory
 
+    /// The path to the database file when specifying the SQLite store via the --store option.
     @Option(
         help: """
         The path to the database file when specifying the SQLite store via the --store option. If the
@@ -113,10 +124,12 @@ struct LLFSMVerify: ParsableCommand {
     )
     var storePath: String = "verification.db"
 
+    /// The actual store path to use.
     var actualStorePath: String {
         machine ? "build/verification/verification.db" : storePath
     }
 
+    /// The raw specification strings.
     var specRaw: [String] {
         get throws {
             guard !query else {
@@ -140,6 +153,7 @@ struct LLFSMVerify: ParsableCommand {
         }
     }
 
+    /// The main run function.
     func run() throws {
         let baseURL = URL(fileURLWithPath: structurePath, isDirectory: machine)
         let structureURL = machine
@@ -148,6 +162,7 @@ struct LLFSMVerify: ParsableCommand {
         try self.verify(structureURL: structureURL)
     }
 
+    /// Verify the structure against the requirements.
     func verify(structureURL: URL) throws {
         let requirements = try specRaw.compactMap { RequirementsSpecification(rawValue: $0) }
         guard requirements.count == (try specRaw.count) else {
@@ -173,6 +188,7 @@ struct LLFSMVerify: ParsableCommand {
         try writeGraphvizFile(rawValue: structure.graphviz)
     }
 
+    /// Write the graphviz file.
     func writeGraphvizFile(rawValue: String) throws {
         let diagram = Data(rawValue.utf8)
         let url: URL
@@ -196,6 +212,7 @@ struct LLFSMVerify: ParsableCommand {
         try diagram.write(to: url, options: .atomic)
     }
 
+    /// Handle the error.
     func handleError(error: ModelCheckerError, structure: KripkeStructure) throws {
         guard writeGraphviz, case .unsatisfied(let branch, let expression, let base) = error else {
             return
@@ -212,6 +229,7 @@ struct LLFSMVerify: ParsableCommand {
         try createGraphvizFile(for: counterBranch, error: newError, structure: structure)
     }
 
+    /// Write the branch to a graphviz file.
     func writeBranch(for branch: [Node], error: Error, structure: KripkeStructure) throws {
         guard let initialNode = branch.first else {
             return
@@ -236,6 +254,7 @@ struct LLFSMVerify: ParsableCommand {
         try writeGraphvizFile(rawValue: newStructure.graphviz)
     }
 
+    /// Write the structure to a graphviz file.
     func writeStructure(for branch: [Node], error: Error, structure: KripkeStructure) throws {
         let branchNodes = Set(branch)
         let nodeKeys = Dictionary(uniqueKeysWithValues: structure.nodes.enumerated().map { ($1, $0) })
@@ -256,8 +275,10 @@ struct LLFSMVerify: ParsableCommand {
             .map { "    \($0)" }
             .joined(separator: "\n")
         let edges = structure.edges.lazy.filter { nodeKeys[$0.key] != nil }
+            // swiftlint:disable:next force_unwrapping
             .sorted { nodeKeys[$0.key]! < nodeKeys[$1.key]! }
             .flatMap { node1, edges1 in
+                // swiftlint:disable:next force_unwrapping
                 let id = nodeKeys[node1]!
                 return edges1.map {
                     let color = branchNodes.contains(node1) && branchNodes.contains($0.target)
@@ -278,6 +299,7 @@ struct LLFSMVerify: ParsableCommand {
         try writeGraphvizFile(rawValue: diagram)
     }
 
+    /// Create the graphviz file.
     func createGraphvizFile(for branch: [Node], error: Error, structure: KripkeStructure) throws {
         guard entireStructure else {
             try writeBranch(for: branch, error: error, structure: structure)

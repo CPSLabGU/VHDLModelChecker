@@ -56,8 +56,10 @@
 import VHDLKripkeStructures
 import VHDLParsing
 
+/// Add helpers.
 extension Expression {
 
+    /// Assume the expression is a variable.
     var variable: VariableName? {
         guard
             case .reference(let variable) = self,
@@ -69,6 +71,7 @@ extension Expression {
         return variable
     }
 
+    /// The literal value of the expression.
     var literal: SignalLiteral? {
         guard case .literal(let literal) = self else {
             return nil
@@ -76,6 +79,7 @@ extension Expression {
         return literal
     }
 
+    /// The conditional expression.
     var conditional: ConditionalExpression? {
         guard case .conditional(let condition) = self else {
             return nil
@@ -83,6 +87,7 @@ extension Expression {
         return condition
     }
 
+    /// The boolean expression.
     var boolean: BooleanExpression? {
         guard case .logical(let boolean) = self else {
             return nil
@@ -90,6 +95,7 @@ extension Expression {
         return boolean
     }
 
+    /// Verify the expression.
     func verify(node: Node) throws {
         switch self {
         case .conditional(let condition):

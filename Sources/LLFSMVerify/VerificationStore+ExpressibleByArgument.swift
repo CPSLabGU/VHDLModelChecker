@@ -56,8 +56,11 @@
 import ArgumentParser
 import VHDLModelChecker
 
+/// Add init for arguments.
 extension VerificationStore: ExpressibleByArgument {
 
+    /// Create a new instance from an argument.
+    /// - Parameter argument: The argument to create the instance from.
     public init?(argument: String) {
         self.init(rawValue: argument)
     }

@@ -67,6 +67,9 @@ extension ConstrainedExpression {
     //     constraints.filter { $0.isTime }
     // }
 
+    /// Get the maximum values for the constraints.
+    /// - Parameter granularities: The granularities for the constraints.
+    /// - Returns: The maximum values for the constraints.
     func maximums(
         granularities: [ConstraintSymbol: ScientificQuantity]
     ) throws -> [ConstraintSymbol: ScientificQuantity] {
@@ -86,6 +89,9 @@ extension ConstrainedExpression {
         return maximums
     }
 
+    /// Get the minimum values for the constraints.
+    /// - Parameter granularities: The granularities for the constraints.
+    /// - Returns: The minimum values for the constraints.
     func minimums(
         granularities: [ConstraintSymbol: ScientificQuantity]
     ) throws -> [ConstraintSymbol: ScientificQuantity] {

@@ -56,12 +56,15 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// `SIRepresentable` conformance.
 extension Constraint: SIRepresentable {
 
+    /// The coefficient of the SI value.
     public var coefficient: UInt {
         self.amount
     }
 
+    /// The exponent of the SI value.
     public var exponent: Int {
         switch self {
         case .time(_, let unit):
@@ -71,14 +74,17 @@ extension Constraint: SIRepresentable {
         }
     }
 
+    /// The SI value.
     var quantity: ScientificQuantity {
         ScientificQuantity(SIValue: self)
     }
 
 }
 
+/// Add exponents for units.
 extension TimeUnit {
 
+    /// The exponent of the unit.
     var exponent: Int {
         switch self {
         case .s:
@@ -98,8 +104,10 @@ extension TimeUnit {
 
 }
 
+/// Add exponents for units.
 extension EnergyUnit {
 
+    /// The exponent of the unit.
     var exponent: Int {
         switch self {
         case .J:

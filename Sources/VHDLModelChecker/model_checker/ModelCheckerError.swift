@@ -56,20 +56,28 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Errors that can occur during model checking.
 public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable {
 
+    /// The expression is unsatisfied.
     case unsatisfied(branch: [Node], expression: Expression, base: Expression?)
 
+    /// A constraint is violated.
     case constraintViolation(branch: [Node], cost: Cost, constraint: ConstrainedStatement)
 
+    /// An internal error occurred.
     case internalError
 
+    /// The expression is not supported.
     case notSupported(expression: Expression)
 
+    /// The constraints are contradictory.
     case mismatchedConstraints(constraints: [ConstrainedStatement])
 
+    /// The Kripke structure is corrupted.
     case corruptKripkeStructure(node: Node, edges: Int)
 
+    /// A textual representation of this instance.
     public var description: String {
         switch self {
         case .notSupported(let expression):
@@ -104,6 +112,7 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
         }
     }
 
+    /// Create from a verification error.
     init(error: VerificationError, currentBranch: [Node], expression: Expression, base: Expression? = nil) {
         switch error {
         case .unsatisfied(let node):
@@ -113,6 +122,7 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
         }
     }
 
+    /// Create from an unrecoverable error.
     init(error: UnrecoverableError, expression: Expression) {
         switch error {
         case .notSupported:

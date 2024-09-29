@@ -72,8 +72,10 @@ extension SignalLiteral {
 
 }
 
+/// Add equality operator.
 extension SignalLiteral {
 
+    /// Value-based equality.
     static func == (lhs: SignalLiteral, rhs: SignalLiteral) -> Bool {
         switch (lhs, rhs) {
         case (.bit(let lhs), .bit(let rhs)):
@@ -103,8 +105,10 @@ extension SignalLiteral {
 
 }
 
+/// Add equality.
 extension VectorLiteral {
 
+    /// Value-based equality.
     static func == (lhs: VectorLiteral, rhs: VectorLiteral) -> Bool {
         switch (lhs, rhs) {
         case (.bits(let lhs), .bits(let rhs)):
@@ -127,6 +131,8 @@ extension VectorLiteral {
     }
 
 }
+
+
 
 /// Add `Comparable` conformance.
 extension SignalLiteral: Comparable {

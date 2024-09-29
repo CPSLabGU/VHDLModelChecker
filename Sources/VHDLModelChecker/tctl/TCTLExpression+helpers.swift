@@ -56,6 +56,7 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Add helpers.
 extension Expression {
 
     // var granularity: ScientificQuantity? {
@@ -79,6 +80,7 @@ extension Expression {
     //     }
     // }
 
+    /// Get the history expression.
     var historyExpression: Expression? {
         switch self {
         case .quantified(let expression):
@@ -90,6 +92,7 @@ extension Expression {
         }
     }
 
+    /// The constraints for the expression.
     var constraints: [ConstrainedStatement]? {
         switch self {
         case .constrained(let expression):
@@ -99,6 +102,7 @@ extension Expression {
         }
     }
 
+    /// Normalise the expression in terms of A's.
     var normalised: Expression {
         switch self {
         case .conjunction(let lhs, let rhs):
@@ -140,6 +144,7 @@ extension Expression {
         }
     }
 
+    /// Verify the expression.
     func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
         switch self {

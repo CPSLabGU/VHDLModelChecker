@@ -56,8 +56,10 @@
 import VHDLKripkeStructures
 import VHDLParsing
 
+/// Add description for Node.
 extension Node: CustomStringConvertible {
 
+    /// A textual representation of this instance.
     public var description: String {
         """
         Node(

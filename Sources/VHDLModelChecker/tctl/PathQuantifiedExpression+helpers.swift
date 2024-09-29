@@ -56,8 +56,10 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Add helper functions.
 extension PathQuantifiedExpression {
 
+    /// Normalise the expression in terms of A's.
     var normalised: PathQuantifiedExpression {
         switch self {
         case .globally(let expression):
@@ -73,6 +75,9 @@ extension PathQuantifiedExpression {
         }
     }
 
+    // swiftlint:disable function_body_length
+
+    /// Verify the expression.
     func verify(
         currentNode node: Node, inCycle: Bool, quantifier: GlobalQuantifiedType
     ) throws -> [VerifyStatus] {
@@ -140,5 +145,7 @@ extension PathQuantifiedExpression {
             ]
         }
     }
+
+    // swiftlint:enable function_body_length
 
 }
