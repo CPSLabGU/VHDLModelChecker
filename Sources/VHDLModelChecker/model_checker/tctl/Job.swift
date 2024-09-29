@@ -61,11 +61,11 @@ final class CycleData: Equatable, Hashable, Codable {
 
     var nodeId: UUID
 
-    var expression: Expression
+    var expression: TCTLParser.Expression
 
     var inCycle: Bool
 
-    var historyExpression: Expression?
+    var historyExpression: TCTLParser.Expression?
 
     var successRevisit: UUID?
 
@@ -79,9 +79,9 @@ final class CycleData: Equatable, Hashable, Codable {
 
     init(
         nodeId: UUID,
-        expression: Expression,
+        expression: TCTLParser.Expression,
         inCycle: Bool,
-        historyExpression: Expression?,
+        historyExpression: TCTLParser.Expression?,
         successRevisit: UUID?,
         failRevisit: UUID?,
         session: UUID?,
@@ -127,10 +127,10 @@ final class CycleData: Equatable, Hashable, Codable {
 
 final class JobData: Equatable, Hashable {
     var nodeId: UUID
-    var expression: Expression
+    var expression: TCTLParser.Expression
     var history: Set<UUID>
     var currentBranch: [UUID]
-    var historyExpression: Expression?
+    var historyExpression: TCTLParser.Expression?
     var successRevisit: UUID?
     var failRevisit: UUID?
     var session: UUID?
@@ -162,10 +162,10 @@ final class JobData: Equatable, Hashable {
 
     init(
         nodeId: UUID,
-        expression: Expression,
+        expression: TCTLParser.Expression,
         history: Set<UUID>,
         currentBranch: [UUID],
-        historyExpression: Expression?,
+        historyExpression: TCTLParser.Expression?,
         successRevisit: UUID?,
         failRevisit: UUID?,
         session: UUID?,
@@ -225,7 +225,7 @@ final class Job: Equatable, Hashable, Identifiable {
         data.nodeId
     }
 
-    var expression: Expression {
+    var expression: TCTLParser.Expression {
         data.expression
     }
 
@@ -237,7 +237,7 @@ final class Job: Equatable, Hashable, Identifiable {
         data.currentBranch
     }
 
-    var historyExpression: Expression? {
+    var historyExpression: TCTLParser.Expression? {
         data.historyExpression
     }
 
@@ -272,10 +272,10 @@ final class Job: Equatable, Hashable, Identifiable {
     convenience init(
         id: UUID,
         nodeId: UUID,
-        expression: Expression,
+        expression: TCTLParser.Expression,
         history: Set<UUID>,
         currentBranch: [UUID],
-        historyExpression: Expression?,
+        historyExpression: TCTLParser.Expression?,
         successRevisit: UUID?,
         failRevisit: UUID?,
         session: UUID?,
@@ -340,7 +340,7 @@ extension JobData: Codable {
                 debugDescription: "Invalid expression value"
             )
         }
-        let historyExpression: Expression?
+        let historyExpression: TCTLParser.Expression?
         if let historyExpressionRawValue = try container.decode(String?.self, forKey: .historyExpression) {
             guard let historyExpressionConverted = Expression(rawValue: historyExpressionRawValue) else {
                 throw DecodingError.dataCorruptedError(

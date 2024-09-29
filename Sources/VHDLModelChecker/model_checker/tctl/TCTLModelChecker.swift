@@ -54,9 +54,9 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Foundation
+import StringHelpers
 import TCTLParser
 import VHDLKripkeStructures
-import StringHelpers
 
 // 1. Create initial jobs.
 // 2. For current job, check if not in session ID and return if not there, otherwise forward.
@@ -386,7 +386,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
 private extension JobData {
 
     convenience init(
-        newSessionFor job: Job, historyExpression: Expression, structure: KripkeStructureIterator
+        newSessionFor job: Job, historyExpression: TCTLParser.Expression, structure: KripkeStructureIterator
     ) throws {
         guard case .constrained(let jobExpression) = job.expression else {
             self.init(
@@ -425,7 +425,7 @@ private extension JobData {
         )
     }
 
-    convenience init(expression: Expression, successor: NodeEdge, job: Job) {
+    convenience init(expression: TCTLParser.Expression, successor: NodeEdge, job: Job) {
         self.init(
             nodeId: successor.destination,
             expression: expression,
@@ -440,7 +440,7 @@ private extension JobData {
         )
     }
 
-    convenience init(expression: Expression, constraints: [ConstrainedStatement], job: Job) {
+    convenience init(expression: TCTLParser.Expression, constraints: [ConstrainedStatement], job: Job) {
         fatalError("Should never add constraints!")
         // let allConstraints = constraints.lazy
         // let timeConstraints = allConstraints.filter {
@@ -481,7 +481,7 @@ private extension JobData {
     }
 
     convenience init<T>(
-        expression: Expression, revisit: RevisitExpression, job: Job, store: inout T
+        expression: TCTLParser.Expression, revisit: RevisitExpression, job: Job, store: inout T
     ) throws where T: JobStorable {
         switch revisit {
         case .ignored:
