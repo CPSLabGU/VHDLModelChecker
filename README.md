@@ -51,7 +51,7 @@ let package = Package(
         .package(url: "https://github.com/cpslabgu/VHDLModelChecker", from: "0.1.0"),
     ],
     targets: [
-        .Target(
+        .target(
             name: <Target_Name>,
             dependencies: [
                 .product(name: "VHDLModelChecker", package: "VHDLModelChecker")
