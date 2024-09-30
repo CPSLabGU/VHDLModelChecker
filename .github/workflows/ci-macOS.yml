@@ -12,5 +12,7 @@ on:
 jobs:
   ci_macos:
     uses: cpslabgu/swift-workflows/.github/workflows/ci-macOS.yml@main
+    with:
+      os: '["macos-14", "macos-latest"]'
     secrets:
       SSH_PRIVATE_KEY: ${{ secrets.WORKFLOWS_SSH_PRIVATE_KEY }}
