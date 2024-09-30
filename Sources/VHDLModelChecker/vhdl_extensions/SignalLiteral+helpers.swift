@@ -132,8 +132,6 @@ extension VectorLiteral {
 
 }
 
-
-
 /// Add `Comparable` conformance.
 extension SignalLiteral: Comparable {
 

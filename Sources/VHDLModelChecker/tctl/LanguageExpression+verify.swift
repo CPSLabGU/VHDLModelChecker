@@ -59,6 +59,7 @@ import VHDLKripkeStructures
 /// Add `verify` method.
 extension LanguageExpression {
 
+    /// Normalise the expression.
     var normalised: LanguageExpression {
         self
     }
