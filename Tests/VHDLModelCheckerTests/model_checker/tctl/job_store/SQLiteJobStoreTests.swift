@@ -3,13 +3,15 @@ import XCTest
 
 @testable import VHDLModelChecker
 
+/// Test class for `SQLite` job store.
 final class SQLiteJobStoreTests: JobStorableTestCase {
 
-    override func setUp() {
-        super.setUp()
-        // super.store = try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
-        // super.store = try! SQLiteJobStore()
-    }
+    // /// Setup test case.
+    // override func setUp() {
+    //     super.setUp()
+    //     // super.store = try! SQLiteJobStore(path: FileManager.default.currentDirectoryPath + "/test.db")
+    //     // super.store = try! SQLiteJobStore()
+    // }
 
     // func testCanAddJobs() throws {
     //     try super._testCanAddJobs()

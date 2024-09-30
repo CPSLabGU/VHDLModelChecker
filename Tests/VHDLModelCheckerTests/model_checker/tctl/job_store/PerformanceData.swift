@@ -55,18 +55,23 @@
 
 import Foundation
 
+/// Performance data for performance testing.
 struct PerformanceData: Comparable {
 
+    /// Durations of the performance test.
     let durations: [Duration]
 
+    /// The average duration of the performance test.
     var average: Duration {
         durations.reduce(Duration.zero, +) / durations.count
     }
 
+    /// The performance factor of the performance test.
     var performanceFactor: Double {
         self.max / self.min
     }
 
+    /// The standard deviation of the performance test.
     var stdDev: Double {
         let average = average.microseconds
         let std = sqrt(
@@ -75,22 +80,27 @@ struct PerformanceData: Comparable {
         return std / average * 100.0
     }
 
+    /// The maximum duration of the performance test.
     var max: Duration {
-        durations.max()!
+        durations.max() ?? .zero
     }
 
+    /// The minimum duration of the performance test.
     var min: Duration {
-        durations.min()!
+        durations.min() ?? .zero
     }
 
+    /// Comparable conformance based on average.
     static func < (lhs: PerformanceData, rhs: PerformanceData) -> Bool {
         lhs.average < rhs.average
     }
 
 }
 
+/// Add helpers.
 extension Duration {
 
+    /// A duration in microseconds.
     var microseconds: Double {
         Double(self.components.seconds) * 1e9
             + Double(self.components.attoseconds) / 1e9

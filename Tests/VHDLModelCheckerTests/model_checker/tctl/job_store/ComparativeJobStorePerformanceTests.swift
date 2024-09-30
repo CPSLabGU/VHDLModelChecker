@@ -59,17 +59,26 @@ import VHDLKripkeStructures
 @testable import VHDLModelChecker
 import XCTest
 
+/// Compare performance of all job stores.
 final class ComparativeJobStorePerformanceTests: XCTestCase {
 
+    /// The stores to compare.
     let stores: [() -> any JobStorable] = [
-        InMemoryDataStore.init,
+        InMemoryDataStore.init
         // { try! SQLiteJobStore() }
     ]
 
+    // swiftlint:disable implicitly_unwrapped_optional
+
+    /// A revisit data.
     var revisit: JobData!
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
+    /// Clock for measuring performance.
     let clock = ContinuousClock()
 
+    /// Setup the test case.
     override func setUp() {
         self.revisit = JobData(
             nodeId: UUID(),
@@ -85,6 +94,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         )
     }
 
+    /// Get new job.
     func newJob(store: inout any JobStorable) throws -> JobData {
         JobData(
             nodeId: UUID(),
@@ -100,6 +110,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         )
     }
 
+    /// Test.
     func testAddJob() throws {
         let performanceFactor = try self.compare {
             try _ = $0.addJob(job: $1)
@@ -108,6 +119,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         XCTAssertLessThan(performanceFactor, 2.0)
     }
 
+    /// Test.
     func testAddJobData() throws {
         let performanceFactor = try self.compare {
             _ = try $0.addJob(data: $1)
@@ -116,6 +128,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         XCTAssertLessThan(performanceFactor, 15.0)
     }
 
+    /// Test.
     func testInCycle() throws {
         let performanceFactor = try self.compare {
             _ = try $0.inCycle($1)
@@ -124,6 +137,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         XCTAssertLessThan(performanceFactor, 9.0)
     }
 
+    /// Test.
     func testJob() throws {
         let performanceFactor = try self.compare {
             _ = try $0.job(forData: $1)
@@ -132,6 +146,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         XCTAssertLessThan(performanceFactor, 12.0)
     }
 
+    /// Compare.
     func compare(_ fn: (inout any JobStorable, Job) throws -> Void) throws -> Double {
         let durations = try stores.map { storeFn in
             var store = storeFn()
@@ -154,6 +169,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         return maxDuration / minDuration
     }
 
+    /// Compare.
     func compare(_ fn: (inout any JobStorable, JobData) throws -> Void) throws -> Double {
         let durations = try stores.map { storeFn in
             var store = storeFn()
@@ -174,6 +190,7 @@ final class ComparativeJobStorePerformanceTests: XCTestCase {
         return maxDuration / minDuration
     }
 
+    /// Compare.
     func compare(_ fn: (inout any JobStorable, [JobData]) throws -> Void) throws -> Double {
         let durations = try stores.map { storeFn in
             var store = storeFn()

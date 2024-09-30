@@ -5,12 +5,20 @@ import XCTest
 
 @testable import VHDLModelChecker
 
+/// Helper class for performing job store tests.
 class JobStorableTestCase: XCTestCase {
 
+    // swiftlint:disable implicitly_unwrapped_optional
+
+    /// The store to test.
     var store: JobStorable!
 
+    /// A revisit data.
     var revisit: JobData!
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
+    /// New job data.
     var newJob: JobData {
         get throws {
             JobData(
@@ -28,6 +36,7 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    /// setup the test cases.
     override func setUp() {
         self.revisit = JobData(
             nodeId: UUID(),
@@ -43,6 +52,11 @@ class JobStorableTestCase: XCTestCase {
         )
     }
 
+    // swiftlint:disable identifier_name
+    // swiftlint:disable force_unwrapping
+    // swiftlint:disable force_try
+
+    /// Delegate test.
     func _testCanAddJobs() throws {
         let job = try self.newJob
         let jobId = try store.addJob(data: job)
@@ -57,6 +71,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNil(try store.next)
     }
 
+    /// Delegate test.
     func _testFailsSession() throws {
         let job = try newJob
         let id = try self.store.addJob(data: job)
@@ -72,18 +87,21 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(try store.error(session: job.session!), .internalError)
     }
 
+    /// Delegate test.
     func _testInCycle() throws {
         let job = Job(id: UUID(), data: try newJob)
         XCTAssertFalse(try store.inCycle(job))
         XCTAssertTrue(try store.inCycle(job))
     }
 
+    /// Delegate test.
     func _testJobFromData() throws {
         let data = try newJob
         let job = try store.job(forData: data)
         XCTAssertEqual(job, try store.job(withId: job.id))
     }
 
+    /// Delegate test.
     func _testJobWithID() throws {
         XCTAssertThrowsError(try store.job(withId: UUID()))
         let data = try self.newJob
@@ -92,6 +110,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(job, result)
     }
 
+    /// Delegate test.
     func _testNext() throws {
         XCTAssertNil(try self.store.next)
         let data = try self.newJob
@@ -99,6 +118,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertEqual(id, try self.store.next)
     }
 
+    /// Delegate test.
     func _testReset() throws {
         let job1 = try newJob
         let job2 = try newJob
@@ -112,6 +132,7 @@ class JobStorableTestCase: XCTestCase {
         XCTAssertNotEqual(job2Id, job2Id_2)
     }
 
+    /// Delegate test.
     func _testNextPerformance() throws {
         for _ in 0..<1000 {
             let job = try! self.newJob
@@ -124,6 +145,7 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    /// Delegate test.
     func _testAddJobDataPerformance() throws {
         measure {
             for _ in 0..<1000 {
@@ -133,6 +155,7 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    /// Delegate test.
     func _testAddJobPerformance() throws {
         measure {
             for _ in 0..<1000 {
@@ -142,6 +165,7 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    /// Delegate test.
     func _testInCyclePerformance() throws {
         measure {
             for _ in 0..<1000 {
@@ -151,6 +175,7 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    /// Delegate test.
     func _testJobFromDataPerformance() throws {
         let jobs = try (0..<1000).map { _ in try self.newJob }
         try jobs.forEach { _ = try self.store.addJob(data: $0) }
@@ -162,6 +187,7 @@ class JobStorableTestCase: XCTestCase {
         }
     }
 
+    /// Delegate test.
     func _testJobFromIDPerformance() throws {
         let jobs = try (0..<1000).map { _ in try self.newJob }
         let fetchedJobs = try jobs.map { try self.store.job(forData: $0) }
@@ -170,5 +196,9 @@ class JobStorableTestCase: XCTestCase {
             try! shuffledJobs.forEach { _ = try self.store.job(withId: $0.id) }
         }
     }
+
+    // swiftlint:enable force_try
+    // swiftlint:enable force_unwrapping
+    // swiftlint:enable identifier_name
 
 }
