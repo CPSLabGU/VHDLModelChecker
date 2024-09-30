@@ -69,7 +69,7 @@ extension ConstrainedStatement {
         }
     }
 
-    /// Is the constraint an Energy constraint?
+    /// Whether the constraint is an Energy constraint.
     var isEnergy: Bool {
         switch self.constraint {
         case .time:
@@ -79,7 +79,7 @@ extension ConstrainedStatement {
         }
     }
 
-    /// Is the constraint a Time constraint?
+    /// Whether the constraint is a Time constraint.
     var isTime: Bool {
         switch self.constraint {
         case .time:
@@ -91,7 +91,7 @@ extension ConstrainedStatement {
 
     // swiftlint:disable function_body_length
 
-    /// Is the maximum value of the constraint greater than the given value?
+    /// Whether the maximum value of the constraint is greater than the given value.
     /// - Parameter value: The value to compare against.
     /// - Returns: Whether the maximum value is greater than the given value.
     func isMaxGreaterThan(value: ConstrainedStatement) -> Bool {
@@ -172,7 +172,7 @@ extension ConstrainedStatement {
         }
     }
 
-    /// Is the minimum value of the constraint less than the given value?
+    /// Whether the minimum value of the constraint is less than the given value.
     /// - Parameter value: The value to compare against.
     /// - Returns: Whether the minimum value is less than the given value.
     func isMinLessThan(value: ConstrainedStatement) -> Bool {

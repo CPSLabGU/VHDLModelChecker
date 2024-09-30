@@ -59,6 +59,8 @@ import VHDLKripkeStructures
 @testable import VHDLModelChecker
 import XCTest
 
+// swift-format-ignore: AmbiguousTrailingClosureOverload
+
 /// Compare performance of all job stores.
 final class ComparativeJobStorePerformanceTests: XCTestCase {
 

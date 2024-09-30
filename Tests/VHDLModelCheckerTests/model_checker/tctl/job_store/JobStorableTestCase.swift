@@ -126,10 +126,10 @@ class JobStorableTestCase: XCTestCase {
         let job2Id = try store.addJob(data: job2)
         try store.reset()
         XCTAssertNil(try store.next)
-        let job1Id_2 = try store.job(forData: job1).id
-        let job2Id_2 = try store.job(forData: job2).id
-        XCTAssertNotEqual(job1Id, job1Id_2)
-        XCTAssertNotEqual(job2Id, job2Id_2)
+        let job1Id2 = try store.job(forData: job1).id
+        let job2Id2 = try store.job(forData: job2).id
+        XCTAssertNotEqual(job1Id, job1Id2)
+        XCTAssertNotEqual(job2Id, job2Id2)
     }
 
     /// Delegate test.

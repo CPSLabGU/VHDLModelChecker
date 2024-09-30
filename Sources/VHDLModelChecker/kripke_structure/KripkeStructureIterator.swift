@@ -142,8 +142,9 @@ struct KripkeStructureIterator {
 /// Add `value` function.
 extension Dictionary where Value == UUID {
 
-    /// Access a value at `key` if it exists. If it doesn't, first create the entry in the dictionary before
-    /// returning the new result.
+    /// Access a value at `key` if it exists.
+    ///
+    /// If the value doesn't exist, first create the entry in the dictionary before returning the new result.
     /// - Parameter key: The key to access.
     /// - Returns: The value at `key` or the newly created value at `key`.
     fileprivate mutating func value(_ key: Key) -> UUID {
