@@ -1,30 +1,30 @@
 // TCTLModelCheckerTests.swift
 // VHDLModelChecker
-// 
+//
 // Created by Morgan McColl.
 // Copyright © 2024 Morgan McColl. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above
 //    copyright notice, this list of conditions and the following
 //    disclaimer in the documentation and/or other materials
 //    provided with the distribution.
-// 
+//
 // 3. All advertising materials mentioning features or use of this
 //    software must display the following acknowledgement:
-// 
+//
 //    This product includes software developed by Morgan McColl.
-// 
+//
 // 4. Neither the name of the author nor the names of contributors
 //    may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,18 +36,18 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // -----------------------------------------------------------------------
 // This program is free software; you can redistribute it and/or
 // modify it under the above terms or under the terms of the GNU
 // General Public License as published by the Free Software Foundation;
 // either version 2 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see http://www.gnu.org/licenses/
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
@@ -94,10 +94,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysNext() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A X (currentState /= Initial)
-        """
+            A X (currentState /= Initial)
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -118,10 +118,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysGlobal() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G failureCount < 0
-        """
+            A G failureCount < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard let error = $0 as? ModelCheckerError, case .internalError = error else {
@@ -133,10 +133,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testIncorrectFailureCountAlwaysGlobal() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G \(VariableName.failureCount.rawValue) < 0
-        """
+            A G \(VariableName.failureCount.rawValue) < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -154,10 +154,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysFinally() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A F failureCount < 0
-        """
+            A F failureCount < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard let error = $0 as? ModelCheckerError, case .internalError = error else {
@@ -169,10 +169,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysGlobalTrue() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G failureCount >= 0
-        """
+            A G failureCount >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard let error = $0 as? ModelCheckerError, case .internalError = error else {
@@ -184,10 +184,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysFinallyTrue() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A F failureCount >= 0
-        """
+            A F failureCount >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard let error = $0 as? ModelCheckerError, case .internalError = error else {
@@ -199,10 +199,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysFinallyFailure() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A F \(VariableName.failureCount.rawValue) < 0
-        """
+            A F \(VariableName.failureCount.rawValue) < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -223,10 +223,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysNextFailure() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A X \(VariableName.failureCount.rawValue) < 0
-        """
+            A X \(VariableName.failureCount.rawValue) < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -247,70 +247,70 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleAlwaysGlobalSuccess() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G \(VariableName.failureCount.rawValue) >= 0
-        """
+            A G \(VariableName.failureCount.rawValue) >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleAlwaysFinallySuccess() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A F \(VariableName.failureCount.rawValue) >= 0
-        """
+            A F \(VariableName.failureCount.rawValue) >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleAlwaysNextSuccess() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A X \(VariableName.failureCount.rawValue) >= 0
-        """
+            A X \(VariableName.failureCount.rawValue) >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsGlobalSuccess() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        E G \(VariableName.failureCount.rawValue) >= 0
-        """
+            E G \(VariableName.failureCount.rawValue) >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsFinallySuccess() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        E F \(VariableName.failureCount.rawValue) >= 0
-        """
+            E F \(VariableName.failureCount.rawValue) >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsNextSuccess() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        E X \(VariableName.failureCount.rawValue) >= 0
-        """
+            E X \(VariableName.failureCount.rawValue) >= 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testSimpleExistsGlobalFailure() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        E G \(VariableName.failureCount.rawValue) < 0
-        """
+            E G \(VariableName.failureCount.rawValue) < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -331,10 +331,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleExistsFinallyFailure() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        E F \(VariableName.failureCount.rawValue) < 0
-        """
+            E F \(VariableName.failureCount.rawValue) < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -355,10 +355,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testSimpleExistsNextFailure() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        E X \(VariableName.failureCount.rawValue) < 0
-        """
+            E X \(VariableName.failureCount.rawValue) < 0
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -379,10 +379,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testModelCheckerBounds() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        {A X recoveryMode /= '1'}_{t < 1 ns}
-        """
+            {A X recoveryMode /= '1'}_{t < 1 ns}
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -401,10 +401,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testImplicationFails() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G recoveryMode = '1' -> A X recoveryMode /= '1'
-        """
+            A G recoveryMode = '1' -> A X recoveryMode /= '1'
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -425,20 +425,20 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testImplication() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G recoveryMode = '1' -> A G recoveryMode = '1'
-        """
+            A G recoveryMode = '1' -> A G recoveryMode = '1'
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testModelCheckerFails() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G recoveryMode = '1' -> {A X recoveryMode /= '1'}_{t < 2 us}
-        """
+            A G recoveryMode = '1' -> {A X recoveryMode /= '1'}_{t < 2 us}
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -463,10 +463,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testModelCheckerFailsForTimeConstraint() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        {A X recoveryMode /= '1'}_{t < 100 ns}
-        """
+            {A X recoveryMode /= '1'}_{t < 100 ns}
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
@@ -487,44 +487,44 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testModelCheckerFailsForImpliesTimeConstraint() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t < 100 ns})
-        """
+            A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t < 100 ns})
+            """
         let spec = Specification(rawValue: specRaw)!
-        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) // {
-            // guard
-            //     let error = $0 as? ModelCheckerError,
-            //     case .constraintViolation(let branches, let cost, let constraint) = error
-            // else {
-            //     XCTFail("Got incorrect error!")
-            //     return
-            // }
-            // branches.forEach {
-            //     print($0.description)
-            // }
-            // print("Failed constraint: \(constraint.rawValue)")
-            // print("Current cost: \(cost)")
-            // print("Branch nodes: \(branches.count)")
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec))  // {
+        // guard
+        //     let error = $0 as? ModelCheckerError,
+        //     case .constraintViolation(let branches, let cost, let constraint) = error
+        // else {
+        //     XCTFail("Got incorrect error!")
+        //     return
+        // }
+        // branches.forEach {
+        //     print($0.description)
+        // }
+        // print("Failed constraint: \(constraint.rawValue)")
+        // print("Current cost: \(cost)")
+        // print("Branch nodes: \(branches.count)")
         // }
     }
 
     func testModelCheckerSucceedsWithTimeConstraint() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t <= 1 us})
-        """
+            A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t <= 1 us})
+            """
         let spec = Specification(rawValue: specRaw)!
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
     }
 
     func testImpliesCycle() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G bootMode = '1' and bootSuccess = '1' -> {A F operationalMode = '1'}_{t <= 2 us}
-        """
+            A G bootMode = '1' and bootSuccess = '1' -> {A F operationalMode = '1'}_{t <= 2 us}
+            """
         let spec = Specification(rawValue: specRaw)!
         let iterator = KripkeStructureIterator(structure: KripkeStructureTestable.modeSelectorKripkeStructure)
         XCTAssertNoThrow(try checker.check(structure: iterator, specification: spec))
@@ -532,10 +532,10 @@ final class TCTLModelCheckerTests: XCTestCase {
 
     func testExistsUntil() throws {
         let specRaw = """
-        // spec:language VHDL
+            // spec:language VHDL
 
-        A G operationalMode = '1' -> E operationalMode = '1' U bootMode = '1'
-        """
+            A G operationalMode = '1' -> E operationalMode = '1' U bootMode = '1'
+            """
         let spec = Specification(rawValue: specRaw)!
         let iterator = KripkeStructureIterator(
             structure: KripkeStructureTestable.modeSelectorKripkeStructureOld

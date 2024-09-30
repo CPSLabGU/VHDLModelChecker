@@ -12,10 +12,10 @@ final class VHDLModelCheckerTests: KripkeStructureTestable {
 
     /// A raw specification to test again.
     let specRaw = """
-    // spec:language VHDL
+        // spec:language VHDL
 
-    A G operationalMode = '1' and currentState = WaitForFailureReset -> A F RecoveryModeMachine_failureCount = 0
-    """
+        A G operationalMode = '1' and currentState = WaitForFailureReset -> A F RecoveryModeMachine_failureCount = 0
+        """
 
     // swiftlint:enable line_length
 

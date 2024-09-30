@@ -1,30 +1,30 @@
 // TCTLExpression+helpers.swift
 // VHDLModelChecker
-// 
+//
 // Created by Morgan McColl.
 // Copyright © 2024 Morgan McColl. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above
 //    copyright notice, this list of conditions and the following
 //    disclaimer in the documentation and/or other materials
 //    provided with the distribution.
-// 
+//
 // 3. All advertising materials mentioning features or use of this
 //    software must display the following acknowledgement:
-// 
+//
 //    This product includes software developed by Morgan McColl.
-// 
+//
 // 4. Neither the name of the author nor the names of contributors
 //    may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,18 +36,18 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // -----------------------------------------------------------------------
 // This program is free software; you can redistribute it and/or
 // modify it under the above terms or under the terms of the GNU
 // General Public License as published by the Free Software Foundation;
 // either version 2 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see http://www.gnu.org/licenses/
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
@@ -110,21 +110,39 @@ extension Expression {
         case .constrained(let expression):
             switch expression.expression.normalised {
             case .quantified(let quantified):
-                return .constrained(expression: ConstrainedExpression(
-                    expression: quantified, constraints: expression.constraints
-                ))
+                return .constrained(
+                    expression: ConstrainedExpression(
+                        expression: quantified,
+                        constraints: expression.constraints
+                    )
+                )
             case .not(.quantified(let quantified)):
-                return .not(expression: .constrained(expression: ConstrainedExpression(
-                    expression: quantified, constraints: expression.constraints
-                )))
+                return .not(
+                    expression: .constrained(
+                        expression: ConstrainedExpression(
+                            expression: quantified,
+                            constraints: expression.constraints
+                        )
+                    )
+                )
             case .disjunction(lhs: .not(.quantified(let lhs)), rhs: .not(.quantified(let rhs))):
                 return .disjunction(
-                    lhs: .not(expression: .constrained(expression: ConstrainedExpression(
-                        expression: lhs, constraints: expression.constraints
-                    ))),
-                    rhs: .not(expression: .constrained(expression: ConstrainedExpression(
-                        expression: rhs, constraints: expression.constraints
-                    )))
+                    lhs: .not(
+                        expression: .constrained(
+                            expression: ConstrainedExpression(
+                                expression: lhs,
+                                constraints: expression.constraints
+                            )
+                        )
+                    ),
+                    rhs: .not(
+                        expression: .constrained(
+                            expression: ConstrainedExpression(
+                                expression: rhs,
+                                constraints: expression.constraints
+                            )
+                        )
+                    )
                 )
             default:
                 fatalError("Cannot normalise invalid constrained expression!\n\(self.rawValue)")
@@ -158,28 +176,35 @@ extension Expression {
         case .conjunction(let lhs, let rhs):
             return [
                 .revisitting(
-                    expression: rhs, precondition: .required(expression: lhs)
+                    expression: rhs,
+                    precondition: .required(expression: lhs)
                 )
             ]
         case .disjunction(let lhs, let rhs):
             return [
                 .revisitting(
-                    expression: rhs, precondition: .skip(expression: lhs)
+                    expression: rhs,
+                    precondition: .skip(expression: lhs)
                 )
             ]
         case .not(let expression):
             return [
                 .revisitting(
-                    expression: .language(expression: .vhdl(expression: .conditional(
-                        expression: .literal(value: false)
-                    ))),
+                    expression: .language(
+                        expression: .vhdl(
+                            expression: .conditional(
+                                expression: .literal(value: false)
+                            )
+                        )
+                    ),
                     precondition: .ignored(expression: expression)
                 )
             ]
         case .implies(let lhs, let rhs):
             return [
                 .revisitting(
-                    expression: rhs, precondition: .ignored(expression: lhs)
+                    expression: rhs,
+                    precondition: .ignored(expression: lhs)
                 )
             ]
         case .constrained(let expression):

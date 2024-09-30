@@ -1,30 +1,30 @@
 // TCTLModelChecker.swift
 // VHDLModelChecker
-// 
+//
 // Created by Morgan McColl.
 // Copyright © 2024 Morgan McColl. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above
 //    copyright notice, this list of conditions and the following
 //    disclaimer in the documentation and/or other materials
 //    provided with the distribution.
-// 
+//
 // 3. All advertising materials mentioning features or use of this
 //    software must display the following acknowledgement:
-// 
+//
 //    This product includes software developed by Morgan McColl.
-// 
+//
 // 4. Neither the name of the author nor the names of contributors
 //    may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,18 +36,18 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // -----------------------------------------------------------------------
 // This program is free software; you can redistribute it and/or
 // modify it under the above terms or under the terms of the GNU
 // General Public License as published by the Free Software Foundation;
 // either version 2 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see http://www.gnu.org/licenses/
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
@@ -70,7 +70,7 @@ final class TCTLModelChecker<T> where T: JobStorable {
     private var debug = false
 
     /// Create a new model checker.
-    /// 
+    ///
     /// - Parameter store: The store to use when storing pending jobs.
     init(store: T) {
         self.store = store
@@ -123,7 +123,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
     ///   - edges: All candidate edges.
     /// - Returns: The valid successors.
     private func getValidSuccessors(
-        job: Job, edges: LazySequence<[NodeEdge]>
+        job: Job,
+        edges: LazySequence<[NodeEdge]>
     ) throws -> LazyFilterSequence<[NodeEdge]> {
         edges.filter {
             let newWindow = job.window?.addCost(cost: $0.cost) ?? ConstrainedWindow(cost: $0.cost)
@@ -217,11 +218,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
             throw ModelCheckerError.internalError
         }
         if let historyExpression = job.expression.historyExpression,
-            job.historyExpression != historyExpression {
+            job.historyExpression != historyExpression
+        {
             // print("New session\n\n")
             // fflush(stdout)
             let newJob = try JobData(
-                newSessionFor: job, historyExpression: historyExpression, structure: structure
+                newSessionFor: job,
+                historyExpression: historyExpression,
+                structure: structure
             )
             try self.store.addJob(data: newJob)
             return
@@ -251,7 +255,8 @@ final class TCTLModelChecker<T> where T: JobStorable {
         // }
         guard let allEdges = structure.edges[job.nodeId]?.lazy, !allEdges.isEmpty else {
             throw ModelCheckerError.corruptKripkeStructure(
-                node: node, edges: structure.edges[job.nodeId]?.count ?? 0
+                node: node,
+                edges: structure.edges[job.nodeId]?.count ?? 0
             )
         }
         let allSuccessors = allEdges.map { Successor(job: job, edge: $0) }
@@ -267,19 +272,24 @@ final class TCTLModelChecker<T> where T: JobStorable {
         let inCycle = self.inCycle(job: job, edges: successors)
         do {
             if !inCycle && !invalidSuccessors.isEmpty {
-                invalidResults = (try job.expression.verify(currentNode: node, inCycle: true)).filter {
-                    !$0.isSuccessor
-                }
+                invalidResults = (try job.expression.verify(currentNode: node, inCycle: true))
+                    .filter {
+                        !$0.isSuccessor
+                    }
             } else {
                 invalidResults = []
             }
             results = try job.expression.verify(
-                currentNode: node, inCycle: self.inCycle(job: job, edges: successors)
+                currentNode: node,
+                inCycle: self.inCycle(job: job, edges: successors)
             )
         } catch let error as VerificationError {
             try fail(structure: structure, job: job) {
                 ModelCheckerError(
-                    error: error, currentBranch: $0, expression: job.expression, base: job.historyExpression
+                    error: error,
+                    currentBranch: $0,
+                    expression: job.expression,
+                    base: job.historyExpression
                 )
             }
             return
@@ -290,7 +300,10 @@ final class TCTLModelChecker<T> where T: JobStorable {
         }
         if !invalidResults.isEmpty {
             try createNewJobs(
-                currentJob: job, structure: structure, results: invalidResults, successors: invalidSuccessors
+                currentJob: job,
+                structure: structure,
+                results: invalidResults,
+                successors: invalidSuccessors
             )
             if results.isEmpty {
                 return
@@ -334,9 +347,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
             // case .addConstraints(let expression, let constraints):
             case .addConstraints:
                 fatalError("Should never add constraints!")
-                // try self.store.addJob(
-                //     data: JobData(expression: expression, constraints: constraints, job: job)
-                // )
+            // try self.store.addJob(
+            //     data: JobData(expression: expression, constraints: constraints, job: job)
+            // )
             case .successor(let expression):
                 guard successors.contains(where: { _ in true }) else {
                     if job.window == nil {
@@ -389,7 +402,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
     ///   - job: The job that failed.
     ///   - error: The error that caused the job to fail.
     private func fail(
-        structure: KripkeStructureIterator, job: Job, error: ModelCheckerError
+        structure: KripkeStructureIterator,
+        job: Job,
+        error: ModelCheckerError
     ) throws {
         try fail(structure: structure, job: job) { _ in error }
     }
@@ -400,12 +415,15 @@ final class TCTLModelChecker<T> where T: JobStorable {
     ///   - job: The job that failed.
     ///   - computeError: A function that computes the error that caused the job to fail.
     private func fail(
-        structure: KripkeStructureIterator, job: Job, computeError: ([Node]) -> ModelCheckerError
+        structure: KripkeStructureIterator,
+        job: Job,
+        computeError: ([Node]) -> ModelCheckerError
     ) throws {
         _ = try job.failRevisit.map { try self.store.addJob(job: try self.store.job(withId: $0)) }
         if let session = job.session {
             try self.store.failSession(
-                id: session, error: error(structure: structure, job: job, computeError)
+                id: session,
+                error: error(structure: structure, job: job, computeError)
             )
         }
         if job.failRevisit == nil {
@@ -420,7 +438,9 @@ final class TCTLModelChecker<T> where T: JobStorable {
     ///   - computeError: The function that computes the error that caused the job to fail.
     /// - Returns: The error that caused the job to fail.
     private func error(
-        structure: KripkeStructureIterator, job: Job, _ computeError: ([Node]) -> ModelCheckerError
+        structure: KripkeStructureIterator,
+        job: Job,
+        _ computeError: ([Node]) -> ModelCheckerError
     ) -> ModelCheckerError {
         let currentNodes = job.currentBranch.compactMap { structure.nodes[$0] }
         guard currentNodes.count == job.currentBranch.count else {
@@ -432,15 +452,17 @@ final class TCTLModelChecker<T> where T: JobStorable {
 }
 
 /// Add helper inits for successors.
-private extension JobData {
+extension JobData {
 
     /// Create a new session for a job.
     /// - Parameters:
     ///   - job: The job to create a new session for.
     ///   - historyExpression: The history expression to use for the new session.
     ///   - structure: The Kripke structure to verify against.
-    convenience init(
-        newSessionFor job: Job, historyExpression: TCTLParser.Expression, structure: KripkeStructureIterator
+    fileprivate convenience init(
+        newSessionFor job: Job,
+        historyExpression: TCTLParser.Expression,
+        structure: KripkeStructureIterator
     ) throws {
         guard case .constrained(let jobExpression) = job.expression else {
             self.init(
@@ -484,7 +506,7 @@ private extension JobData {
     ///   - expression: The expression to use for the new job.
     ///   - successor: The successor to use for the new job.
     ///   - job: The current job.
-    convenience init(expression: TCTLParser.Expression, successor: NodeEdge, job: Job) {
+    fileprivate convenience init(expression: TCTLParser.Expression, successor: NodeEdge, job: Job) {
         self.init(
             nodeId: successor.destination,
             expression: expression,
@@ -502,7 +524,11 @@ private extension JobData {
     /// Add constraints.
     ///
     /// This should never be called.
-    convenience init(expression: TCTLParser.Expression, constraints: [ConstrainedStatement], job: Job) {
+    fileprivate convenience init(
+        expression: TCTLParser.Expression,
+        constraints: [ConstrainedStatement],
+        job: Job
+    ) {
         fatalError("Should never add constraints!")
         // let allConstraints = constraints.lazy
         // let timeConstraints = allConstraints.filter {
@@ -551,8 +577,11 @@ private extension JobData {
     ///   - revisit: The revisitting expression to use for the new job.
     ///   - job: The current job.
     ///   - store: The store to use for storing the new job.
-    convenience init<T>(
-        expression: TCTLParser.Expression, revisit: RevisitExpression, job: Job, store: inout T
+    fileprivate convenience init<T>(
+        expression: TCTLParser.Expression,
+        revisit: RevisitExpression,
+        job: Job,
+        store: inout T
     ) throws where T: JobStorable {
         switch revisit {
         case .ignored:
