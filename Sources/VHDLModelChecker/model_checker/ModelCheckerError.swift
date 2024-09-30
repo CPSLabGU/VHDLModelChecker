@@ -1,30 +1,30 @@
 // ModelCheckerError.swift
 // VHDLModelChecker
-// 
+//
 // Created by Morgan McColl.
 // Copyright © 2024 Morgan McColl. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above
 //    copyright notice, this list of conditions and the following
 //    disclaimer in the documentation and/or other materials
 //    provided with the distribution.
-// 
+//
 // 3. All advertising materials mentioning features or use of this
 //    software must display the following acknowledgement:
-// 
+//
 //    This product includes software developed by Morgan McColl.
-// 
+//
 // 4. Neither the name of the author nor the names of contributors
 //    may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,18 +36,18 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // -----------------------------------------------------------------------
 // This program is free software; you can redistribute it and/or
 // modify it under the above terms or under the terms of the GNU
 // General Public License as published by the Free Software Foundation;
 // either version 2 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see http://www.gnu.org/licenses/
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
@@ -56,20 +56,28 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Errors that can occur during model checking.
 public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable {
 
+    /// The expression is unsatisfied.
     case unsatisfied(branch: [Node], expression: Expression, base: Expression?)
 
+    /// A constraint is violated.
     case constraintViolation(branch: [Node], cost: Cost, constraint: ConstrainedStatement)
 
+    /// An internal error occurred.
     case internalError
 
+    /// The expression is not supported.
     case notSupported(expression: Expression)
 
+    /// The constraints are contradictory.
     case mismatchedConstraints(constraints: [ConstrainedStatement])
 
+    /// The Kripke structure is corrupted.
     case corruptKripkeStructure(node: Node, edges: Int)
 
+    /// A textual representation of this instance.
     public var description: String {
         switch self {
         case .notSupported(let expression):
@@ -78,32 +86,33 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
             return "The model checker encountered an internal error."
         case .unsatisfied(let branch, let expression, let base):
             return """
-            The following expression was unsatisfied:
-            \(expression.rawValue)\(base.flatMap { "\nBase Expression:\n\($0.rawValue)" } ?? "\n")
-            Counter Example:
-            \(branch.map(\.description).joined(separator: "\n"))
-            """
+                The following expression was unsatisfied:
+                \(expression.rawValue)\(base.flatMap { "\nBase Expression:\n\($0.rawValue)" } ?? "\n")
+                Counter Example:
+                \(branch.map(\.description).joined(separator: "\n"))
+                """
         case .constraintViolation(let branch, let cost, let constraint):
             return """
-            The following constraint was violated by the current cost (\(cost)):
-            \(constraint.rawValue)
-            Counter Example:
-            \(branch.map(\.description).joined(separator: "\n"))
-            """
+                The following constraint was violated by the current cost (\(cost)):
+                \(constraint.rawValue)
+                Counter Example:
+                \(branch.map(\.description).joined(separator: "\n"))
+                """
         case .mismatchedConstraints(let constraints):
             return """
-            The following constraints are mismatched:
-            \(constraints.map(\.rawValue).joined(separator: "\n"))
-            """
+                The following constraints are mismatched:
+                \(constraints.map(\.rawValue).joined(separator: "\n"))
+                """
         case .corruptKripkeStructure(let node, let edges):
             return """
-            The following node is corrupt:
-            \(node.description)
-            Edges: \(edges)
-            """
+                The following node is corrupt:
+                \(node.description)
+                Edges: \(edges)
+                """
         }
     }
 
+    /// Create from a verification error.
     init(error: VerificationError, currentBranch: [Node], expression: Expression, base: Expression? = nil) {
         switch error {
         case .unsatisfied(let node):
@@ -113,6 +122,7 @@ public enum ModelCheckerError: Error, CustomStringConvertible, Hashable, Codable
         }
     }
 
+    /// Create from an unrecoverable error.
     init(error: UnrecoverableError, expression: Expression) {
         switch error {
         case .notSupported:

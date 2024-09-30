@@ -1,30 +1,30 @@
 // JobStorable.swift
 // VHDLModelChecker
-// 
+//
 // Created by Morgan McColl.
 // Copyright © 2024 Morgan McColl. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above
 //    copyright notice, this list of conditions and the following
 //    disclaimer in the documentation and/or other materials
 //    provided with the distribution.
-// 
+//
 // 3. All advertising materials mentioning features or use of this
 //    software must display the following acknowledgement:
-// 
+//
 //    This product includes software developed by Morgan McColl.
-// 
+//
 // 4. Neither the name of the author nor the names of contributors
 //    may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,18 +36,18 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // -----------------------------------------------------------------------
 // This program is free software; you can redistribute it and/or
 // modify it under the above terms or under the terms of the GNU
 // General Public License as published by the Free Software Foundation;
 // either version 2 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see http://www.gnu.org/licenses/
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
@@ -65,7 +65,7 @@ protocol JobStorable {
     var next: UUID? { mutating get throws }
 
     /// Store the id of the given job within the queue of pending jobs.
-    /// 
+    ///
     /// This method first checks the existence of the job within the queue before adding it to the pending
     /// jobs. If the data already exists, then the ID of the existing job is used.
     ///
@@ -77,14 +77,14 @@ protocol JobStorable {
     mutating func addJob(data: JobData) throws -> UUID
 
     /// Stores a job into the queue of pending jobs.
-    /// 
+    ///
     /// This method assumes that the job already exists within the store but is not currently on the queue
     /// of pending jobs.
-    /// - Parameter job: The job to place on the queue of pending jobs. 
+    /// - Parameter job: The job to place on the queue of pending jobs.
     mutating func addJob(job: Job) throws
 
     /// Retrieve the error associated with the given session.
-    /// 
+    ///
     /// This methods returns an error for a failed session. If the session has not failed, then `nil` is
     /// returned.
     /// - Parameter session: The unique identifier of the session we are fetching the error for.
@@ -97,7 +97,7 @@ protocol JobStorable {
     ///   - error: The error associated with the failed session.
     mutating func failSession(id: UUID, error: ModelCheckerError?) throws
 
-    /// Have we seen this cycle before?
+    /// Wether this job has been seen before.
     ///
     /// - Parameter cycle: The data used to identify the cycle.
     ///
@@ -105,7 +105,7 @@ protocol JobStorable {
     /// `false`.
     mutating func inCycle(_ job: Job) throws -> Bool
 
-    /// Is the given session complete?
+    /// Whether the given session is complete.
     /// - Parameter session: The unique identifier of the session we are checking.
     /// - Returns: Whether the session is complete.
     func isComplete(session: UUID) throws -> Bool
@@ -119,7 +119,7 @@ protocol JobStorable {
     mutating func job(forData data: JobData) throws -> Job
 
     /// Fetch the job associated with the given id.
-    /// 
+    ///
     /// This function assumes that the job exists within the database. If the job does not exist, then an
     /// error is thrown.
     ///
