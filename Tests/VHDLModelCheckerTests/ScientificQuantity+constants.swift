@@ -56,14 +56,19 @@
 import VHDLKripkeStructures
 @testable import VHDLModelChecker
 
+/// Add constants.
 extension ScientificQuantity {
 
+    /// 1 us.
     static let oneus = ScientificQuantity(amount: 1, unit: .us)
 
+    /// 2 us.
     static let twous = ScientificQuantity(amount: 2, unit: .us)
 
+    /// 10 uJ.
     static let tenuJ = ScientificQuantity(amount: 10, unit: .uJ)
 
+    /// 20 uJ.
     static let twentyuJ = ScientificQuantity(amount: 20, unit: .uJ)
 
 }
