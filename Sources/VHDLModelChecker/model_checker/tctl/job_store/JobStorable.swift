@@ -97,7 +97,7 @@ protocol JobStorable {
     ///   - error: The error associated with the failed session.
     mutating func failSession(id: UUID, error: ModelCheckerError?) throws
 
-    /// Have we seen this cycle before?
+    /// Wether this job has been seen before.
     ///
     /// - Parameter cycle: The data used to identify the cycle.
     ///
@@ -105,7 +105,7 @@ protocol JobStorable {
     /// `false`.
     mutating func inCycle(_ job: Job) throws -> Bool
 
-    /// Is the given session complete?
+    /// Whether the given session is complete.
     /// - Parameter session: The unique identifier of the session we are checking.
     /// - Returns: Whether the session is complete.
     func isComplete(session: UUID) throws -> Bool
