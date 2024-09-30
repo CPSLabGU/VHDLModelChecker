@@ -73,13 +73,16 @@ struct LLFSMVerify: ParsableCommand {
     @Flag(help: "Whether the structure path is a URL to a machine.")
     var machine = false
 
+    // swiftlint:disable line_length
+
     /// The location of the Kripke structure.
     @Argument(
-        // swiftlint:disable:next line_length
         help:
             "The location of the Kripke structure. This path may also be a URL to a machine by specifying the --machine flag"
     )
     var structurePath: String
+
+    // swiftlint:enable line_length
 
     /// Whether the requirements are raw CTL queries.
     @Flag(help: "Whether the requirements are raw CTL queries.")
