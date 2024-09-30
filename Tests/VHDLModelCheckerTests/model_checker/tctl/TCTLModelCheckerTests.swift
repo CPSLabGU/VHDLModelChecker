@@ -60,6 +60,14 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+// swiftlint:disable missing_docs
+// swiftlint:disable line_length
+// swiftlint:disable implicitly_unwrapped_optional
+// swiftlint:disable force_unwrapping
+// swiftlint:disable function_body_length
+
 /// Test class for ``TCTLModelChecker``.
 final class TCTLModelCheckerTests: XCTestCase {
 
@@ -94,7 +102,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -132,7 +141,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -197,7 +207,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -220,7 +231,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -303,7 +315,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -326,7 +339,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -349,7 +363,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -394,7 +409,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 XCTFail("Got incorrect error!")
                 return
@@ -427,7 +443,8 @@ final class TCTLModelCheckerTests: XCTestCase {
         XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) {
             guard
                 let error = $0 as? ModelCheckerError,
-                case .unsatisfied(let branches, let expression, let base) = error
+                case .unsatisfied = error
+                // case .unsatisfied(let branches, let expression, let base) = error
             else {
                 if let error = $0 as? ModelCheckerError {
                     XCTFail("Got incorrect error! Received \(error)")
@@ -475,7 +492,7 @@ final class TCTLModelCheckerTests: XCTestCase {
         A G (recoveryMode = '1' -> {A X recoveryMode = '1'}_{t < 100 ns})
         """
         let spec = Specification(rawValue: specRaw)!
-        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) //{
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: spec)) // {
             // guard
             //     let error = $0 as? ModelCheckerError,
             //     case .constraintViolation(let branches, let cost, let constraint) = error
@@ -489,7 +506,7 @@ final class TCTLModelCheckerTests: XCTestCase {
             // print("Failed constraint: \(constraint.rawValue)")
             // print("Current cost: \(cost)")
             // print("Branch nodes: \(branches.count)")
-        //}
+        // }
     }
 
     func testModelCheckerSucceedsWithTimeConstraint() throws {
@@ -549,3 +566,11 @@ final class TCTLModelCheckerTests: XCTestCase {
     // }
 
 }
+
+// swiftlint:enable function_body_length
+// swiftlint:enable force_unwrapping
+// swiftlint:enable implicitly_unwrapped_optional
+// swiftlint:enable line_length
+// swiftlint:enable missing_docs
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length

@@ -8,12 +8,16 @@ import XCTest
 /// Test class for ``VHDLModelChecker``.
 final class VHDLModelCheckerTests: KripkeStructureTestable {
 
+    // swiftlint:disable line_length
+
     /// A raw specification to test again.
     let specRaw = """
     // spec:language VHDL
 
     A G operationalMode = '1' and currentState = WaitForFailureReset -> A F RecoveryModeMachine_failureCount = 0
     """
+
+    // swiftlint:enable line_length
 
     // swiftlint:disable implicitly_unwrapped_optional
 
@@ -25,6 +29,7 @@ final class VHDLModelCheckerTests: KripkeStructureTestable {
 
     // swiftlint:enable implicitly_unwrapped_optional
 
+    /// The iteratore to use when verifying the specification.
     lazy var iterator = KripkeStructureIterator(structure: VHDLModelCheckerTests.kripkeStructure)
 
     /// The model checker to use when verifying the specification.

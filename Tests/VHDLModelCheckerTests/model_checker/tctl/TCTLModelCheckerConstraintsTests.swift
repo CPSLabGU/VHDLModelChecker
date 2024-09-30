@@ -60,6 +60,14 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+// swiftlint:disable missing_docs
+// swiftlint:disable line_length
+// swiftlint:disable implicitly_unwrapped_optional
+// swiftlint:disable force_unwrapping
+// swiftlint:disable function_body_length
+
 final class TCTLModelCheckerConstraintsTests: XCTestCase {
 
     let a = VariableName(rawValue: "A")!
@@ -990,7 +998,7 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
         {A X x = true}_{t <= 2 us, E > 20 uJ}
         """
         let specification = Specification(rawValue: specRaw)!
-        XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification))  {
+        XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
             guard let error = $0 as? ModelCheckerError else {
                 XCTFail("Expected ModelCheckerError")
                 return
@@ -1498,3 +1506,11 @@ final class TCTLModelCheckerConstraintsTests: XCTestCase {
     }
 
 }
+
+// swiftlint:enable function_body_length
+// swiftlint:enable force_unwrapping
+// swiftlint:enable implicitly_unwrapped_optional
+// swiftlint:enable line_length
+// swiftlint:enable missing_docs
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length

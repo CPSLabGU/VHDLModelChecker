@@ -60,6 +60,14 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+// swiftlint:disable missing_docs
+// swiftlint:disable line_length
+// swiftlint:disable implicitly_unwrapped_optional
+// swiftlint:disable force_unwrapping
+// swiftlint:disable function_body_length
+
 final class TCTLModelCheckerPrimitiveTests: XCTestCase {
 
     /// The iterator for the kripke structure.
@@ -462,7 +470,8 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
             XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
                 guard
                     let error = $0 as? ModelCheckerError,
-                    case .unsatisfied(let branches, let expression, let base) = error
+                    case .unsatisfied = error
+                    // case .unsatisfied(let branches, let expression, let base) = error
                 else {
                     XCTFail("Got incorrect error!")
                     return
@@ -555,7 +564,7 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
             "A X false V false",
             "E G false V false",
             "E F false V false",
-            "E X false V false",
+            "E X false V false"
         ]
         let specRaw = "// spec:language VHDL"
         for spec in specs {
@@ -563,7 +572,8 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
             XCTAssertThrowsError(try checker.check(structure: iterator, specification: specification)) {
                 guard
                     let error = $0 as? ModelCheckerError,
-                    case .unsatisfied(let branches, let expression, let base) = error
+                    case .unsatisfied = error
+                    // case .unsatisfied(let branches, let expression, let base) = error
                 else {
                     XCTFail("Got incorrect error!")
                     return
@@ -720,3 +730,11 @@ final class TCTLModelCheckerPrimitiveTests: XCTestCase {
     }
 
 }
+
+// swiftlint:enable function_body_length
+// swiftlint:enable force_unwrapping
+// swiftlint:enable implicitly_unwrapped_optional
+// swiftlint:enable line_length
+// swiftlint:enable missing_docs
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length

@@ -60,6 +60,14 @@ import VHDLKripkeStructures
 import VHDLParsing
 import XCTest
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+// swiftlint:disable missing_docs
+// swiftlint:disable line_length
+// swiftlint:disable implicitly_unwrapped_optional
+// swiftlint:disable force_unwrapping
+// swiftlint:disable function_body_length
+
 final class TCTLModelCheckerGlobalTests: XCTestCase {
 
     let a = VariableName(rawValue: "A")!
@@ -1837,7 +1845,7 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
             edges: [
                 aNode: [Edge(target: bNode, cost: .zero), Edge(target: cNode, cost: .zero)],
                 bNode: [Edge(target: aNode, cost: .zero)],
-                cNode: [Edge(target: aNode, cost: .zero)],
+                cNode: [Edge(target: aNode, cost: .zero)]
             ],
             initialStates: [aNode]
         ))
@@ -3845,3 +3853,11 @@ final class TCTLModelCheckerGlobalTests: XCTestCase {
     }
 
 }
+
+// swiftlint:enable function_body_length
+// swiftlint:enable force_unwrapping
+// swiftlint:enable implicitly_unwrapped_optional
+// swiftlint:enable line_length
+// swiftlint:enable missing_docs
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length
