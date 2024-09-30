@@ -132,6 +132,7 @@ private enum NameOrValue: Equatable {
     /// A value.
     case value(_ value: SignalLiteral)
 
+    /// Initialize a `NameOrValue` from a `key` and a `node`.
     init(key variable: Expression, node: Node) throws {
         guard let variable = variable.variable else {
             throw UnrecoverableError.notSupported

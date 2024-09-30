@@ -55,30 +55,38 @@
 
 import VHDLKripkeStructures
 
+/// A small window determined by the minimum and maximum values of a set of constraints.
 struct ConstrainedWindow: Equatable, Hashable, Codable, Sendable {
 
+    /// The costs of each constraint.
     private let costs: [ConstraintSymbol: ScientificQuantity]
 
+    /// The minimum values of each constraint.
     private let minimums: [ConstraintSymbol: ScientificQuantity]
 
+    /// The maximum values of each constraint.
     private let maximums: [ConstraintSymbol: ScientificQuantity]
 
+    /// Whether the current cost is above the window.
     var isAboveWindow: Bool {
         self.maximums.contains {
             self.currentCost(constraint: $0) > $1
         }
     }
 
+    /// Whether the current cost is below the window.
     var isBelowWindow: Bool {
         self.minimums.contains {
             self.currentCost(constraint: $0) < $1
         }
     }
 
+    /// Whether the current cost is within the window.
     var isWithinWindow: Bool {
         !self.isAboveWindow && !self.isBelowWindow
     }
 
+    /// Initialise from time and energy constraints.
     init(
         cost: Cost,
         timeMinimum: ScientificQuantity? = nil,
@@ -99,6 +107,7 @@ struct ConstrainedWindow: Equatable, Hashable, Codable, Sendable {
         )
     }
 
+    /// Initialise from stored properties.
     init(
         costs: [ConstraintSymbol: ScientificQuantity] = [:],
         minimums: [ConstraintSymbol: ScientificQuantity],
@@ -109,31 +118,38 @@ struct ConstrainedWindow: Equatable, Hashable, Codable, Sendable {
         self.maximums = maximums
     }
 
+    /// Add a cost to the window.
     func addCost(cost: Cost) -> ConstrainedWindow {
         self.addCost(cost: .init(cost: cost))
     }
 
+    /// Add a cost to the window.
     func addCost(cost: [ConstraintSymbol: ScientificQuantity]) -> ConstrainedWindow {
         let result = self.costs.merging(cost) { $0 + $1 }
         return ConstrainedWindow(costs: result, minimums: self.minimums, maximums: self.maximums)
     }
 
+    /// The current cost of a given constraint.
     func currentCost(constraint: ConstraintSymbol) -> ScientificQuantity {
         self.costs[constraint] ?? .zero
     }
 
+    /// The maximum cost of a given constraint.
     func maximum(constraint: ConstraintSymbol) -> ScientificQuantity {
         self.maximums[constraint] ?? .max
     }
 
+    /// The minimum cost of a given constraint.
     func minimum(constraint: ConstraintSymbol) -> ScientificQuantity {
         self.minimums[constraint] ?? .zero
     }
 
 }
 
+/// Add `init` for `Cost`.
 private extension Dictionary where Key == ConstraintSymbol, Value == ScientificQuantity {
 
+    /// Initialise from a `Cost`.
     init(cost: Cost) {
         self = [
             ConstraintSymbol.timeSymbol: cost.time,

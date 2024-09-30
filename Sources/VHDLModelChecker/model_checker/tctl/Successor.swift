@@ -53,12 +53,16 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+/// Whether a successor is within a constrained window.
 enum Successor: Equatable, Hashable, Codable {
 
+    /// invalid.
     case invalid(edge: NodeEdge)
 
+    /// valid.
     case valid(edge: NodeEdge)
 
+    /// The edge of the successor.
     var edge: NodeEdge {
         switch self {
         case .invalid(let edge), .valid(let edge):
@@ -66,6 +70,7 @@ enum Successor: Equatable, Hashable, Codable {
         }
     }
 
+    /// Whether the successor is valid.
     var isValid: Bool {
         switch self {
         case .valid:
@@ -75,6 +80,7 @@ enum Successor: Equatable, Hashable, Codable {
         }
     }
 
+    /// Initialise from a job and edge.
     init(job: Job, edge: NodeEdge) {
         let newWindow = job.window?.addCost(cost: edge.cost) ?? ConstrainedWindow(cost: edge.cost)
         guard !newWindow.isAboveWindow, !newWindow.isBelowWindow else {

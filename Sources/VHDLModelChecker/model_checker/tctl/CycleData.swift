@@ -1,4 +1,4 @@
-// RequirementsSpecification.swift
+// CycleData.swift
 // VHDLModelChecker
 // 
 // Created by Morgan McColl.
@@ -53,29 +53,87 @@
 // or write to the Free Software Foundation, Inc., 51 Franklin Street,
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
+import Foundation
 import TCTLParser
+import VHDLKripkeStructures
 
-/// A specification containing the requirements for a kripke structure.
-public enum RequirementsSpecification: RawRepresentable, Equatable, Hashable, Codable, Sendable {
+/// The data in a job for detecting a cycle.
+final class CycleData: Equatable, Hashable, Codable {
 
-    /// A specification written in `TCTL`.
-    case tctl(specification: TCTLParser.Specification)
+    /// The node id.
+    var nodeId: UUID
 
-    /// The raw value of the specification.
-    public var rawValue: String {
-        switch self {
-        case .tctl(let specification):
-            return specification.rawValue
-        }
+    /// The expression to check.
+    var expression: TCTLParser.Expression
+
+    /// Whether the node is in a cycle.
+    var inCycle: Bool
+
+    /// The history expression.
+    var historyExpression: TCTLParser.Expression?
+
+    /// The job to revisit on success.
+    var successRevisit: UUID?
+
+    /// The job to revisit on failure.
+    var failRevisit: UUID?
+
+    /// The session id.
+    var session: UUID?
+
+    /// The session to revisit.
+    var sessionRevisit: UUID?
+
+    /// The window of valid successors.
+    var window: ConstrainedWindow?
+
+    /// Initialise a new cycle data.
+    init(
+        nodeId: UUID,
+        expression: TCTLParser.Expression,
+        inCycle: Bool,
+        historyExpression: TCTLParser.Expression?,
+        successRevisit: UUID?,
+        failRevisit: UUID?,
+        session: UUID?,
+        sessionRevisit: UUID?,
+        window: ConstrainedWindow?
+    ) {
+        self.nodeId = nodeId
+        self.expression = expression
+        self.inCycle = inCycle
+        self.historyExpression = historyExpression
+        self.successRevisit = successRevisit
+        self.failRevisit = failRevisit
+        self.session = session
+        self.sessionRevisit = sessionRevisit
+        self.window = window
     }
 
-    /// Initialize a `RequirementsSpecification` from a raw value.
-    public init?(rawValue: String) {
-        if let specification = TCTLParser.Specification(rawValue: rawValue) {
-            self = .tctl(specification: specification)
-        } else {
-            return nil
-        }
+    /// Equality conformance.
+    static func == (lhs: CycleData, rhs: CycleData) -> Bool {
+        lhs.nodeId == rhs.nodeId
+            && lhs.expression == rhs.expression
+            && lhs.inCycle == rhs.inCycle
+            && lhs.historyExpression == rhs.historyExpression
+            && lhs.successRevisit == rhs.successRevisit
+            && lhs.failRevisit == rhs.failRevisit
+            && lhs.session == rhs.session
+            && lhs.sessionRevisit == rhs.sessionRevisit
+            && lhs.window == rhs.window
+    }
+
+    /// Hashable conformance.
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(nodeId)
+        hasher.combine(expression)
+        hasher.combine(inCycle)
+        hasher.combine(historyExpression)
+        hasher.combine(successRevisit)
+        hasher.combine(failRevisit)
+        hasher.combine(session)
+        hasher.combine(sessionRevisit)
+        hasher.combine(window)
     }
 
 }

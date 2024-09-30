@@ -69,6 +69,7 @@ struct KripkeStructureIterator {
     /// The initial states in the Kripke structure.
     let initialStates: Set<UUID>
 
+    /// The lowest granularities for each constraint.
     let granularities: [ConstraintSymbol: ScientificQuantity]
 
     /// Create the iterator from the `VHDLKripkeStructures` format.

@@ -55,8 +55,10 @@
 
 import Foundation
 
+/// A generic error for a job store.
 enum JobStoreError: Error {
 
+    /// The job with the given id is missing.
     case missingJob(id: UUID)
 
 }

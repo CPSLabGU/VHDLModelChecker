@@ -56,12 +56,15 @@
 import TCTLParser
 import VHDLKripkeStructures
 
+/// Add helper inits.
 extension ScientificQuantity {
 
+    /// Initialise from time.
     init(amount: UInt, unit: TimeUnit) {
         self.init(coefficient: amount, exponent: unit.exponent)
     }
 
+    /// Initialise from energy.
     init(amount: UInt, unit: EnergyUnit) {
         self.init(coefficient: amount, exponent: unit.exponent)
     }

@@ -58,6 +58,9 @@
 // import TCTLParser
 // import VHDLKripkeStructures
 
+// swiftlint:disable file_length
+// swiftlint:disable line_length
+
 // final class SQLiteJobStore: JobStorable {
 
 //     private let db: OpaquePointer
@@ -1695,3 +1698,6 @@
 //     }
 
 // }
+
+// swiftlint:enable line_length
+// swiftlint:enable file_length

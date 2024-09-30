@@ -55,14 +55,19 @@
 
 import Foundation
 
+/// A job store that stores jobs in memory.
 class InMemoryDataStore: JobStorable {
 
+    /// The session data for a job.
     private final class SessionData {
 
+        /// The number of jobs in the session.
         var count: UInt
 
+        /// The error for the session.
         var error: ModelCheckerError?
 
+        /// Initialise a new session data.
         init(count: UInt, error: ModelCheckerError? = nil) {
             self.count = count
             self.error = error
@@ -70,18 +75,24 @@ class InMemoryDataStore: JobStorable {
 
     }
 
+    /// The jobs in the store.
     private var jobs: [UUID: Job] = [:]
 
+    /// The job ids for the jobs in the store.
     private var jobIds: [JobData: UUID] = [:]
 
+    /// The pending jobs in the store.
     private var pendingJobs: [UUID] = []
 
+    /// The cycles in the store.
     private var cycles: Set<CycleData> = []
 
+    /// The sessions in the store.
     private var sessions: [UUID: SessionData] = [:]
 
     // var sessionReferences: [UUID: UInt] = [:]
 
+    /// The next pending job.
     var next: UUID? {
         get throws {
             guard let id = pendingJobs.popLast() else {
@@ -94,6 +105,7 @@ class InMemoryDataStore: JobStorable {
         }
     }
 
+    /// Create an in-memory data store.
     init() {
         self.jobIds.reserveCapacity(1000000)
         self.jobs.reserveCapacity(1000000)
@@ -101,6 +113,7 @@ class InMemoryDataStore: JobStorable {
         self.cycles.reserveCapacity(1000000)
     }
 
+    /// Add a new pending job.
     @discardableResult
     func addJob(data: JobData) throws -> UUID {
         let job = try job(forData: data)
@@ -108,6 +121,7 @@ class InMemoryDataStore: JobStorable {
         return job.id
     }
 
+    /// Add a new pending job.
     func addJob(job: Job) throws {
         if let session = job.session {
             self.incrementSession(id: session)
@@ -115,6 +129,7 @@ class InMemoryDataStore: JobStorable {
         self.pendingJobs.append(job.id)
     }
 
+    /// Get the error for a session.
     func error(session: UUID) throws -> ModelCheckerError? {
         guard let session = self.sessions[session] else {
             throw ModelCheckerError.internalError
@@ -122,6 +137,7 @@ class InMemoryDataStore: JobStorable {
         return session.error
     }
 
+    /// Fail a session with a given error.
     func failSession(id: UUID, error: ModelCheckerError?) throws {
         guard let session = self.sessions[id] else {
             throw ModelCheckerError.internalError
@@ -129,6 +145,7 @@ class InMemoryDataStore: JobStorable {
         self.sessions[id] = SessionData(count: session.count, error: error)
     }
 
+    /// Check if a job is in a cycle.
     func inCycle(_ job: Job) throws -> Bool {
         let cycleData = job.cycleData
         let inCycle = self.cycles.contains(cycleData)
@@ -138,6 +155,7 @@ class InMemoryDataStore: JobStorable {
         return inCycle
     }
 
+    /// Check if a session is complete.
     func isComplete(session: UUID) throws -> Bool {
         guard let session = self.sessions[session] else {
             throw ModelCheckerError.internalError
@@ -146,9 +164,13 @@ class InMemoryDataStore: JobStorable {
         return session.count == 0
     }
 
+    /// Get the job for a given data.
     func job(forData data: JobData) throws -> Job {
         if let id = jobIds[data] {
-            return jobs[id]!
+            guard let job = jobs[id] else {
+                throw JobStoreError.missingJob(id: id)
+            }
+            return job
         } else {
             let id = UUID()
             let newJob = Job(id: id, data: data)
@@ -158,6 +180,7 @@ class InMemoryDataStore: JobStorable {
         }
     }
 
+    /// Get the job for a given id.
     func job(withId id: UUID) throws -> Job {
         guard let job = jobs[id] else {
             throw JobStoreError.missingJob(id: id)
@@ -165,6 +188,7 @@ class InMemoryDataStore: JobStorable {
         return job
     }
 
+    /// Reset the store.
     func reset() throws {
         self.jobIds.removeAll(keepingCapacity: true)
         self.jobs.removeAll(keepingCapacity: true)
@@ -172,6 +196,7 @@ class InMemoryDataStore: JobStorable {
         self.cycles.removeAll(keepingCapacity: true)
     }
 
+    /// Increment the session count.
     private func incrementSession(id: UUID) {
         guard let session = sessions[id] else {
             sessions[id] = SessionData(count: 1)
@@ -180,6 +205,7 @@ class InMemoryDataStore: JobStorable {
         session.count += 1
     }
 
+    /// Decrement the session count.
     private func decrementSession(id: UUID) throws {
         // swiftlint:disable:next empty_count
         guard let session = sessions[id], session.count > 0 else {

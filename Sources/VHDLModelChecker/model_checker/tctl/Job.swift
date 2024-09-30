@@ -57,218 +57,86 @@ import Foundation
 import TCTLParser
 import VHDLKripkeStructures
 
-final class CycleData: Equatable, Hashable, Codable {
+// swiftlint:disable type_name
 
-    var nodeId: UUID
-
-    var expression: TCTLParser.Expression
-
-    var inCycle: Bool
-
-    var historyExpression: TCTLParser.Expression?
-
-    var successRevisit: UUID?
-
-    var failRevisit: UUID?
-
-    var session: UUID?
-
-    var sessionRevisit: UUID?
-
-    var window: ConstrainedWindow?
-
-    init(
-        nodeId: UUID,
-        expression: TCTLParser.Expression,
-        inCycle: Bool,
-        historyExpression: TCTLParser.Expression?,
-        successRevisit: UUID?,
-        failRevisit: UUID?,
-        session: UUID?,
-        sessionRevisit: UUID?,
-        window: ConstrainedWindow?
-    ) {
-        self.nodeId = nodeId
-        self.expression = expression
-        self.inCycle = inCycle
-        self.historyExpression = historyExpression
-        self.successRevisit = successRevisit
-        self.failRevisit = failRevisit
-        self.session = session
-        self.sessionRevisit = sessionRevisit
-        self.window = window
-    }
-
-    static func == (lhs: CycleData, rhs: CycleData) -> Bool {
-        lhs.nodeId == rhs.nodeId
-            && lhs.expression == rhs.expression
-            && lhs.inCycle == rhs.inCycle
-            && lhs.historyExpression == rhs.historyExpression
-            && lhs.successRevisit == rhs.successRevisit
-            && lhs.failRevisit == rhs.failRevisit
-            && lhs.session == rhs.session
-            && lhs.sessionRevisit == rhs.sessionRevisit
-            && lhs.window == rhs.window
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(nodeId)
-        hasher.combine(expression)
-        hasher.combine(inCycle)
-        hasher.combine(historyExpression)
-        hasher.combine(successRevisit)
-        hasher.combine(failRevisit)
-        hasher.combine(session)
-        hasher.combine(sessionRevisit)
-        hasher.combine(window)
-    }
-
-}
-
-final class JobData: Equatable, Hashable {
-    var nodeId: UUID
-    var expression: TCTLParser.Expression
-    var history: Set<UUID>
-    var currentBranch: [UUID]
-    var historyExpression: TCTLParser.Expression?
-    var successRevisit: UUID?
-    var failRevisit: UUID?
-    var session: UUID?
-    var sessionRevisit: UUID?
-    var window: ConstrainedWindow?
-    // var allSessionIds: SessionIdStore
-
-    var cycleData: CycleData {
-        CycleData(
-            nodeId: nodeId,
-            expression: expression,
-            inCycle: history.contains(nodeId),
-            historyExpression: historyExpression,
-            successRevisit: successRevisit,
-            failRevisit: failRevisit,
-            session: session,
-            sessionRevisit: sessionRevisit,
-            window: window
-        )
-    }
-
-    var isAboveWindow: Bool {
-        self.window?.isAboveWindow ?? false
-    }
-
-    var isBelowWindow: Bool {
-        self.window?.isBelowWindow ?? false
-    }
-
-    init(
-        nodeId: UUID,
-        expression: TCTLParser.Expression,
-        history: Set<UUID>,
-        currentBranch: [UUID],
-        historyExpression: TCTLParser.Expression?,
-        successRevisit: UUID?,
-        failRevisit: UUID?,
-        session: UUID?,
-        sessionRevisit: UUID?,
-        window: ConstrainedWindow?
-    ) {
-        self.nodeId = nodeId
-        self.expression = expression
-        self.history = history
-        self.currentBranch = currentBranch
-        self.historyExpression = historyExpression
-        self.successRevisit = successRevisit
-        self.failRevisit = failRevisit
-        self.session = session
-        self.sessionRevisit = sessionRevisit
-        self.window = window
-    }
-
-    static func == (lhs: JobData, rhs: JobData) -> Bool {
-        lhs.nodeId == rhs.nodeId
-            && lhs.expression == rhs.expression
-            && lhs.history == rhs.history
-            && lhs.currentBranch == rhs.currentBranch
-            && lhs.historyExpression == rhs.historyExpression
-            && lhs.successRevisit == rhs.successRevisit
-            && lhs.failRevisit == rhs.failRevisit
-            && lhs.session == rhs.session
-            && lhs.sessionRevisit == rhs.sessionRevisit
-            && lhs.window == rhs.window
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(nodeId)
-        hasher.combine(expression)
-        hasher.combine(history)
-        hasher.combine(currentBranch)
-        hasher.combine(historyExpression)
-        hasher.combine(successRevisit)
-        hasher.combine(failRevisit)
-        hasher.combine(session)
-        hasher.combine(sessionRevisit)
-        hasher.combine(window)
-    }
-
-}
-
+/// A `TCTL` job to process in a model checker.
 final class Job: Equatable, Hashable, Identifiable {
+
+// swiftlint:enable type_name
+
+    /// The ID of the job.
     let id: UUID
+
+    /// The data contained within the job.
     let data: JobData
     // var allSessionIds: SessionIdStore
 
+    /// The cycle data.
     var cycleData: CycleData {
         data.cycleData
     }
 
+    /// The node ID.
     var nodeId: UUID {
         data.nodeId
     }
 
+    /// The expression.
     var expression: TCTLParser.Expression {
         data.expression
     }
 
+    /// The history of the job.
     var history: Set<UUID> {
         data.history
     }
 
+    /// The current branch.
     var currentBranch: [UUID] {
         data.currentBranch
     }
 
+    /// The history expression.
     var historyExpression: TCTLParser.Expression? {
         data.historyExpression
     }
 
+    /// The job to revisit on success.
     var successRevisit: UUID? {
         data.successRevisit
     }
 
+    /// The job to revisit on failure.
     var failRevisit: UUID? {
         data.failRevisit
     }
 
+    /// The session ID.
     var session: UUID? {
         data.session
     }
 
+    /// The session to revisit.
     var sessionRevisit: UUID? {
         data.sessionRevisit
     }
 
+    /// The window of valid successors.
     var window: ConstrainedWindow? {
         data.window
     }
 
+    /// Whether the job is within a constrained window.
     var isAboveWindow: Bool {
         data.isAboveWindow
     }
 
+    /// Whether the job is below a constrained window.
     var isBelowWindow: Bool {
         data.isBelowWindow
     }
 
+    /// Initialise a new job from it's data.
     convenience init(
         id: UUID,
         nodeId: UUID,
@@ -299,15 +167,18 @@ final class Job: Equatable, Hashable, Identifiable {
         )
     }
 
+    /// Initialise a new job.
     init(id: UUID, data: JobData) {
         self.id = id
         self.data = data
     }
 
+    /// Equatable conformance.
     static func == (lhs: Job, rhs: Job) -> Bool {
         lhs.id == rhs.id && lhs.data == rhs.data
     }
 
+    /// Hashable conformance.
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(data)
@@ -315,81 +186,21 @@ final class Job: Equatable, Hashable, Identifiable {
 
 }
 
-extension JobData: Codable {
-
-    private enum CodingKeys: CodingKey {
-        case nodeId
-        case expression
-        case history
-        case currentBranch
-        case historyExpression
-        case successRevisit
-        case failRevisit
-        case session
-        case sessionRevisit
-        case window
-    }
-
-    convenience init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let expressionRawValue = try container.decode(String.self, forKey: .expression)
-        guard let expression = Expression(rawValue: expressionRawValue) else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .expression,
-                in: container,
-                debugDescription: "Invalid expression value"
-            )
-        }
-        let historyExpression: TCTLParser.Expression?
-        if let historyExpressionRawValue = try container.decode(String?.self, forKey: .historyExpression) {
-            guard let historyExpressionConverted = Expression(rawValue: historyExpressionRawValue) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .historyExpression,
-                    in: container,
-                    debugDescription: "Invalid history expression value"
-                )
-            }
-            historyExpression = historyExpressionConverted
-        } else {
-            historyExpression = nil
-        }
-        self.init(
-            nodeId: try container.decode(UUID.self, forKey: .nodeId),
-            expression: expression,
-            history: Set(try container.decode([UUID].self, forKey: .history)),
-            currentBranch: try container.decode([UUID].self, forKey: .currentBranch),
-            historyExpression: historyExpression,
-            successRevisit: try container.decode(UUID?.self, forKey: .successRevisit),
-            failRevisit: try container.decode(UUID?.self, forKey: .failRevisit),
-            session: try container.decode(UUID?.self, forKey: .session),
-            sessionRevisit: try container.decode(UUID?.self, forKey: .sessionRevisit),
-            window: try container.decode(ConstrainedWindow?.self, forKey: .window)
-        )
-    }
-
-    func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(nodeId, forKey: .nodeId)
-        try container.encode(expression.rawValue, forKey: .expression)
-        try container.encode(history.sorted { $0.uuidString < $1.uuidString }, forKey: .history)
-        try container.encode(currentBranch, forKey: .currentBranch)
-        try container.encode(historyExpression?.rawValue, forKey: .historyExpression)
-        try container.encode(successRevisit, forKey: .successRevisit)
-        try container.encode(failRevisit, forKey: .failRevisit)
-        try container.encode(session, forKey: .session)
-        try container.encode(sessionRevisit, forKey: .sessionRevisit)
-        try container.encode(window, forKey: .window)
-    }
-
-}
-
+/// Codable conformance.
 extension Job: Codable {
 
+    /// Coding keys.
     enum CodingKeys: CodingKey {
+
+        /// The ID of the job.
         case id
+
+        /// The data contained within the job.
         case data
+
     }
 
+    /// Initialise a new job from a decoder.
     convenience init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
@@ -398,6 +209,7 @@ extension Job: Codable {
         )
     }
 
+    /// Encode the job.
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)

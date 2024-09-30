@@ -57,12 +57,16 @@ import TCTLParser
 import VHDLKripkeStructures
 import VHDLParsing
 
+/// Add helpers.
 extension VHDLExpression {
 
+    /// A `true` expression.
     static let `true` = VHDLExpression.conditional(expression: .literal(value: true))
 
+    /// A `false` expression.
     static let `false` = VHDLExpression.conditional(expression: .literal(value: false))
 
+    /// Verify the expression.
     func verify(node: Node) throws {
         switch self {
         case .boolean(let expression):

@@ -59,6 +59,7 @@ import VHDLKripkeStructures
 /// Add verify methods to expression.
 extension GloballyQuantifiedExpression {
 
+    /// The history expression of this expression.
     var historyExpression: Expression? {
         switch pathQuantifier {
         case .globally, .finally, .weak, .until:
@@ -78,6 +79,7 @@ extension GloballyQuantifiedExpression {
         }
     }
 
+    /// The path quantifier of this expression.
     var pathQuantifier: PathQuantifiedExpression {
         switch self {
         case .always(let expression), .eventually(let expression):
@@ -85,6 +87,9 @@ extension GloballyQuantifiedExpression {
         }
     }
 
+    /// Transform the expression into a normalised form.
+    ///
+    /// The normalised form is an equivalent expression without any `eventaully` quantifiers.
     var normalised: Expression {
         switch self {
         case .always(let expression):
@@ -151,6 +156,7 @@ extension GloballyQuantifiedExpression {
         }
     }
 
+    /// Verify the expression against the `node`.
     func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         switch self {
         case .always:
