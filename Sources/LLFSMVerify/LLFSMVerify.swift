@@ -64,7 +64,7 @@ struct LLFSMVerify: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "llfsm-verify",
         abstract: "Verify a Kripke structure against a specification.",
-        version: "1.0.0"
+        version: "0.1.0"
     )
 
     @Flag(help: "Whether the structure path is a URL to a machine.")
