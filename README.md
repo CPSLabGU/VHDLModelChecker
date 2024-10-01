@@ -67,7 +67,7 @@ executes on. To see the full instructions for compiling and generating the Kripk
 [llfsmgenerate](https://github.com/cpslabgu/LLFSMGenerate) command-line utility and the
 [LLFSM editor](https://github.com/cpslabgu/editor).
 
-Verifying a machine is as simply as specifying the machine's location on the file-system and a requirements specification.
+Verifying a machine is as simple as specifying the location of the machine and requirements on the file-system.
 For example, to verify an LLFSM called `PingPong.machine` against requirements located in `spec.tctl`,
 you may invoke the `llfsm-verify` command using the following parameters.
 
