@@ -59,7 +59,6 @@ import VHDLKripkeStructures
 import VHDLModelChecker
 
 /// The main command line tool for verifying VHDL Kripke structures against requirements.
-@main
 public struct LLFSMVerify: ParsableCommand {
 
     /// The command configuration.
