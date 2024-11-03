@@ -57,12 +57,8 @@ let package = Package(
         ),
         .executableTarget(
             name: "LLFSMVerify",
-            dependencies: [
-                .target(name: "VHDLModelChecker"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
-                .target(name: "LLFSMVerifyCommands")
-            ]
+            dependencies: [.target(name: "LLFSMVerifyCommands")],
+            swiftSettings: [.unsafeFlags(["-parse-as-library"], .when(platforms: [.windows]))]
         ),
         .testTarget(
             name: "VHDLModelCheckerTests",
