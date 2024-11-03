@@ -17,7 +17,7 @@ let package = Package(
             targets: ["VHDLModelChecker"]
         ),
         .library(name: "LLFSMVerify", targets: ["LLFSMVerifyCommands"]),
-        .executable(name: "llfsm-verify", targets: ["LLFSMVerify"])
+        .executable(name: "llfsm-verify", targets: ["VerifyMain"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -56,7 +56,7 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "LLFSMVerify",
+            name: "VerifyMain",
             dependencies: [.target(name: "LLFSMVerifyCommands")],
             swiftSettings: [.unsafeFlags(["-parse-as-library"], .when(platforms: [.windows]))]
         ),
