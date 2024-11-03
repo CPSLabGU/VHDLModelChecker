@@ -16,6 +16,7 @@ let package = Package(
             name: "VHDLModelChecker",
             targets: ["VHDLModelChecker"]
         ),
+        .library(name: "LLFSMVerify", targets: ["LLFSMVerifyCommands"]),
         .executable(name: "llfsm-verify", targets: ["LLFSMVerify"])
     ],
     dependencies: [
@@ -46,12 +47,21 @@ let package = Package(
                 .target(name: "CSQLite")
             ]
         ),
+        .target(
+            name: "LLFSMVerifyCommands",
+            dependencies: [
+                .target(name: "VHDLModelChecker"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
+            ]
+        ),
         .executableTarget(
             name: "LLFSMVerify",
             dependencies: [
                 .target(name: "VHDLModelChecker"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
+                .target(name: "LLFSMVerifyCommands")
             ]
         ),
         .testTarget(
