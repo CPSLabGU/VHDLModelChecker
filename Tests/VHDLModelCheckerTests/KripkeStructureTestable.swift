@@ -54,7 +54,7 @@
 // Fifth Floor, Boston, MA  02110-1301, USA.
 
 import TCTLParser
-import VHDLKripkeStructures
+@preconcurrency import VHDLKripkeStructures
 @testable import VHDLModelChecker
 import XCTest
 
