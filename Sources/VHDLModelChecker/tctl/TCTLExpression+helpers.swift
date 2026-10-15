@@ -151,6 +151,8 @@ extension Expression {
             return .disjunction(lhs: lhs.normalised, rhs: rhs.normalised)
         case .implies(let lhs, let rhs):
             return .implies(lhs: lhs.normalised, rhs: rhs.normalised)
+        case .equivalence(let lhs, let rhs):
+            return .equivalence(lhs: lhs.normalised, rhs: rhs.normalised)
         case .language(let language):
             return .language(expression: language.normalised)
         case .not(let expression):
@@ -205,6 +207,13 @@ extension Expression {
                 .revisitting(
                     expression: rhs,
                     precondition: .ignored(expression: lhs)
+                )
+            ]
+        case .equivalence(let lhs, let rhs):
+            return [
+                .revisitting(
+                    expression: .conjunction(lhs: .not(expression: lhs), rhs: .not(expression: rhs)),
+                    precondition: .skip(expression: .conjunction(lhs: lhs, rhs: rhs))
                 )
             ]
         case .constrained(let expression):
