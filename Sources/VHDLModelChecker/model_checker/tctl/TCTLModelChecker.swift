@@ -106,14 +106,14 @@ final class TCTLModelChecker<T> where T: JobStorable {
                 )
                 try self.store.addJob(data: job)
             }
-            fflush(stdout)
+            // fflush(stdout)
             let elapsedTime = try clock.measure {
                 while let jobId = try self.store.next {
                     try handleJob(withId: jobId, structure: structure)
                 }
             }
             print("Finished Requirement \(index + 1) in \(elapsedTime).\n\n")
-            fflush(stdout)
+            // fflush(stdout)
         }
     }
 
