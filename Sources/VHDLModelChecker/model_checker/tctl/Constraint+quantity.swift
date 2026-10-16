@@ -57,7 +57,7 @@ import TCTLParser
 import VHDLKripkeStructures
 
 /// `SIRepresentable` conformance.
-extension Constraint: SIRepresentable {
+extension Constraint: @retroactive SIRepresentable {
 
     /// The coefficient of the SI value.
     public var coefficient: UInt {
