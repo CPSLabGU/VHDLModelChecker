@@ -13,10 +13,10 @@ This package focuses on verifying the `VHDL` flavour of LLFSMs with specificatio
 
 ## Requirements and Supported Platforms
 
-- Swift 5.7 or later (See [Installing Swift](#installing-swift)).
-- macOS 13 (Ventura) or later.
-- Linux (Ubuntu 20.04 or later).
-- Windows 10 or later.
+- Swift 6.0 or later (See [Installing Swift](#installing-swift)).
+- macOS 26 (Ventura) or later.
+- Linux (Ubuntu 24.04 or later).
+- Windows 11 or later.
 - Windows Server Edition 2022 or later.
 
 ## Usage
@@ -48,7 +48,7 @@ let package = Package(
         <products>...
     ],
     dependencies: [
-        .package(url: "https://github.com/cpslabgu/VHDLModelChecker", from: "0.1.0"),
+        .package(url: "https://github.com/cpslabgu/VHDLModelChecker", from: "0.2.0"),
     ],
     targets: [
         .target(
@@ -122,7 +122,7 @@ The latest documentation may be found on the
 ## Installing Swift
 
 You may verify your swift installation by performing `swift --version`. The minimum required version for
-this package is `5.7`. To install swift, follow the instructions below for your operating system.
+this package is `6.0`. To install swift, follow the instructions below for your operating system.
 
 ### Linux
 
@@ -146,7 +146,7 @@ You may now install swift via:
 
 ```shell
 source ~/.bash_profile
-swiftenv install 6.0
+swiftenv install 6.4
 ```
 
 The full instructions are provided in the

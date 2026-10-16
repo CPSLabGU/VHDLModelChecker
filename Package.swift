@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -17,15 +17,15 @@ let package = Package(
             targets: ["VHDLModelChecker"]
         ),
         .library(name: "LLFSMVerify", targets: ["LLFSMVerifyCommands"]),
-        .executable(name: "llfsm-verify", targets: ["VerifyMain"])
+        .executable(name: "llfsm-verify", targets: ["VerifyMain"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
         .package(url: "https://github.com/mipalgu/VHDLParsing", from: "2.4.0"),
-        .package(url: "https://github.com/cpslabgu/TCTLParser", from: "2.0.0"),
-        .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", from: "1.4.0"),
+        .package(url: "https://github.com/cpslabgu/TCTLParser", from: "3.0.0"),
+        .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
         // .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.0")
     ],
@@ -34,7 +34,9 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package
         // depends on.
         .systemLibrary(
-            name: "CSQLite", pkgConfig: "sqlite3", providers: [.apt(["libsqlite3-dev"]), .brew(["sqlite3"])]
+            name: "CSQLite",
+            pkgConfig: "sqlite3",
+            providers: [.apt(["libsqlite3-dev"]), .brew(["sqlite3"])]
         ),
         .target(
             name: "VHDLModelChecker",
@@ -44,7 +46,7 @@ let package = Package(
                 .product(name: "TCTLParser", package: "TCTLParser"),
                 .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
                 // .product(name: "SQLite", package: "SQLite.swift")
-                .target(name: "CSQLite")
+                .target(name: "CSQLite"),
             ]
         ),
         .target(
@@ -52,7 +54,7 @@ let package = Package(
             dependencies: [
                 .target(name: "VHDLModelChecker"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures")
+                .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
             ]
         ),
         .executableTarget(
@@ -68,13 +70,13 @@ let package = Package(
                 .product(name: "TCTLParser", package: "TCTLParser"),
                 .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
                 // .product(name: "SQLite", package: "SQLite.swift")
-                .target(name: "CSQLite")
+                .target(name: "CSQLite"),
             ],
             resources: [
                 .process("output.json"),
                 .process("modeSelector_kripkeStructure.json"),
-                .process("modeSelector_kripkeStructure_old.json")
+                .process("modeSelector_kripkeStructure_old.json"),
             ]
-        )
+        ),
     ]
 )

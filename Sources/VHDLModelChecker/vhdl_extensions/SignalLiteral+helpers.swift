@@ -133,7 +133,7 @@ extension VectorLiteral {
 }
 
 /// Add `Comparable` conformance.
-extension SignalLiteral: Comparable {
+extension SignalLiteral: @retroactive Comparable {
 
     /// `Comparable` implementation.
     public static func < (lhs: SignalLiteral, rhs: SignalLiteral) -> Bool {
