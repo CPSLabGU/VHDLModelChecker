@@ -1,5 +1,14 @@
 FROM swift:6.4-resolute
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends unzip wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && ARCH="$(dpkg --print-architecture)" \
+    && wget -O /tmp/swiftlint.zip "https://github.com/realm/SwiftLint/releases/latest/download/swiftlint_linux_${ARCH}.zip" \
+    && unzip /tmp/swiftlint.zip -d /tmp/swiftlint \
+    && install -m 0755 /tmp/swiftlint/swiftlint-static /usr/bin/swiftlint \
+    && rm -rf /tmp/swiftlint /tmp/swiftlint.zip
+
 # RUN apt-get update \
 #     && apt-get install -y --no-install-recommends unzip wget libxml2-dev \
 #     && rm -rf /var/lib/apt/lists/*
