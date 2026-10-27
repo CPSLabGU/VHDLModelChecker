@@ -164,6 +164,8 @@ extension Expression {
         }
     }
 
+    // swiftlint:disable function_body_length
+
     /// Verify the expression.
     func verify(currentNode node: Node, inCycle: Bool) throws -> [VerifyStatus] {
         // Verifies a node but does not take into consideration successor nodes.
@@ -220,5 +222,7 @@ extension Expression {
             return try expression.verify(currentNode: node, inCycle: inCycle)
         }
     }
+
+    // swiftlint:enable function_body_length
 
 }
