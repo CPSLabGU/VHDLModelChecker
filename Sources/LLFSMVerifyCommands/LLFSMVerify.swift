@@ -66,7 +66,7 @@ public struct LLFSMVerify: ParsableCommand {
         commandName: "llfsm-verify",
         abstract: "Verify a Kripke structure against a specification.",
         version: "0.3.0",
-        subcommands: [MachineCommand.self]
+        subcommands: [ArrangementCommand.self, MachineCommand.self]
     )
 
     /// Create a new instance of the command.
