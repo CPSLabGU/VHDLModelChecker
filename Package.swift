@@ -25,8 +25,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
         .package(url: "https://github.com/mipalgu/VHDLParsing", from: "2.4.0"),
         .package(url: "https://github.com/cpslabgu/TCTLParser", from: "3.0.0"),
-        .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", from: "2.0.0"),
+        .package(url: "https://github.com/cpslabgu/VHDLKripkeStructures", branch: "arrangements"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
+        .package(url: "https://github.com/mipalgu/VHDLMachines.git", from: "4.1.0"),
+        .package(url: "https://github.com/CPSLabGU/VHDLJSModels.git", from: "2.0.0"),
         // .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.0")
     ],
     targets: [
@@ -55,6 +57,8 @@ let package = Package(
                 .target(name: "VHDLModelChecker"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "VHDLKripkeStructures", package: "VHDLKripkeStructures"),
+                .product(name: "VHDLMachines", package: "VHDLMachines"),
+                .product(name: "VHDLJSModels", package: "VHDLJSModels"),
             ]
         ),
         .executableTarget(
